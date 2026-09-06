@@ -1,1 +1,20 @@
 @import "tailwindcss";
+
+@font-face {
+  font-family: 'Satoshi-Variable';
+  src: url('./assets/fonts/Satoshi-Variable.woff2') format('woff2'),
+       url('./assets/fonts/Satoshi-Variable.woff') format('woff'),
+       url('./assets/fonts/Satoshi-Variable.ttf') format('truetype');
+  font-weight: 300 900;
+  font-display: swap;
+  font-style: normal;
+}
+
+@theme {
+
+    --color-primary: #001EC5;
+    --color-primary-text: #030E4A;
+    --color-background: #F6F5F9;
+
+    --font-satoshi: 'Satoshi-Variable', sans-serif;
+}

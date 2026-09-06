@@ -34,8 +34,8 @@ function DashboardPlaceholder() {
 
 function LoginPlaceholder() {
   return (
-    <div style={{ padding: '2rem', fontFamily: 'system-ui, sans-serif' }}>
-      <h2>CebizPay Login</h2>
+    <div className='text-4xl text-primary-text bg-background p-5 rounded-xl m-5'>
+      <h2 className='text-2xl font-bold mb-4 font-satoshi text-primary'>CebizPay Login</h2>
       <p>Ready for authentication screen integration.</p>
     </div>
   );
