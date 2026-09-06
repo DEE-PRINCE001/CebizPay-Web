@@ -2,26 +2,38 @@ import apiClient from '../client.js';
 import { ENDPOINTS } from '../endpoints.js';
 
 export const payrollService = {
-  calculatePayroll: async (payload) => {
-    return apiClient.post(ENDPOINTS.PAYROLL.CALCULATE, payload);
+  preview: async (payload) => {
+    return apiClient.post(ENDPOINTS.ORG_PAYROLL.PREVIEW, payload);
   },
 
-  executePayroll: async (payload, idempotencyKey = null) => {
-    return apiClient.post(ENDPOINTS.PAYROLL.EXECUTE, payload, {
+  execute: async (payload, idempotencyKey = null) => {
+    return apiClient.post(ENDPOINTS.ORG_PAYROLL.EXECUTE, payload, {
       idempotent: true,
       headers: idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {},
     });
   },
 
-  getPayrollRuns: async (params = { pageNumber: 1, pageSize: 20 }) => {
-    return apiClient.get(ENDPOINTS.PAYROLL.RUNS, { params });
+  getBatches: async (params = { pageNumber: 1, pageSize: 20 }) => {
+    return apiClient.get(ENDPOINTS.ORG_PAYROLL.BATCHES, { params });
   },
 
-  getPayrollRunById: async (id) => {
-    return apiClient.get(ENDPOINTS.PAYROLL.RUN_BY_ID(id));
+  getBatchById: async (id) => {
+    return apiClient.get(ENDPOINTS.ORG_PAYROLL.BATCH_BY_ID(id));
   },
 
-  getPayrollReports: async (params) => {
-    return apiClient.get(ENDPOINTS.PAYROLL.REPORTS, { params });
+  cancelBatch: async (batchId) => {
+    return apiClient.post(ENDPOINTS.ORG_PAYROLL.CANCEL_BATCH(batchId));
+  },
+
+  getVoucherById: async (id) => {
+    return apiClient.get(ENDPOINTS.ORG_PAYROLL.VOUCHER_BY_ID(id));
+  },
+
+  updateVoucher: async (id, payload) => {
+    return apiClient.put(ENDPOINTS.ORG_PAYROLL.UPDATE_VOUCHER(id), payload);
+  },
+
+  getAdminBatchById: async (id) => {
+    return apiClient.get(ENDPOINTS.ADMIN.PAYROLL.BATCH_BY_ID(id));
   },
 };

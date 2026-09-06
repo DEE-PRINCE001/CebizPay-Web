@@ -41,8 +41,10 @@ export const clearStoredAuth = () => {
 };
 
 // Base Axios instance
+const baseURL = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_BASE_URL) || 'http://127.0.0.1:5015';
+
 const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:5015',
+  baseURL,
   headers: {
     'Content-Type': 'application/json',
   },

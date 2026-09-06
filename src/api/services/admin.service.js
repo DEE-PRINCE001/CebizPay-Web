@@ -7,7 +7,7 @@ export const adminService = {
     return apiClient.get(ENDPOINTS.ADMIN.AUDIT_LOGS, { params });
   },
 
-  // Compliance & EDD
+  // Compliance Assessments & EDD
   compliance: {
     getAssessment: async (subjectType, subjectId, organizationId = null) => {
       return apiClient.get(ENDPOINTS.ADMIN.COMPLIANCE.ASSESSMENT(subjectType, subjectId), {
@@ -49,19 +49,6 @@ export const adminService = {
     },
   },
 
-  // Fee Policies
-  fees: {
-    getPolicies: async (params) => {
-      return apiClient.get(ENDPOINTS.ADMIN.FEES.POLICIES, { params });
-    },
-    createPlatformPolicy: async (payload) => {
-      return apiClient.post(ENDPOINTS.ADMIN.FEES.PLATFORM_POLICIES, payload);
-    },
-    createBankTransferPolicy: async (payload) => {
-      return apiClient.post(ENDPOINTS.ADMIN.FEES.BANK_TRANSFER_POLICIES, payload);
-    },
-  },
-
   // Admin Management & Permissions
   manage: {
     getAdmins: async (params = { pageNumber: 1, pageSize: 20 }) => {
@@ -81,23 +68,79 @@ export const adminService = {
     },
   },
 
-  // Financial Reconciliation
+  // Fees Policies
+  fees: {
+    getPolicies: async (params) => {
+      return apiClient.get(ENDPOINTS.ADMIN.FEES.POLICIES, { params });
+    },
+    getPolicyById: async (id) => {
+      return apiClient.get(ENDPOINTS.ADMIN.FEES.POLICY_BY_ID(id));
+    },
+    createPolicy: async (payload) => {
+      return apiClient.post(ENDPOINTS.ADMIN.FEES.POLICIES, payload);
+    },
+    updatePolicy: async (id, payload) => {
+      return apiClient.put(ENDPOINTS.ADMIN.FEES.POLICY_BY_ID(id), payload);
+    },
+    deletePolicy: async (id) => {
+      return apiClient.delete(ENDPOINTS.ADMIN.FEES.POLICY_BY_ID(id));
+    },
+    getPlatformPolicies: async (params) => {
+      return apiClient.get(ENDPOINTS.ADMIN.FEES.PLATFORM_POLICIES, { params });
+    },
+    createPlatformPolicy: async (payload) => {
+      return apiClient.post(ENDPOINTS.ADMIN.FEES.PLATFORM_POLICIES, payload);
+    },
+    getBankTransferPolicies: async (params) => {
+      return apiClient.get(ENDPOINTS.ADMIN.FEES.BANK_TRANSFER_POLICIES, { params });
+    },
+    createBankTransferPolicy: async (payload) => {
+      return apiClient.post(ENDPOINTS.ADMIN.FEES.BANK_TRANSFER_POLICIES, payload);
+    },
+  },
+
+  // Reconciliation
   reconciliation: {
     getRecords: async (params = { pageNumber: 1, pageSize: 20 }) => {
       return apiClient.get(ENDPOINTS.ADMIN.RECONCILIATION.RECORDS, { params });
     },
+    getRecordById: async (id) => {
+      return apiClient.get(ENDPOINTS.ADMIN.RECONCILIATION.RECORD_BY_ID(id));
+    },
+    requeryRecord: async (id, payload) => {
+      return apiClient.post(ENDPOINTS.ADMIN.RECONCILIATION.REQUERY(id), payload);
+    },
     getUnified: async (params) => {
       return apiClient.get(ENDPOINTS.ADMIN.RECONCILIATION.UNIFIED, { params });
     },
+    getUnifiedById: async (id) => {
+      return apiClient.get(ENDPOINTS.ADMIN.RECONCILIATION.UNIFIED_BY_ID(id));
+    },
   },
 
-  // Referral Settings
+  // Referrals
   referrals: {
     getSettings: async () => {
       return apiClient.get(ENDPOINTS.ADMIN.REFERRALS.SETTINGS);
     },
     updateSettings: async (payload) => {
       return apiClient.put(ENDPOINTS.ADMIN.REFERRALS.UPDATE_SETTINGS, payload);
+    },
+  },
+
+  // Reviews & Recoveries
+  reviews: {
+    getPending: async (params) => {
+      return apiClient.get(ENDPOINTS.ADMIN.REVIEWS.PENDING, { params });
+    },
+    submitDecision: async (payload) => {
+      return apiClient.post(ENDPOINTS.ADMIN.REVIEWS.DECISION, payload);
+    },
+    getRecoveries: async (params) => {
+      return apiClient.get(ENDPOINTS.ADMIN.REVIEWS.RECOVERIES, { params });
+    },
+    settleRecovery: async (id, payload) => {
+      return apiClient.post(ENDPOINTS.ADMIN.REVIEWS.SETTLE_RECOVERY(id), payload);
     },
   },
 
@@ -111,7 +154,7 @@ export const adminService = {
     },
   },
 
-  // Admin Thrift Management & Delinquencies
+  // Thrift
   thrift: {
     getGroups: async (params = { pageNumber: 1, pageSize: 20 }) => {
       return apiClient.get(ENDPOINTS.ADMIN.THRIFT.GROUPS, { params });
@@ -125,12 +168,15 @@ export const adminService = {
     getDisputes: async (params = { pageNumber: 1, pageSize: 20 }) => {
       return apiClient.get(ENDPOINTS.ADMIN.THRIFT.DISPUTES, { params });
     },
+    getDisputeById: async (id) => {
+      return apiClient.get(ENDPOINTS.ADMIN.THRIFT.DISPUTE_BY_ID(id));
+    },
     resolveDispute: async (id, payload) => {
       return apiClient.post(ENDPOINTS.ADMIN.THRIFT.RESOLVE_DISPUTE(id), payload);
     },
   },
 
-  // Admin Support & Reports
+  // Support
   support: {
     getReports: async (params) => {
       return apiClient.get(ENDPOINTS.ADMIN.SUPPORT.REPORTS, { params });
@@ -138,18 +184,14 @@ export const adminService = {
     getTickets: async (params = { pageNumber: 1, pageSize: 20 }) => {
       return apiClient.get(ENDPOINTS.ADMIN.SUPPORT.TICKETS, { params });
     },
-  },
-
-  // Announcements
-  announcements: {
-    create: async (payload) => {
-      return apiClient.post(ENDPOINTS.ADMIN.ANNOUNCEMENTS.CREATE, payload);
+    getTicketById: async (id) => {
+      return apiClient.get(ENDPOINTS.ADMIN.SUPPORT.TICKET_BY_ID(id));
     },
-    update: async (id, payload) => {
-      return apiClient.put(ENDPOINTS.ADMIN.ANNOUNCEMENTS.UPDATE(id), payload);
+    addMessage: async (id, payload) => {
+      return apiClient.post(ENDPOINTS.ADMIN.SUPPORT.ADD_MESSAGE(id), payload);
     },
-    delete: async (id) => {
-      return apiClient.delete(ENDPOINTS.ADMIN.ANNOUNCEMENTS.DELETE(id));
+    updateTicketStatus: async (id, payload) => {
+      return apiClient.patch(ENDPOINTS.ADMIN.SUPPORT.UPDATE_STATUS(id), payload);
     },
   },
 };

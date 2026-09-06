@@ -11,15 +11,15 @@ export const cardsService = {
   },
 
   deleteSavedCard: async (id) => {
-    return apiClient.delete(ENDPOINTS.CARDS.DELETE_CARD(id));
+    return apiClient.delete(ENDPOINTS.CARDS.DELETE(id));
   },
 
   setDefaultCard: async (id) => {
-    return apiClient.patch(ENDPOINTS.CARDS.SET_DEFAULT(id));
+    return apiClient.post(ENDPOINTS.CARDS.SET_DEFAULT(id));
   },
 
   chargeSavedCard: async (payload, idempotencyKey = null) => {
-    return apiClient.post(ENDPOINTS.CARDS.CHARGE_SAVED_CARD, payload, {
+    return apiClient.post(ENDPOINTS.CARDS.CHARGE, payload, {
       idempotent: true,
       headers: idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {},
     });

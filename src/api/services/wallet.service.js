@@ -2,26 +2,16 @@ import apiClient from '../client.js';
 import { ENDPOINTS } from '../endpoints.js';
 
 export const walletService = {
-  /**
-   * Retrieves wallet balance and overview for individual or organization context.
-   */
   getWallet: async (organizationId = null) => {
-    return apiClient.get(ENDPOINTS.WALLET.DETAILS, {
+    return apiClient.get(ENDPOINTS.WALLET.GET_DETAILS, {
       params: organizationId ? { organizationId } : {},
     });
   },
 
-  /**
-   * Retrieves transaction history.
-   */
   getTransactions: async (params = { pageNumber: 1, pageSize: 20 }) => {
-    return apiClient.get(ENDPOINTS.WALLET.TRANSACTIONS, { params });
+    return apiClient.get(ENDPOINTS.WALLET.GET_TRANSACTIONS, { params });
   },
 
-  /**
-   * Performs an instant internal peer-to-peer transfer.
-   * Auto-sets idempotency key.
-   */
   peerTransfer: async (payload, idempotencyKey = null) => {
     return apiClient.post(ENDPOINTS.WALLET.PEER_TRANSFER, payload, {
       idempotent: true,
@@ -29,10 +19,6 @@ export const walletService = {
     });
   },
 
-  /**
-   * Performs an outbound bank transfer via standard payout channels.
-   * Auto-sets idempotency key.
-   */
   bankTransfer: async (payload, idempotencyKey = null) => {
     return apiClient.post(ENDPOINTS.WALLET.BANK_TRANSFER, payload, {
       idempotent: true,
@@ -40,13 +26,47 @@ export const walletService = {
     });
   },
 
-  // Virtual Accounts
-  provisionVirtualAccount: async (payload) => {
-    return apiClient.post(ENDPOINTS.WALLET.VIRTUAL_ACCOUNTS.PROVISION, payload);
+  resolveAccount: async (params) => {
+    return apiClient.get(ENDPOINTS.WALLET.RESOLVE_ACCOUNT, { params });
   },
 
-  getVirtualAccounts: async (organizationId = null) => {
-    return apiClient.get(ENDPOINTS.WALLET.VIRTUAL_ACCOUNTS.LIST, {
+  getExternalAccounts: async (organizationId = null) => {
+    return apiClient.get(ENDPOINTS.WALLET.EXTERNAL_ACCOUNTS, {
+      params: organizationId ? { organizationId } : {},
+    });
+  },
+
+  getExternalAccountById: async (id) => {
+    return apiClient.get(ENDPOINTS.WALLET.EXTERNAL_ACCOUNT_BY_ID(id));
+  },
+
+  deleteExternalAccount: async (id) => {
+    return apiClient.delete(ENDPOINTS.WALLET.EXTERNAL_ACCOUNT_BY_ID(id));
+  },
+
+  provisionMonnifyAccount: async (organizationId = null) => {
+    return apiClient.post(ENDPOINTS.WALLET.PROVISION_MONNIFY, null, {
+      params: organizationId ? { organizationId } : {},
+    });
+  },
+
+  setPrimaryExternalAccount: async (id, organizationId = null) => {
+    return apiClient.post(ENDPOINTS.WALLET.SET_PRIMARY_EXTERNAL(id), null, {
+      params: organizationId ? { organizationId } : {},
+    });
+  },
+
+  getFundingStatus: async (id) => {
+    return apiClient.get(ENDPOINTS.WALLET.FUNDING_STATUS(id));
+  },
+
+  // Virtual Accounts
+  provisionVirtualAccount: async (payload) => {
+    return apiClient.post(ENDPOINTS.VIRTUAL_ACCOUNTS.PROVISION, payload);
+  },
+
+  getPrimaryVirtualAccount: async (organizationId = null) => {
+    return apiClient.get(ENDPOINTS.VIRTUAL_ACCOUNTS.PRIMARY, {
       params: organizationId ? { organizationId } : {},
     });
   },

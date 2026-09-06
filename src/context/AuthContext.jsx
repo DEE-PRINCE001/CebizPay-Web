@@ -1,100 +1,59 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
-import { jwtDecode } from 'jwt-decode';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { AuthContext } from './authContextInstance.js';
 import { authService } from '../api/services/auth.service.js';
 import {
   getStoredAccessToken,
   getStoredRefreshToken,
   getStoredActiveOrgId,
-  setStoredTokens,
   setStoredActiveOrgId,
   clearStoredAuth,
   AUTH_EVENTS,
 } from '../api/client.js';
 import { queryClient } from '../lib/queryClient.js';
 
-export const AuthContext = createContext(null);
-
-/**
- * Normalizes claims from ASP.NET Core JWT format into a clean user object.
- */
-function parseJwtUser(token) {
-  if (!token) return null;
-  try {
-    const decoded = jwtDecode(token);
-
-    // Check expiration
-    if (decoded.exp && decoded.exp * 1000 < Date.now()) {
-      return null;
-    }
-
-    // Extract roles (supports single string or array, standard or WS-Federation schema)
-    const rawRoles =
-      decoded['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] ||
-      decoded.role ||
-      decoded.roles ||
-      [];
-    const roles = Array.isArray(rawRoles) ? rawRoles : rawRoles ? [rawRoles] : [];
-
-    // Extract permissions
-    const rawPermissions = decoded.permission || decoded.permissions || [];
-    const permissions = Array.isArray(rawPermissions) ? rawPermissions : rawPermissions ? [rawPermissions] : [];
-
-    const id =
-      decoded.sub ||
-      decoded['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier'] ||
-      decoded.nameid ||
-      decoded.id ||
-      '';
-
-    const email =
-      decoded.email ||
-      decoded['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress'] ||
-      '';
-
-    const firstName = decoded.given_name || decoded.firstName || '';
-    const lastName = decoded.family_name || decoded.lastName || '';
-    const name = decoded.name || `${firstName} ${lastName}`.trim() || email;
-
-    const organizationId = decoded.organizationId || decoded.orgId || null;
-    const kycStatus = decoded.kycStatus || decoded.kyc || null;
-
-    return {
-      id,
-      email,
-      name,
-      firstName,
-      lastName,
-      roles,
-      permissions,
-      tokenOrganizationId: organizationId,
-      kycStatus,
-      rawDecoded: decoded,
-    };
-  } catch (err) {
-    console.error('Failed to parse JWT user payload:', err);
-    return null;
-  }
-}
-
 export const AuthProvider = ({ children }) => {
   const [accessToken, setAccessToken] = useState(() => getStoredAccessToken());
   const [refreshToken, setRefreshToken] = useState(() => getStoredRefreshToken());
   const [activeOrgId, setActiveOrgId] = useState(() => getStoredActiveOrgId());
-  const [user, setUser] = useState(() => parseJwtUser(getStoredAccessToken()));
+  const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [mfaChallenge, setMfaChallenge] = useState(null);
 
-  // Sync state when tokens change or when silent refresh finishes
-  const handleTokensUpdated = useCallback((newAccessToken, newRefreshToken) => {
-    setAccessToken(newAccessToken);
-    if (newRefreshToken) setRefreshToken(newRefreshToken);
-    const parsedUser = parseJwtUser(newAccessToken);
-    setUser(parsedUser);
+  // Fetch full user profile from /auth/me
+  const fetchUserProfile = useCallback(async () => {
+    try {
+      const profile = await authService.getMe();
+      setUser(profile);
 
-    // If activeOrgId is not explicitly set in storage, check token organizationId
-    if (!getStoredActiveOrgId() && parsedUser?.tokenOrganizationId) {
-      setActiveOrgId(parsedUser.tokenOrganizationId);
-      setStoredActiveOrgId(parsedUser.tokenOrganizationId);
+      // Determine active organization ID
+      const storedOrgId = getStoredActiveOrgId();
+      const validStoredOrg = profile.organizations?.some((o) => o.organizationId === storedOrgId);
+
+      if (storedOrgId && validStoredOrg) {
+        setActiveOrgId(storedOrgId);
+      } else if (profile.activeOrganizationId) {
+        setActiveOrgId(profile.activeOrganizationId);
+        setStoredActiveOrgId(profile.activeOrganizationId);
+      } else if (profile.organizations?.length > 0) {
+        const firstOrgId = profile.organizations[0].organizationId;
+        setActiveOrgId(firstOrgId);
+        setStoredActiveOrgId(firstOrgId);
+      } else {
+        setActiveOrgId(null);
+        setStoredActiveOrgId(null);
+      }
+
+      return profile;
+    } catch (err) {
+      console.error('Failed to fetch user profile:', err);
+      if (err.status === 401 || err.status === 403) {
+        clearStoredAuth();
+        setUser(null);
+        setAccessToken(null);
+        setRefreshToken(null);
+        setActiveOrgId(null);
+      }
+      return null;
     }
   }, []);
 
@@ -105,41 +64,31 @@ export const AuthProvider = ({ children }) => {
       const storedRefresh = getStoredRefreshToken();
 
       if (storedToken) {
-        const parsed = parseJwtUser(storedToken);
-        if (parsed) {
-          setUser(parsed);
-          setAccessToken(storedToken);
-          setRefreshToken(storedRefresh);
-          if (!activeOrgId && parsed.tokenOrganizationId) {
-            setActiveOrgId(parsed.tokenOrganizationId);
-            setStoredActiveOrgId(parsed.tokenOrganizationId);
+        setAccessToken(storedToken);
+        setRefreshToken(storedRefresh);
+        await fetchUserProfile();
+      } else if (storedRefresh) {
+        try {
+          const data = await authService.refreshToken(storedRefresh);
+          if (data?.accessToken) {
+            setAccessToken(data.accessToken);
+            setRefreshToken(data.refreshToken || storedRefresh);
+            await fetchUserProfile();
           }
-        } else if (storedRefresh) {
-          // Access token expired, attempt immediate silent refresh
-          try {
-            const data = await authService.refreshToken(storedRefresh);
-            if (data?.accessToken) {
-              handleTokensUpdated(data.accessToken, data.refreshToken || storedRefresh);
-            }
-          } catch {
-            clearStoredAuth();
-            setUser(null);
-            setAccessToken(null);
-            setRefreshToken(null);
-          }
-        } else {
+        } catch {
           clearStoredAuth();
           setUser(null);
           setAccessToken(null);
+          setRefreshToken(null);
         }
       }
       setIsLoading(false);
     };
 
     initAuth();
-  }, [activeOrgId, handleTokensUpdated]);
+  }, [fetchUserProfile]);
 
-  // Listen for global client auth events (e.g. 401 logout or silent background token refresh)
+  // Listen for global client auth events
   useEffect(() => {
     const onUnauthorized = () => {
       setUser(null);
@@ -150,9 +99,11 @@ export const AuthProvider = ({ children }) => {
       queryClient.clear();
     };
 
-    const onRefreshed = (e) => {
+    const onRefreshed = async (e) => {
       if (e.detail?.accessToken) {
-        handleTokensUpdated(e.detail.accessToken, e.detail.refreshToken);
+        setAccessToken(e.detail.accessToken);
+        if (e.detail.refreshToken) setRefreshToken(e.detail.refreshToken);
+        await fetchUserProfile();
       }
     };
 
@@ -163,66 +114,80 @@ export const AuthProvider = ({ children }) => {
       window.removeEventListener(AUTH_EVENTS.UNAUTHORIZED, onUnauthorized);
       window.removeEventListener(AUTH_EVENTS.TOKENS_REFRESHED, onRefreshed);
     };
-  }, [handleTokensUpdated]);
+  }, [fetchUserProfile]);
 
   // Login action
-  const login = async (credentials) => {
-    const data = await authService.login(credentials);
+  const login = useCallback(
+    async (credentials) => {
+      const data = await authService.login(credentials);
 
-    // Handle MFA Challenge
-    if (data?.requiresMfa || data?.challengeId) {
-      setMfaChallenge({
-        challengeId: data.challengeId,
-        email: credentials.email,
-      });
-      return { requiresMfa: true, challengeId: data.challengeId };
-    }
+      if (data?.requiresMfa || data?.challengeId) {
+        setMfaChallenge({
+          challengeId: data.challengeId,
+          email: credentials.email,
+        });
+        return { requiresMfa: true, challengeId: data.challengeId };
+      }
 
-    if (data?.accessToken) {
-      handleTokensUpdated(data.accessToken, data.refreshToken);
-      setMfaChallenge(null);
-      return { success: true, user: parseJwtUser(data.accessToken) };
-    }
+      if (data?.accessToken) {
+        setAccessToken(data.accessToken);
+        setRefreshToken(data.refreshToken);
+        setMfaChallenge(null);
+        const profile = await fetchUserProfile();
+        return { success: true, user: profile };
+      }
 
-    return data;
-  };
+      return data;
+    },
+    [fetchUserProfile]
+  );
 
   // Verify MFA Challenge
-  const verifyMfa = async (code) => {
-    if (!mfaChallenge?.challengeId) {
-      throw new Error('No active MFA challenge found.');
-    }
+  const verifyMfa = useCallback(
+    async (code) => {
+      if (!mfaChallenge?.challengeId) {
+        throw new Error('No active MFA challenge found.');
+      }
 
-    const data = await authService.verifyMfa({
-      challengeId: mfaChallenge.challengeId,
-      code,
-    });
+      const data = await authService.verifyMfa({
+        challengeId: mfaChallenge.challengeId,
+        code,
+      });
 
-    if (data?.accessToken) {
-      handleTokensUpdated(data.accessToken, data.refreshToken);
-      setMfaChallenge(null);
-      return { success: true, user: parseJwtUser(data.accessToken) };
-    }
+      if (data?.accessToken) {
+        setAccessToken(data.accessToken);
+        setRefreshToken(data.refreshToken);
+        setMfaChallenge(null);
+        const profile = await fetchUserProfile();
+        return { success: true, user: profile };
+      }
 
-    return data;
-  };
+      return data;
+    },
+    [mfaChallenge, fetchUserProfile]
+  );
 
   // Register Phone & OTP verification
-  const registerPhone = async (payload) => {
+  const registerPhone = useCallback(async (payload) => {
     return authService.registerPhone(payload);
-  };
+  }, []);
 
-  const verifyOtp = async (payload) => {
-    const data = await authService.verifyOtp(payload);
-    if (data?.accessToken) {
-      handleTokensUpdated(data.accessToken, data.refreshToken);
-      return { success: true, user: parseJwtUser(data.accessToken) };
-    }
-    return data;
-  };
+  const verifyOtp = useCallback(
+    async (payload) => {
+      const data = await authService.verifyOtp(payload);
+      if (data?.accessToken) {
+        setAccessToken(data.accessToken);
+        setRefreshToken(data.refreshToken);
+        const profile = await fetchUserProfile();
+        return { success: true, user: profile };
+      }
+      return data;
+    },
+    [fetchUserProfile]
+  );
 
   // Logout action
-  const logout = async () => {
+  const logout = useCallback(async () => {
     try {
       await authService.logout();
     } finally {
@@ -233,53 +198,71 @@ export const AuthProvider = ({ children }) => {
       setMfaChallenge(null);
       queryClient.clear();
     }
-  };
+  }, []);
 
   // Switch or set Active Organization
-  const switchOrganization = (orgId) => {
+  const switchOrganization = useCallback((orgId) => {
     setActiveOrgId(orgId || null);
     setStoredActiveOrgId(orgId || null);
-  };
+  }, []);
 
-  // User Profile manual updater
-  const updateUser = (updater) => {
-    setUser((prev) => (typeof updater === 'function' ? updater(prev) : { ...prev, ...updater }));
-  };
+  // Active Organization object from user.organizations
+  const activeOrg = useMemo(() => {
+    if (!user?.organizations || !activeOrgId) return null;
+    return user.organizations.find((o) => o.organizationId === activeOrgId) || null;
+  }, [user, activeOrgId]);
+
+  // Context flags
+  const isAuthenticated = useMemo(() => !!user && !!accessToken, [user, accessToken]);
+  const hasOrgContext = useMemo(() => !!activeOrg || (user?.organizations && user.organizations.length > 0), [activeOrg, user]);
+  const isAdmin = useMemo(() => !!user?.adminProfile, [user]);
 
   // Role verification helper
   const hasRole = useCallback(
     (requiredRole) => {
-      if (!user?.roles) return false;
+      if (!user) return false;
+
+      const roles = [];
+      if (user.adminProfile?.role) roles.push(user.adminProfile.role);
+      if (activeOrg?.role) roles.push(activeOrg.role);
+
       if (Array.isArray(requiredRole)) {
-        return requiredRole.some((r) => user.roles.includes(r));
+        return requiredRole.some((r) => roles.includes(r));
       }
-      return user.roles.includes(requiredRole);
+      return roles.includes(requiredRole);
     },
-    [user]
+    [user, activeOrg]
   );
 
   // Permission verification helper
   const hasPermission = useCallback(
     (requiredPermission) => {
-      if (!user?.permissions) return false;
+      if (!user) return false;
+
+      const permissions = [
+        ...(user.adminProfile?.permissions || []),
+        ...(activeOrg?.permissions || []),
+      ];
+
       if (Array.isArray(requiredPermission)) {
-        return requiredPermission.some((p) => user.permissions.includes(p));
+        return requiredPermission.some((p) => permissions.includes(p));
       }
-      return user.permissions.includes(requiredPermission);
+      return permissions.includes(requiredPermission);
     },
-    [user]
+    [user, activeOrg]
   );
 
-  // Context flags
-  const isAuthenticated = useMemo(() => !!user && !!accessToken, [user, accessToken]);
-  const hasOrgContext = useMemo(() => !!activeOrgId || !!user?.tokenOrganizationId, [activeOrgId, user]);
-  const isAdmin = useMemo(() => hasRole(['Admin', 'SuperAdmin', 'PlatformAdmin', 'ComplianceOfficer']), [hasRole]);
+  const clearMfaChallenge = useCallback(() => {
+    setMfaChallenge(null);
+  }, []);
 
   const value = useMemo(
     () => ({
       user,
       tokens: { accessToken, refreshToken },
       activeOrgId,
+      activeOrg,
+      organizations: user?.organizations || [],
       isAuthenticated,
       isLoading,
       mfaChallenge,
@@ -291,23 +274,32 @@ export const AuthProvider = ({ children }) => {
       verifyOtp,
       logout,
       switchOrganization,
-      updateUser,
+      refetchUser: fetchUserProfile,
       hasRole,
       hasPermission,
-      clearMfaChallenge: () => setMfaChallenge(null),
+      clearMfaChallenge,
     }),
     [
       user,
       accessToken,
       refreshToken,
       activeOrgId,
+      activeOrg,
       isAuthenticated,
       isLoading,
       mfaChallenge,
       hasOrgContext,
       isAdmin,
+      login,
+      verifyMfa,
+      registerPhone,
+      verifyOtp,
+      logout,
+      switchOrganization,
+      fetchUserProfile,
       hasRole,
       hasPermission,
+      clearMfaChallenge,
     ]
   );
 

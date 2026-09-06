@@ -15,6 +15,13 @@ export const authService = {
   },
 
   /**
+   * Retrieves full profile, identity, admin, and workplace details of the currently authenticated user.
+   */
+  getMe: async () => {
+    return apiClient.get(ENDPOINTS.AUTH.ME);
+  },
+
+  /**
    * Verifies short-lived MFA challenge code to obtain JWT tokens.
    * @param {{ challengeId: string, code: string }} payload
    */
@@ -78,7 +85,8 @@ export const authService = {
   },
 
   /**
-   * Manually triggers token refresh.
+   * Exchanges an active refresh token for a new JWT access token and rotated refresh token.
+   * @param {string} [refreshTokenOverride]
    */
   refreshToken: async (refreshTokenOverride = null) => {
     const refreshToken = refreshTokenOverride || getStoredRefreshToken();
@@ -96,7 +104,7 @@ export const authService = {
   },
 
   /**
-   * Logs out the user and revokes the active refresh token on the server.
+   * Explicitly revokes a refresh token (e.g. on user logout).
    */
   logout: async () => {
     const refreshToken = getStoredRefreshToken();
@@ -105,7 +113,7 @@ export const authService = {
         await apiClient.post(ENDPOINTS.AUTH.REVOKE_TOKEN, { refreshToken });
       }
     } catch {
-      // Continue client cleanup even if network/server call fails
+      // Continue client cleanup even if network fails
     } finally {
       clearStoredAuth();
     }

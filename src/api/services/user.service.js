@@ -4,56 +4,74 @@ import { ENDPOINTS } from '../endpoints.js';
 export const userService = {
   // Referrals
   getReferralDashboard: async () => {
-    return apiClient.get(ENDPOINTS.USER.REFERRALS.DASHBOARD);
+    return apiClient.get(ENDPOINTS.REFERRALS.DASHBOARD);
   },
 
   getOrCreateReferralCode: async () => {
-    return apiClient.post(ENDPOINTS.USER.REFERRALS.GET_OR_CREATE_CODE);
+    return apiClient.post(ENDPOINTS.REFERRALS.GET_CODE);
   },
 
-  claimReferralCode: async (code) => {
-    return apiClient.post(ENDPOINTS.USER.REFERRALS.CLAIM_CODE, { referralCode: code });
+  claimReferralCode: async (referralCode) => {
+    return apiClient.post(ENDPOINTS.REFERRALS.CLAIM_CODE, { referralCode });
   },
 
   // In-App Notifications
   getNotifications: async (params = { pageNumber: 1, pageSize: 20 }) => {
-    return apiClient.get(ENDPOINTS.USER.NOTIFICATIONS.LIST, { params });
+    return apiClient.get(ENDPOINTS.NOTIFICATIONS.LIST, { params });
   },
 
-  getUnreadCount: async () => {
-    return apiClient.get(ENDPOINTS.USER.NOTIFICATIONS.UNREAD_COUNT);
+  getUnreadCount: async (organizationId = null) => {
+    return apiClient.get(ENDPOINTS.NOTIFICATIONS.UNREAD_COUNT, {
+      params: organizationId ? { organizationId } : {},
+    });
   },
 
   markNotificationRead: async (id) => {
-    return apiClient.patch(ENDPOINTS.USER.NOTIFICATIONS.MARK_READ(id));
+    return apiClient.patch(ENDPOINTS.NOTIFICATIONS.MARK_READ(id));
   },
 
-  markAllNotificationsRead: async () => {
-    return apiClient.post(ENDPOINTS.USER.NOTIFICATIONS.MARK_ALL_READ);
+  markAllNotificationsRead: async (organizationId = null) => {
+    return apiClient.post(ENDPOINTS.NOTIFICATIONS.MARK_ALL_READ, null, {
+      params: organizationId ? { organizationId } : {},
+    });
   },
 
   getNotificationPreferences: async () => {
-    return apiClient.get(ENDPOINTS.USER.NOTIFICATIONS.PREFERENCES);
+    return apiClient.get(ENDPOINTS.NOTIFICATIONS.PREFERENCES);
   },
 
-  updateNotificationPreferences: async (preferences) => {
-    return apiClient.put(ENDPOINTS.USER.NOTIFICATIONS.PREFERENCES, preferences);
+  updateNotificationPreferences: async (payload) => {
+    return apiClient.put(ENDPOINTS.NOTIFICATIONS.PREFERENCES, payload);
   },
 
   registerDeviceToken: async (payload) => {
-    return apiClient.post(ENDPOINTS.USER.NOTIFICATIONS.REGISTER_DEVICE, payload);
+    return apiClient.post(ENDPOINTS.NOTIFICATIONS.REGISTER_DEVICE, payload);
   },
 
   // Announcements
-  getActiveAnnouncements: async () => {
-    return apiClient.get(ENDPOINTS.USER.ANNOUNCEMENTS.ACTIVE);
+  getActiveAnnouncements: async (organizationId = null) => {
+    return apiClient.get(ENDPOINTS.ANNOUNCEMENTS.ACTIVE, {
+      params: organizationId ? { organizationId } : {},
+    });
   },
 
   getAnnouncements: async (params = { pageNumber: 1, pageSize: 20 }) => {
-    return apiClient.get(ENDPOINTS.USER.ANNOUNCEMENTS.LIST, { params });
+    return apiClient.get(ENDPOINTS.ANNOUNCEMENTS.LIST, { params });
   },
 
   getAnnouncementById: async (id) => {
-    return apiClient.get(ENDPOINTS.USER.ANNOUNCEMENTS.GET_BY_ID(id));
+    return apiClient.get(ENDPOINTS.ANNOUNCEMENTS.GET_BY_ID(id));
+  },
+
+  createAnnouncement: async (payload) => {
+    return apiClient.post(ENDPOINTS.ANNOUNCEMENTS.CREATE, payload);
+  },
+
+  updateAnnouncement: async (id, payload) => {
+    return apiClient.put(ENDPOINTS.ANNOUNCEMENTS.UPDATE(id), payload);
+  },
+
+  deleteAnnouncement: async (id) => {
+    return apiClient.delete(ENDPOINTS.ANNOUNCEMENTS.DELETE(id));
   },
 };

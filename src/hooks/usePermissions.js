@@ -1,12 +1,21 @@
 import { useAuth } from './useAuth.js';
 
 export const usePermissions = () => {
-  const { user, hasRole, hasPermission, isAdmin, hasOrgContext } = useAuth();
+  const { user, activeOrg, hasRole, hasPermission, isAdmin, hasOrgContext } = useAuth();
+
+  const orgPermissions = activeOrg?.permissions || [];
+  const adminPermissions = user?.adminProfile?.permissions || [];
+  const allPermissions = Array.from(new Set([...adminPermissions, ...orgPermissions]));
+
+  const orgRole = activeOrg?.role;
+  const adminRole = user?.adminProfile?.role;
+  const allRoles = [adminRole, orgRole].filter(Boolean);
 
   return {
     user,
-    roles: user?.roles || [],
-    permissions: user?.permissions || [],
+    activeOrg,
+    roles: allRoles,
+    permissions: allPermissions,
     isAdmin,
     hasOrgContext,
     hasRole,

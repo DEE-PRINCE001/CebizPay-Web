@@ -3,102 +3,93 @@ import { ENDPOINTS } from '../endpoints.js';
 
 export const organizationService = {
   // Departments
-  getDepartments: async (params) => {
-    return apiClient.get(ENDPOINTS.ORGANIZATION.DEPARTMENTS.LIST, { params });
-  },
-
-  createDepartment: async (payload) => {
-    return apiClient.post(ENDPOINTS.ORGANIZATION.DEPARTMENTS.CREATE, payload);
-  },
-
-  getDepartmentById: async (id) => {
-    return apiClient.get(ENDPOINTS.ORGANIZATION.DEPARTMENTS.GET_BY_ID(id));
-  },
-
-  updateDepartment: async (id, payload) => {
-    return apiClient.put(ENDPOINTS.ORGANIZATION.DEPARTMENTS.UPDATE(id), payload);
-  },
-
-  deleteDepartment: async (id) => {
-    return apiClient.delete(ENDPOINTS.ORGANIZATION.DEPARTMENTS.DELETE(id));
+  departments: {
+    list: async (params) => {
+      return apiClient.get(ENDPOINTS.ORG_WORKFORCE.DEPARTMENTS.LIST, { params });
+    },
+    create: async (payload) => {
+      return apiClient.post(ENDPOINTS.ORG_WORKFORCE.DEPARTMENTS.CREATE, payload);
+    },
+    getById: async (id) => {
+      return apiClient.get(ENDPOINTS.ORG_WORKFORCE.DEPARTMENTS.GET_BY_ID(id));
+    },
+    update: async (id, payload) => {
+      return apiClient.put(ENDPOINTS.ORG_WORKFORCE.DEPARTMENTS.UPDATE(id), payload);
+    },
+    delete: async (id) => {
+      return apiClient.delete(ENDPOINTS.ORG_WORKFORCE.DEPARTMENTS.DELETE(id));
+    },
   },
 
   // Workforce Roles
-  getRoles: async (params) => {
-    return apiClient.get(ENDPOINTS.ORGANIZATION.WORKFORCE_ROLES.LIST, { params });
-  },
-
-  createRole: async (payload) => {
-    return apiClient.post(ENDPOINTS.ORGANIZATION.WORKFORCE_ROLES.CREATE, payload);
-  },
-
-  getRoleById: async (id) => {
-    return apiClient.get(ENDPOINTS.ORGANIZATION.WORKFORCE_ROLES.GET_BY_ID(id));
-  },
-
-  updateRole: async (id, payload) => {
-    return apiClient.put(ENDPOINTS.ORGANIZATION.WORKFORCE_ROLES.UPDATE(id), payload);
-  },
-
-  deleteRole: async (id) => {
-    return apiClient.delete(ENDPOINTS.ORGANIZATION.WORKFORCE_ROLES.DELETE(id));
+  roles: {
+    list: async (params) => {
+      return apiClient.get(ENDPOINTS.ORG_WORKFORCE.ROLES.LIST, { params });
+    },
+    create: async (payload) => {
+      return apiClient.post(ENDPOINTS.ORG_WORKFORCE.ROLES.CREATE, payload);
+    },
+    getById: async (id) => {
+      return apiClient.get(ENDPOINTS.ORG_WORKFORCE.ROLES.GET_BY_ID(id));
+    },
+    update: async (id, payload) => {
+      return apiClient.put(ENDPOINTS.ORG_WORKFORCE.ROLES.UPDATE(id), payload);
+    },
+    delete: async (id) => {
+      return apiClient.delete(ENDPOINTS.ORG_WORKFORCE.ROLES.DELETE(id));
+    },
   },
 
   // Salary Levels
-  getSalaryLevels: async (params) => {
-    return apiClient.get(ENDPOINTS.ORGANIZATION.SALARY_LEVELS.LIST, { params });
+  levels: {
+    list: async (params) => {
+      return apiClient.get(ENDPOINTS.ORG_WORKFORCE.LEVELS.LIST, { params });
+    },
+    create: async (payload) => {
+      return apiClient.post(ENDPOINTS.ORG_WORKFORCE.LEVELS.CREATE, payload);
+    },
+    getById: async (id) => {
+      return apiClient.get(ENDPOINTS.ORG_WORKFORCE.LEVELS.GET_BY_ID(id));
+    },
+    update: async (id, payload) => {
+      return apiClient.put(ENDPOINTS.ORG_WORKFORCE.LEVELS.UPDATE(id), payload);
+    },
+    delete: async (id) => {
+      return apiClient.delete(ENDPOINTS.ORG_WORKFORCE.LEVELS.DELETE(id));
+    },
   },
 
-  createSalaryLevel: async (payload) => {
-    return apiClient.post(ENDPOINTS.ORGANIZATION.SALARY_LEVELS.CREATE, payload);
-  },
-
-  getSalaryLevelById: async (id) => {
-    return apiClient.get(ENDPOINTS.ORGANIZATION.SALARY_LEVELS.GET_BY_ID(id));
-  },
-
-  updateSalaryLevel: async (id, payload) => {
-    return apiClient.put(ENDPOINTS.ORGANIZATION.SALARY_LEVELS.UPDATE(id), payload);
-  },
-
-  deleteSalaryLevel: async (id) => {
-    return apiClient.delete(ENDPOINTS.ORGANIZATION.SALARY_LEVELS.DELETE(id));
-  },
-
-  // Staff Management
-  getStaffRoster: async (params = { pageNumber: 1, pageSize: 20 }) => {
-    return apiClient.get(ENDPOINTS.ORGANIZATION.STAFF.LIST, { params });
-  },
-
-  getStaffById: async (id) => {
-    return apiClient.get(ENDPOINTS.ORGANIZATION.STAFF.GET_BY_ID(id));
-  },
-
-  createStaffDirect: async (payload) => {
-    return apiClient.post(ENDPOINTS.ORGANIZATION.STAFF.CREATE_DIRECT, payload);
-  },
-
-  inviteStaff: async (payload) => {
-    return apiClient.post(ENDPOINTS.ORGANIZATION.STAFF.INVITE, payload);
-  },
-
-  inviteStaffBulk: async (payload) => {
-    return apiClient.post(ENDPOINTS.ORGANIZATION.STAFF.INVITE_BULK, payload);
-  },
-
-  acceptStaffInvitation: async (payload) => {
-    return apiClient.post(ENDPOINTS.ORGANIZATION.STAFF.ACCEPT_INVITATION, payload);
-  },
-
-  assignStaffWorkforce: async (id, payload) => {
-    return apiClient.put(ENDPOINTS.ORGANIZATION.STAFF.ASSIGN_WORKFORCE(id), payload);
-  },
-
-  suspendStaff: async (id, payload) => {
-    return apiClient.post(ENDPOINTS.ORGANIZATION.STAFF.SUSPEND(id), payload);
-  },
-
-  terminateStaff: async (id, payload) => {
-    return apiClient.post(ENDPOINTS.ORGANIZATION.STAFF.TERMINATE(id), payload);
+  // Staff Roster & Management
+  staff: {
+    list: async (params = { pageNumber: 1, pageSize: 20 }) => {
+      return apiClient.get(ENDPOINTS.ORG_WORKFORCE.STAFF.LIST, { params });
+    },
+    getById: async (id) => {
+      return apiClient.get(ENDPOINTS.ORG_WORKFORCE.STAFF.GET_BY_ID(id));
+    },
+    createDirect: async (payload) => {
+      return apiClient.post(ENDPOINTS.ORG_WORKFORCE.STAFF.CREATE, payload);
+    },
+    invite: async (payload) => {
+      return apiClient.post(ENDPOINTS.ORG_WORKFORCE.STAFF.INVITE, payload);
+    },
+    inviteBulk: async (payload) => {
+      return apiClient.post(ENDPOINTS.ORG_WORKFORCE.STAFF.INVITE_BULK, payload);
+    },
+    acceptInvite: async (payload) => {
+      return apiClient.post(ENDPOINTS.ORG_WORKFORCE.STAFF.ACCEPT_INVITE, payload);
+    },
+    assign: async (id, payload) => {
+      return apiClient.put(ENDPOINTS.ORG_WORKFORCE.STAFF.ASSIGN(id), payload);
+    },
+    suspend: async (id, payload) => {
+      return apiClient.patch(ENDPOINTS.ORG_WORKFORCE.STAFF.SUSPEND(id), payload);
+    },
+    reactivate: async (id) => {
+      return apiClient.patch(ENDPOINTS.ORG_WORKFORCE.STAFF.REACTIVATE(id));
+    },
+    terminate: async (id, payload) => {
+      return apiClient.post(ENDPOINTS.ORG_WORKFORCE.STAFF.TERMINATE(id), payload);
+    },
   },
 };

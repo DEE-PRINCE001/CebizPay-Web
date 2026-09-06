@@ -3,73 +3,92 @@ import { ENDPOINTS } from '../endpoints.js';
 
 export const complianceService = {
   // Individual KYC
-  submitKycDocument: async (individualId, formData) => {
-    return apiClient.post(ENDPOINTS.COMPLIANCE.INDIVIDUAL_KYC.SUBMIT(individualId), formData, {
+  submitKycDocuments: async (individualId, formData) => {
+    return apiClient.post(ENDPOINTS.INDIVIDUAL_KYC.SUBMIT_DOCUMENTS(individualId), formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
   },
 
   getKycDocuments: async (individualId) => {
-    return apiClient.get(ENDPOINTS.COMPLIANCE.INDIVIDUAL_KYC.LIST(individualId));
+    return apiClient.get(ENDPOINTS.INDIVIDUAL_KYC.GET_DOCUMENTS(individualId));
   },
 
   updateKycStatus: async (individualId, payload) => {
-    return apiClient.patch(ENDPOINTS.COMPLIANCE.INDIVIDUAL_KYC.UPDATE_STATUS(individualId), payload);
+    return apiClient.patch(ENDPOINTS.INDIVIDUAL_KYC.UPDATE_STATUS(individualId), payload);
   },
 
   // Organization KYB
   registerKybStep1: async (payload) => {
-    return apiClient.post(ENDPOINTS.COMPLIANCE.KYB.REGISTER_STEP1, payload);
+    return apiClient.post(ENDPOINTS.ORGANIZATION_KYB.REGISTER_STEP1, payload);
   },
 
   registerKybStep2: async (payload) => {
-    return apiClient.post(ENDPOINTS.COMPLIANCE.KYB.REGISTER_STEP2, payload);
+    return apiClient.post(ENDPOINTS.ORGANIZATION_KYB.REGISTER_STEP2, payload);
   },
 
   updateOrgStatus: async (orgId, payload) => {
-    return apiClient.patch(ENDPOINTS.COMPLIANCE.KYB.UPDATE_STATUS(orgId), payload);
+    return apiClient.patch(ENDPOINTS.ORGANIZATION_KYB.UPDATE_STATUS(orgId), payload);
   },
 
   // Direct Identity & Background Verification
-  verifyBvn: async (payload) => {
-    return apiClient.post(ENDPOINTS.COMPLIANCE.IDENTITY_VERIFICATION.VERIFY_BVN, payload);
-  },
-
-  verifyNin: async (payload) => {
-    return apiClient.post(ENDPOINTS.COMPLIANCE.IDENTITY_VERIFICATION.VERIFY_NIN, payload);
-  },
-
-  verifyBusiness: async (payload) => {
-    return apiClient.post(ENDPOINTS.COMPLIANCE.IDENTITY_VERIFICATION.VERIFY_BUSINESS, payload);
-  },
-
-  verifyDocument: async (formData) => {
-    return apiClient.post(ENDPOINTS.COMPLIANCE.IDENTITY_VERIFICATION.VERIFY_DOCUMENT, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
+  verifyBvn: async (payload, idempotencyKey = null) => {
+    return apiClient.post(ENDPOINTS.COMPLIANCE.VERIFY_BVN, payload, {
+      idempotent: true,
+      headers: idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {},
     });
   },
 
-  verifyBiometrics: async (payload) => {
-    return apiClient.post(ENDPOINTS.COMPLIANCE.IDENTITY_VERIFICATION.VERIFY_BIOMETRICS, payload);
+  verifyNin: async (payload, idempotencyKey = null) => {
+    return apiClient.post(ENDPOINTS.COMPLIANCE.VERIFY_NIN, payload, {
+      idempotent: true,
+      headers: idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {},
+    });
   },
 
-  screenAml: async (payload) => {
-    return apiClient.post(ENDPOINTS.COMPLIANCE.IDENTITY_VERIFICATION.SCREEN_AML, payload);
+  verifyBusiness: async (payload, idempotencyKey = null) => {
+    return apiClient.post(ENDPOINTS.COMPLIANCE.VERIFY_BUSINESS, payload, {
+      idempotent: true,
+      headers: idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {},
+    });
+  },
+
+  verifyDocument: async (formData, idempotencyKey = null) => {
+    return apiClient.post(ENDPOINTS.COMPLIANCE.VERIFY_DOCUMENT, formData, {
+      idempotent: true,
+      headers: {
+        'Content-Type': 'multipart/form-data',
+        ...(idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {}),
+      },
+    });
+  },
+
+  verifyBiometrics: async (payload, idempotencyKey = null) => {
+    return apiClient.post(ENDPOINTS.COMPLIANCE.VERIFY_BIOMETRICS, payload, {
+      idempotent: true,
+      headers: idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {},
+    });
+  },
+
+  screenAml: async (payload, idempotencyKey = null) => {
+    return apiClient.post(ENDPOINTS.COMPLIANCE.SCREEN_AML, payload, {
+      idempotent: true,
+      headers: idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {},
+    });
   },
 
   checkEligibility: async (payload) => {
-    return apiClient.post(ENDPOINTS.COMPLIANCE.IDENTITY_VERIFICATION.ELIGIBILITY, payload);
+    return apiClient.post(ENDPOINTS.COMPLIANCE.CHECK_ELIGIBILITY, payload);
   },
 
   getCddProfile: async (params) => {
-    return apiClient.get(ENDPOINTS.COMPLIANCE.IDENTITY_VERIFICATION.CDD_PROFILE, { params });
+    return apiClient.get(ENDPOINTS.COMPLIANCE.CDD_PROFILE, { params });
   },
 
   submitEddInformation: async (caseId, payload) => {
-    return apiClient.post(ENDPOINTS.COMPLIANCE.IDENTITY_VERIFICATION.SUBMIT_EDD_INFO(caseId), payload);
+    return apiClient.post(ENDPOINTS.COMPLIANCE.SUBMIT_EDD_INFO(caseId), payload);
   },
 
   getBeneficialOwners: async (payload) => {
-    return apiClient.post(ENDPOINTS.COMPLIANCE.IDENTITY_VERIFICATION.BENEFICIAL_OWNERS, payload);
+    return apiClient.post(ENDPOINTS.COMPLIANCE.BENEFICIAL_OWNERS, payload);
   },
 };
