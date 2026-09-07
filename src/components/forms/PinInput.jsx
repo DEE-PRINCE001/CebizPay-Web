@@ -27,7 +27,7 @@ export default function PinInput({
     const newPin = [...pinArray];
     newPin[index] = digit;
     const combined = newPin.join('');
-    onChange && onChange(combined);
+    if (onChange) onChange(combined);
 
     if (digit && index < length - 1) {
       inputsRef.current[index + 1]?.focus();
@@ -44,7 +44,7 @@ export default function PinInput({
     e.preventDefault();
     const pastedData = e.clipboardData.getData('text').trim().slice(0, length);
     if (/^\d+$/.test(pastedData)) {
-      onChange && onChange(pastedData);
+      if (onChange) onChange(pastedData);
       const nextFocus = Math.min(pastedData.length, length - 1);
       inputsRef.current[nextFocus]?.focus();
     }
