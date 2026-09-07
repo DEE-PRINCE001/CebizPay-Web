@@ -5,6 +5,7 @@ import { queryClient } from './lib/queryClient.js';
 import { AuthProvider } from './context/AuthContext.jsx';
 import { ProtectedRoute, OrgGuard, AdminGuard } from './components/guards/index.js';
 import { useAuth } from './hooks/useAuth.js';
+import Login from './pages/Login.jsx';
 
 function DashboardPlaceholder() {
   const { user, logout, hasOrgContext, isAdmin } = useAuth();
@@ -34,10 +35,7 @@ function DashboardPlaceholder() {
 
 function LoginPlaceholder() {
   return (
-    <div className='text-4xl text-primary-text bg-background p-5 rounded-xl m-5'>
-      <h2 className='text-2xl font-bold mb-4 font-satoshi text-primary'>CebizPay Login</h2>
-      <p>Ready for authentication screen integration.</p>
-    </div>
+    <Login />
   );
 }
 
