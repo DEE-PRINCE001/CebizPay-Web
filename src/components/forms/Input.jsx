@@ -34,7 +34,7 @@ const Input = forwardRef(function Input({
 
   const errorStyles = error
     ? 'border-red-300 focus:ring-red-500 focus:border-red-500 bg-red-50/20'
-    : 'border-slate-200 focus:ring-primary focus:border-primary bg-white';
+    : 'border-slate-300 focus:ring-primary focus:border-primary bg-background';
 
   const hasRightToggle = isPassword && showPasswordToggle;
   const paddingLeft = Icon && iconPosition === 'left' ? 'pl-10' : 'pl-4';
@@ -64,7 +64,7 @@ const Input = forwardRef(function Input({
           disabled={disabled}
           placeholder={placeholder}
           required={required}
-          className={`w-full py-2.5 rounded-xl border text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-offset-0 transition-all disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed ${paddingLeft} ${paddingRight} ${errorStyles} ${className}`}
+          className={`w-full py-3 rounded-xl border text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-offset-0 transition-all disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed ${paddingLeft} ${paddingRight} ${errorStyles} ${className}`}
           {...props}
         />
         {hasRightToggle ? (

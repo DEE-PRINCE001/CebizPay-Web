@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
-import { useAuth } from '../hooks/useAuth.js';
-import logo from '../assets/logo.jpg';
-import Input from '../components/forms/Input.jsx';
-import Button from '../components/common/Button.jsx';
-import FormError from '../components/forms/FormError.jsx';
-import backgroundImage from '../assets/login-background.svg';
-import woman from '../assets/woman.svg';
+import { useAuth } from '../../hooks/useAuth.js';
+import logo from '../../assets/logo.jpg';
+import Input from '../../components/forms/Input.jsx';
+import Button from '../../components/common/Button.jsx';
+import FormError from '../../components/forms/FormError.jsx';
+import backgroundImage from '../../assets/login-background.svg';
+import woman from '../../assets/woman.svg';
 
 const Login = () => {
   const { login } = useAuth();
@@ -81,9 +81,9 @@ const Login = () => {
   };
 
   return (
-    <div className="font-satoshi flex items-center justify-center min-h-screen w-full bg-white">
+    <div className="font-satoshi flex items-center justify-center min-h-screen w-full bg-background">
       {/* Left Form Section (Responsive for Mobile, Tablet & Desktop) */}
-      <div className="w-full lg:w-[50%] p-6 sm:p-10 lg:p-15 flex flex-col min-h-screen lg:h-screen justify-center lg:justify-start space-y-10 sm:space-y-14 lg:space-y-18 max-w-md sm:max-w-lg lg:max-w-none mx-auto">
+      <div className="w-full lg:w-[50%] p-6 sm:p-10 lg:p-15 lg:px-20 flex flex-col min-h-screen lg:h-screen justify-center lg:justify-start space-y-10 sm:space-y-14 lg:space-y-18 max-w-md sm:max-w-lg lg:max-w-none mx-auto">
         <div className="aspect-square rounded-full w-12 sm:w-15 overflow-hidden shrink-0">
           <img src={logo} alt="Logo" className="w-full h-full object-cover" />
         </div>
@@ -99,8 +99,9 @@ const Login = () => {
               value={formData.email}
               onChange={handleChange}
               error={fieldErrors.email || fieldErrors.Email}
-              placeholder="Enter your email address"
+              
               required
+              
             />
 
             <Input
@@ -110,8 +111,9 @@ const Login = () => {
               value={formData.password}
               onChange={handleChange}
               error={fieldErrors.password || fieldErrors.Password}
-              placeholder="Enter your password"
+              
               required
+          
             />
 
             <div className="flex justify-between items-center text-xs sm:text-sm">
@@ -140,6 +142,7 @@ const Login = () => {
               loading={loginMutation.isPending}
               disabled={loginMutation.isPending}
               className="shadow-lg shadow-primary-text/30"
+              size="lg"
             >
               Login
             </Button>
@@ -161,10 +164,10 @@ const Login = () => {
         style={{ backgroundImage: `url(${backgroundImage})` }}
       >
         <div className="w-full h-full ml-5 shadow-[inset_0_0_30px_rgb(255_255_255/50%)] border border-white rounded-lg backdrop-blur-xl relative overflow-hidden">
-          <p className="text-white text-3xl xl:text-4xl font-extrabold absolute top-7 left-5 leading-10 xl:leading-11">
+          <p className="text-white text-3xl xl:text-4xl font-extrabold absolute top-7 left-7 leading-10 xl:leading-11">
             Smart Way To Build <br /> Your Finance
           </p>
-          <div className="absolute top-40 left-5 h-15 w-px bg-white"></div>
+          <div className="absolute top-40 left-7 h-20 w-px bg-white/70"></div>
           <img src={woman} alt="Hero" className="absolute bottom-0 -right-20 select-none pointer-events-none" />
         </div>
       </div>

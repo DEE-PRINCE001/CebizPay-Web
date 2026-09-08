@@ -5,7 +5,8 @@ import { queryClient } from './lib/queryClient.js';
 import { AuthProvider } from './context/AuthContext.jsx';
 import { ProtectedRoute, OrgGuard, AdminGuard } from './components/guards/index.js';
 import { useAuth } from './hooks/useAuth.js';
-import Login from './pages/Login.jsx';
+import Login from './pages/auth/Login.jsx';
+import RegisterBusiness1 from './pages/auth/RegisterBusiness1.jsx'
 
 function DashboardPlaceholder() {
   const { user, logout, hasOrgContext, isAdmin } = useAuth();
@@ -35,7 +36,8 @@ function DashboardPlaceholder() {
 
 function LoginPlaceholder() {
   return (
-    <Login />
+    // <Login />
+    <RegisterBusiness1/>
   );
 }
 
