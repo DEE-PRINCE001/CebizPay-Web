@@ -6,14 +6,15 @@ import { AuthProvider } from './context/AuthContext.jsx';
 import { ProtectedRoute, OrgGuard, AdminGuard } from './components/guards/index.js';
 import { useAuth } from './hooks/useAuth.js';
 import Login from './pages/auth/Login.jsx';
-import RegisterBusiness1 from './pages/auth/RegisterBusiness1.jsx'
+import RegisterBusiness1 from './pages/auth/RegisterBusiness1.jsx';
+import RegisterBusiness2 from './pages/auth/RegisterBusiness2.jsx';
 
 function DashboardPlaceholder() {
   const { user, logout, hasOrgContext, isAdmin } = useAuth();
   return (
     <div style={{ padding: '2rem', fontFamily: 'system-ui, sans-serif' }}>
       <h1>Welcome to CebizPay</h1>
-      <p>Logged in as: <strong>{user?.name || user?.email}</strong></p>
+      <p>Logged in as: <strong>{user?.fullName || user?.name || user?.email}</strong></p>
       <p>Context: <strong>{hasOrgContext ? 'Organization Member' : 'Individual Account'}</strong></p>
       <p>Role(s): <strong>{user?.roles?.join(', ') || 'Standard User'}</strong></p>
       {isAdmin && <p style={{ color: '#2563eb', fontWeight: 600 }}>Platform Administrator Privileges Active</p>}
@@ -34,34 +35,31 @@ function DashboardPlaceholder() {
   );
 }
 
-function LoginPlaceholder() {
-  return (
-    // <Login />
-    <RegisterBusiness1/>
-  );
-}
-
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <BrowserRouter>
           <Routes>
-            {/* Public Routes */}
-            <Route path="/login" element={<LoginPlaceholder />} />
+            {/* Public Auth Routes */}
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Navigate to="/register/business" replace />} />
+            <Route path="/register/business" element={<RegisterBusiness1 />} />
+            <Route path="/register/business/step-1" element={<RegisterBusiness1 />} />
+            <Route path="/register/business/step-2" element={<RegisterBusiness2 />} />
 
-            {/* Protected Routes (All Authenticated Users) */}
+            {/* Protected Routes */}
             <Route element={<ProtectedRoute />}>
               <Route path="/dashboard" element={<DashboardPlaceholder />} />
 
               {/* Organization Protected Routes */}
               <Route element={<OrgGuard />}>
-                {/* Workforce, Payroll, ERP routes will be placed here */}
+                {/* Workforce, Payroll, ERP routes */}
               </Route>
 
               {/* Platform Admin Protected Routes */}
               <Route element={<AdminGuard />}>
-                {/* Audit logs, EDD cases, reconciliation, platform fee policies */}
+                {/* Admin routes */}
               </Route>
             </Route>
 
