@@ -137,6 +137,16 @@ export const AuthProvider = ({ children }) => {
         return { success: true, user: profile };
       }
 
+      if (data?.succeeded === false || data?.success === false) {
+        const errorMsg =
+          (Array.isArray(data.errors) && data.errors[0]) ||
+          data.message ||
+          'Invalid email or password. Please try again.';
+        const err = new Error(errorMsg);
+        err.errors = data.errors;
+        throw err;
+      }
+
       return data;
     },
     [fetchUserProfile]

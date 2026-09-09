@@ -34,7 +34,9 @@ const Login = () => {
     },
     onError: (err) => {
       setGeneralError(err.message || 'Invalid email or password. Please try again.');
-      if (err.errors) {
+      if (err.fieldErrors && Object.keys(err.fieldErrors).length > 0) {
+        setFieldErrors(err.fieldErrors);
+      } else if (err.errors && !Array.isArray(err.errors) && typeof err.errors === 'object') {
         setFieldErrors(err.errors);
       }
     },
