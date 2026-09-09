@@ -34,6 +34,8 @@ export const ENDPOINTS = {
         REGISTER_DEVICE: `${BASE_PREFIX}/notifications/device-token`,
       },
       ANNOUNCEMENTS: {
+        PLATFORM: `${BASE_PREFIX}/announcements/platform`,
+        WORKPLACE: `${BASE_PREFIX}/announcements/workplace`,
         ACTIVE: `${BASE_PREFIX}/announcements/active`,
         LIST: `${BASE_PREFIX}/announcements`,
         GET_BY_ID: (id) => `${BASE_PREFIX}/announcements/${id}`,

@@ -8,8 +8,6 @@ import { useAuth } from './hooks/useAuth.js';
 import Login from './pages/auth/Login.jsx';
 import RegisterBusiness1 from './pages/auth/RegisterBusiness1.jsx';
 import RegisterBusiness2 from './pages/auth/RegisterBusiness2.jsx';
-import Navbar from './components/layout/Navbar.jsx';
-import DashboardLayout from './components/layout/DashboardLayout.jsx';
 import Dashboard from './pages/admin/Dashboard.jsx';
 
 function DashboardPlaceholder() {
@@ -64,7 +62,7 @@ function App() {
 
               {/* Platform Admin Protected Routes */}
               <Route element={<AdminGuard />}>
-                {/* Admin routes */}
+                <Route path="/admin/dashboard" element={<Dashboard />} />
               </Route>
             </Route>
 

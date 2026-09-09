@@ -15,6 +15,7 @@
     --color-primary: #001EC5;
     --color-primary-text: #030E4A;
     --color-background: #F6F5F9;
+    --color-muted-foreground: #64748B;
 
     --font-satoshi: 'Satoshi-Variable', sans-serif;
 }

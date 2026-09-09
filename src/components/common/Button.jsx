@@ -13,6 +13,7 @@ export default function Button({
   className = '',
   type = 'button',
   onClick,
+  as: Component = 'button',
   ...props
 }) {
   const baseStyles = 'inline-flex w-full items-center justify-center font-medium transition-all duration-150 focus:outline-none focus:ring-2 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed select-none';
@@ -38,14 +39,19 @@ export default function Button({
     lg: 18
   };
 
+  const componentProps = {
+    disabled: disabled || loading,
+    onClick,
+    className: `${baseStyles} ${variants[variant] || variants.primary} ${sizes[size] || sizes.md} ${className}`,
+    ...props,
+  };
+
+  if (Component === 'button') {
+    componentProps.type = type;
+  }
+
   return (
-    <button
-      type={type}
-      disabled={disabled || loading}
-      onClick={onClick}
-      className={`${baseStyles} ${variants[variant] || variants.primary} ${sizes[size] || sizes.md} ${className}`}
-      {...props}
-    >
+    <Component {...componentProps}>
       {loading ? (
         <Loader2 size={iconSizes[size] || 16} className="animate-spin" />
       ) : (
@@ -53,6 +59,6 @@ export default function Button({
       )}
       <span>{children}</span>
       {!loading && Icon && iconPosition === 'right' && <Icon size={iconSizes[size] || 16} />}
-    </button>
+    </Component>
   );
 }

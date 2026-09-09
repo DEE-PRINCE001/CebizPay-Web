@@ -46,14 +46,20 @@ const CustomTooltip = ({ active, payload }) => {
   return null;
 };
 
-export default function EarningsChart({ data = DEFAULT_DATA, totalEarnings = "3,445" }) {
+export default function EarningsChart({
+  title = 'Earning',
+  totalEarnings = '3,445',
+  currency = '₦',
+  data = DEFAULT_DATA,
+  className = '',
+}) {
   return (
-    <div className="w-full max-w-2xl rounded-2xl bg-white p-6 shadow-sm border border-gray-50">
+    <div className={`w-full rounded-2xl bg-white p-6 shadow-xs border border-gray-100 ${className}`}>
       {/* Header Section */}
       <div className="flex items-center justify-between mb-6">
-        <span className="text-sm font-semibold text-gray-900">Earning</span>
+        <span className="text-sm font-semibold text-gray-900">{title}</span>
         <span className="text-xl font-bold text-gray-900 flex items-center">
-          <span className="font-sans mr-0.5">₦</span>{totalEarnings}
+          <span className="font-sans mr-0.5">{currency}</span>{totalEarnings}
         </span>
       </div>
 
