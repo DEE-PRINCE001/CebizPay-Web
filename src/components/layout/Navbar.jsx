@@ -7,7 +7,7 @@ import { Bell, Coins, LayoutDashboard, User, UsersRound, Wallet } from 'lucide-r
 
 const Navbar = () => {
     return (
-        <div className='flex space-x-7 w-full items-center'>
+        <div className='flex space-x-7 w-full items-center '>
             <div className='w-15 h-15 rounded-full overflow-hidden'>
                 <img src={logo} alt="Logo" className='w-full h-full object-cover' />
             </div>
