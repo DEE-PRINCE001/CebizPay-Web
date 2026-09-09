@@ -19,8 +19,9 @@ export default function Button({
 
   const variants = {
     primary: 'bg-primary hover:bg-primary/80 text-white rounded-xl focus:ring-primary-text',
+    primaryLink: 'bg-primary hover:bg-primary/80 text-white rounded-full focus:ring-primary-text',
     secondary: 'bg-brand-50 hover:bg-brand-100 active:bg-brand-200 text-brand-600 rounded-full focus:ring-brand-500',
-    outline: 'border border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50 text-slate-700 rounded-full focus:ring-slate-400',
+    outline: 'border border-primary/30 hover:border-primary bg-white hover:bg-primary/20 text-primary rounded-full focus:ring-primary/40',
     danger: 'bg-red-600 hover:bg-red-700 active:bg-red-800 text-white rounded-full shadow-xs shadow-red-500/20 focus:ring-red-500',
     ghost: 'text-slate-600 hover:bg-slate-100 active:bg-slate-200 rounded-lg focus:ring-slate-300'
   };

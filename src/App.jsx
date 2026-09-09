@@ -8,6 +8,8 @@ import { useAuth } from './hooks/useAuth.js';
 import Login from './pages/auth/Login.jsx';
 import RegisterBusiness1 from './pages/auth/RegisterBusiness1.jsx';
 import RegisterBusiness2 from './pages/auth/RegisterBusiness2.jsx';
+import Navbar from './components/layout/Navbar.jsx';
+import DashboardLayout from './components/layout/DashboardLayout.jsx';
 
 function DashboardPlaceholder() {
   const { user, logout, hasOrgContext, isAdmin } = useAuth();
@@ -42,6 +44,8 @@ function App() {
         <BrowserRouter>
           <Routes>
             {/* Public Auth Routes */}
+            
+            <Route path="/dashboard-test" element={<DashboardLayout/> } />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Navigate to="/register/business" replace />} />
             <Route path="/register/business" element={<RegisterBusiness1 />} />
@@ -64,7 +68,7 @@ function App() {
             </Route>
 
             {/* Default Route */}
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            <Route path="*" element={<Navigate to="/dashboard-test" replace />} />
           </Routes>
         </BrowserRouter>
       </AuthProvider>

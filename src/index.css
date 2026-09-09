@@ -18,3 +18,7 @@
 
     --font-satoshi: 'Satoshi-Variable', sans-serif;
 }
+
+*{
+  font-family: var(--font-satoshi);
+}
