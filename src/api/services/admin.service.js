@@ -2,6 +2,19 @@ import apiClient from '../client.js';
 import { ENDPOINTS } from '../endpoints.js';
 
 export const adminService = {
+  // Organizations Directory & Management
+  organizations: {
+    list: async (params = { pageNumber: 1, pageSize: 20, search: '', status: '' }) => {
+      return apiClient.get(ENDPOINTS.ADMIN.ORGANIZATIONS.LIST, { params });
+    },
+    getById: async (id) => {
+      return apiClient.get(ENDPOINTS.ADMIN.ORGANIZATIONS.GET_BY_ID(id));
+    },
+    updateStatus: async (id, payload) => {
+      return apiClient.patch(ENDPOINTS.ADMIN.ORGANIZATIONS.UPDATE_STATUS(id), payload);
+    },
+  },
+
   // Dashboard & Metrics
   dashboard: {
     getMetrics: async () => {

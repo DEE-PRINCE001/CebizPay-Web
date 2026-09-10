@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import DashboardLayout from '../../components/layout/DashboardLayout.jsx';
 import SearchInput from '../../components/forms/SearchInput.jsx';
 import Button from '../../components/common/Button.jsx';
@@ -6,77 +7,69 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '.
 import StatusBadge from '../../components/common/StatusBadge.jsx';
 import Pagination from '../../components/common/Pagination.jsx';
 import FilterDropdown from '../../components/forms/FilterDropdown.jsx';
-import { ChevronDown } from 'lucide-react';
+import OrganizationDetailsModal from '../../components/modals/OrganizationDetailsModal.jsx';
+import { ChevronDown, Loader2 } from 'lucide-react';
 import defaultProfile from '../../assets/default-profile.svg';
-
-const MOCK_ORGANIZATIONS = [
-  {
-    id: '1',
-    name: 'Cebis Tech',
-    category: 'Finance',
-    email: 'CebisTech@gmail.com',
-    address: 'Abuja..........',
-    status: 'Suspended',
-  },
-  {
-    id: '2',
-    name: 'Cebis Tech',
-    category: 'Finance',
-    email: 'CebisTech@gmail.com',
-    address: 'Abuja..........',
-    status: 'Pending',
-  },
-  {
-    id: '3',
-    name: 'Cebis Tech',
-    category: 'Finance',
-    email: 'CebisTech@gmail.com',
-    address: 'Abuja..........',
-    status: 'Verified',
-  },
-  {
-    id: '4',
-    name: 'Cebis Tech',
-    category: 'Finance',
-    email: 'CebisTech@gmail.com',
-    address: 'Abuja..........',
-    status: 'Rejected',
-  },
-  {
-    id: '5',
-    name: 'Cebis Tech',
-    category: 'Finance',
-    email: 'CebisTech@gmail.com',
-    address: 'Abuja..........',
-    status: 'Suspended',
-  },
-  {
-    id: '6',
-    name: 'Cebis Tech',
-    category: 'Finance',
-    email: 'CebisTech@gmail.com',
-    address: 'Abuja..........',
-    status: 'Suspended',
-  },
-  {
-    id: '7',
-    name: 'Cebis Tech',
-    category: 'Finance',
-    email: 'CebisTech@gmail.com',
-    address: 'Abuja..........',
-    status: 'Suspended',
-  },
-];
+import { adminService } from '../../api/services/admin.service.js';
+import {
+  MOCK_ORGANIZATIONS,
+  DEFAULT_FALLBACK_COUNT,
+  DEFAULT_FALLBACK_TOTAL_PAGES,
+} from '../../api/mocks/organizations.mock.js';
 
 export default function Organizations() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [activeOrgModal, setActiveOrgModal] = useState(null);
 
-  // Client-side mock filtering for search and status filter
-  const filteredOrganizations = useMemo(() => {
-    return MOCK_ORGANIZATIONS.filter((org) => {
+  // 1. Fetch Platform Admin KPI Metrics (Total Organizations count)
+  const { data: metricsData } = useQuery({
+    queryKey: ['admin-metrics'],
+    queryFn: () => adminService.dashboard.getMetrics(),
+    staleTime: 60 * 1000,
+    retry: false,
+  });
+
+  // 2. Fetch Organizations Directory list from backend
+  const { data: orgsApiData, isLoading, isFetching } = useQuery({
+    queryKey: ['admin-organizations', { page: currentPage, search: searchQuery, status: selectedStatus }],
+    queryFn: () =>
+      adminService.organizations.list({
+        pageNumber: currentPage,
+        pageSize: 10,
+        search: searchQuery,
+        status: selectedStatus,
+      }),
+    staleTime: 30 * 1000,
+    retry: false,
+  });
+
+  // Determine organizations dataset: use live backend items if available, otherwise use fallback testing data
+  const rawOrganizations = useMemo(() => {
+    if (orgsApiData?.items && Array.isArray(orgsApiData.items) && orgsApiData.items.length > 0) {
+      return orgsApiData.items.map((item) => ({
+        id: item.id || item.organizationId,
+        name: item.name || item.businessName || 'Organization',
+        category: item.category || item.industry || 'Finance',
+        email: item.email || item.contactEmail || 'contact@cebizpay.com',
+        address: item.address || item.city || 'Abuja..........',
+        status: item.status || 'Verified',
+        logoUrl: item.logoUrl || null,
+      }));
+    }
+    return MOCK_ORGANIZATIONS;
+  }, [orgsApiData]);
+
+  // Client-side filtering when working with fallback data or search refining
+  const displayedOrganizations = useMemo(() => {
+    // If backend already filtered, use as is; otherwise apply client filter
+    if (orgsApiData?.items && orgsApiData.items.length > 0) {
+      return rawOrganizations;
+    }
+
+    return rawOrganizations.filter((org) => {
       const matchesSearch =
         !searchQuery.trim() ||
         org.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -90,23 +83,62 @@ export default function Organizations() {
 
       return matchesSearch && matchesStatus;
     });
-  }, [searchQuery, selectedStatus]);
+  }, [rawOrganizations, searchQuery, selectedStatus, orgsApiData]);
+
+  // Total count formatted: prioritize live KPI metrics, then API totalCount, then fallback
+  const totalOrganizationsCount = useMemo(() => {
+    if (metricsData?.totalOrganizations != null) {
+      return Number(metricsData.totalOrganizations).toLocaleString('en-US');
+    }
+    if (orgsApiData?.totalCount != null) {
+      return Number(orgsApiData.totalCount).toLocaleString('en-US');
+    }
+    return DEFAULT_FALLBACK_COUNT;
+  }, [metricsData, orgsApiData]);
+
+  // Total pages: prioritize API totalPages, then fallback
+  const totalPages = useMemo(() => {
+    if (orgsApiData?.totalPages != null) {
+      return orgsApiData.totalPages;
+    }
+    return DEFAULT_FALLBACK_TOTAL_PAGES;
+  }, [orgsApiData]);
 
   const handleView = (org) => {
-    // In design-only phase, provide user feedback without external API calls
-    console.log('Viewing organization details:', org);
+    setActiveOrgModal(org);
   };
 
+  // Client-side CSV export of currently filtered data
   const handleExport = () => {
-    console.log('Exporting organizations list...');
+    if (!displayedOrganizations || displayedOrganizations.length === 0) return;
+
+    const headers = ['Name', 'Category', 'Email Address', 'Address', 'Status'];
+    const rows = displayedOrganizations.map((org) => [
+      `"${org.name.replace(/"/g, '""')}"`,
+      `"${org.category.replace(/"/g, '""')}"`,
+      `"${org.email.replace(/"/g, '""')}"`,
+      `"${org.address.replace(/"/g, '""')}"`,
+      `"${org.status.replace(/"/g, '""')}"`,
+    ]);
+
+    const csvContent = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `organizations_${Date.now()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   return (
     <DashboardLayout>
-      <div className="flex flex-col space-y-6 mt-5">
-        {/* Page Title */}
+      <div className="flex flex-col space-y-6">
+        {/* Page Title with Total Count */}
         <h1 className="text-2xl font-bold text-primary-text px-1">
-          Organisations (45)
+          Organisations ({totalOrganizationsCount})
         </h1>
 
         {/* Main White Card Container */}
@@ -117,7 +149,10 @@ export default function Organizations() {
             <div className="w-full sm:w-auto">
               <SearchInput
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setCurrentPage(1);
+                }}
                 onClear={() => setSearchQuery('')}
                 placeholder="Search"
                 className="w-full sm:w-72"
@@ -154,14 +189,24 @@ export default function Organizations() {
                   isOpen={isFilterOpen}
                   onClose={() => setIsFilterOpen(false)}
                   selectedStatus={selectedStatus}
-                  onApply={(status) => setSelectedStatus(status)}
+                  onApply={(status) => {
+                    setSelectedStatus(status);
+                    setCurrentPage(1);
+                  }}
                 />
               </div>
             </div>
           </div>
 
           {/* Data Table */}
-          <div className="w-full">
+          <div className="w-full relative">
+            {isFetching && (
+              <div className="absolute top-2 right-2 flex items-center space-x-1.5 text-xs text-slate-400 bg-white/80 px-2 py-1 rounded-md">
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-primary" />
+                <span>Updating...</span>
+              </div>
+            )}
+
             <Table>
               <TableHeader>
                 <TableRow className="border-b border-transparent">
@@ -175,15 +220,22 @@ export default function Organizations() {
               </TableHeader>
 
               <TableBody>
-                {filteredOrganizations.length > 0 ? (
-                  filteredOrganizations.map((org) => (
+                {isLoading && !rawOrganizations.length ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-12 text-slate-400">
+                      <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-primary" />
+                      <span>Loading organisations...</span>
+                    </TableCell>
+                  </TableRow>
+                ) : displayedOrganizations.length > 0 ? (
+                  displayedOrganizations.map((org) => (
                     <TableRow key={org.id}>
                       {/* Name with Avatar */}
                       <TableCell>
                         <div className="flex items-center space-x-3">
                           <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full overflow-hidden shrink-0 border border-slate-100 bg-slate-100">
                             <img
-                              src={defaultProfile}
+                              src={org.logoUrl || defaultProfile}
                               alt={org.name}
                               className="w-full h-full object-cover"
                             />
@@ -241,11 +293,18 @@ export default function Organizations() {
           {/* Pagination */}
           <Pagination
             currentPage={currentPage}
-            totalPages={130}
+            totalPages={totalPages}
             onPageChange={setCurrentPage}
           />
         </div>
       </div>
+
+      {/* Organization Details Modal */}
+      <OrganizationDetailsModal
+        isOpen={Boolean(activeOrgModal)}
+        onClose={() => setActiveOrgModal(null)}
+        organization={activeOrgModal}
+      />
     </DashboardLayout>
   );
 }

@@ -322,6 +322,11 @@ export const ENDPOINTS = {
       },
     },
     ADMIN: {
+      ORGANIZATIONS: {
+        LIST: `${BASE_PREFIX}/admin/organizations`,
+        GET_BY_ID: (id) => `${BASE_PREFIX}/admin/organizations/${id}`,
+        UPDATE_STATUS: (id) => `${BASE_PREFIX}/organizations/${id}/status`,
+      },
       DASHBOARD: {
         METRICS: `${BASE_PREFIX}/admin/dashboard/metrics`,
       },
