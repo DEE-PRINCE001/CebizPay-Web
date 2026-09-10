@@ -9,6 +9,7 @@ import Login from './pages/auth/Login.jsx';
 import RegisterBusiness1 from './pages/auth/RegisterBusiness1.jsx';
 import RegisterBusiness2 from './pages/auth/RegisterBusiness2.jsx';
 import Dashboard from './pages/admin/Dashboard.jsx';
+import Organizations from './pages/admin/Organizations.jsx';
 
 function DashboardPlaceholder() {
   const { user, logout, hasOrgContext, isAdmin } = useAuth();
@@ -45,6 +46,7 @@ function App() {
             {/* Public Auth Routes */}
             
             <Route path="/dashboard-test" element={<Dashboard/> } />
+            <Route path="/organization" element={<Organizations />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Navigate to="/register/business" replace />} />
             <Route path="/register/business" element={<RegisterBusiness1 />} />
@@ -63,6 +65,7 @@ function App() {
               {/* Platform Admin Protected Routes */}
               <Route element={<AdminGuard />}>
                 <Route path="/admin/dashboard" element={<Dashboard />} />
+                <Route path="/admin/organizations" element={<Organizations />} />
               </Route>
             </Route>
 

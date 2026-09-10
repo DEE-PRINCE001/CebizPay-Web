@@ -22,7 +22,7 @@ const Navbar = () => {
 
   return (
     <header className="w-full flex flex-col">
-      <div className="flex items-center justify-between xl:space-x-7 w-full">
+      <div className="flex items-center justify-between xl:gap-x-7 w-full">
         {/* Brand Logo & Greeting Card */}
         <div className="flex items-center space-x-3 sm:space-x-5">
           <div className="w-12 h-12 sm:w-15 sm:h-15 rounded-full overflow-hidden shrink-0">
