@@ -2,6 +2,27 @@ import apiClient from '../client.js';
 import { ENDPOINTS } from '../endpoints.js';
 
 export const adminService = {
+  // Dashboard & Metrics
+  dashboard: {
+    getMetrics: async () => {
+      return apiClient.get(ENDPOINTS.ADMIN.DASHBOARD.METRICS);
+    },
+  },
+
+  // Treasury & Platform Master Wallet
+  treasury: {
+    getSummary: async (params = {}) => {
+      return apiClient.get(ENDPOINTS.ADMIN.TREASURY.SUMMARY, { params });
+    },
+  },
+
+  // Analytics & Revenue
+  analytics: {
+    getRevenue: async (params = { year: new Date().getFullYear() }) => {
+      return apiClient.get(ENDPOINTS.ADMIN.ANALYTICS.REVENUE, { params });
+    },
+  },
+
   // Audit Logs
   getAuditLogs: async (params = { pageNumber: 1, pageSize: 20 }) => {
     return apiClient.get(ENDPOINTS.ADMIN.AUDIT_LOGS, { params });
@@ -57,8 +78,11 @@ export const adminService = {
     inviteAdmin: async (payload) => {
       return apiClient.post(ENDPOINTS.ADMIN.MANAGE.INVITE, payload);
     },
-    toggleStatus: async (id, payload) => {
-      return apiClient.patch(ENDPOINTS.ADMIN.MANAGE.TOGGLE_STATUS(id), payload);
+    toggleStatus: async (payload) => {
+      return apiClient.patch(ENDPOINTS.ADMIN.MANAGE.TOGGLE_STATUS, payload);
+    },
+    deleteAdmin: async (id) => {
+      return apiClient.delete(ENDPOINTS.ADMIN.MANAGE.DELETE(id));
     },
     grantPermission: async (id, payload) => {
       return apiClient.post(ENDPOINTS.ADMIN.MANAGE.GRANT_PERMISSION(id), payload);

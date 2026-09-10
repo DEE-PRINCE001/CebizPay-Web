@@ -322,6 +322,15 @@ export const ENDPOINTS = {
       },
     },
     ADMIN: {
+      DASHBOARD: {
+        METRICS: `${BASE_PREFIX}/admin/dashboard/metrics`,
+      },
+      TREASURY: {
+        SUMMARY: `${BASE_PREFIX}/admin/treasury/summary`,
+      },
+      ANALYTICS: {
+        REVENUE: `${BASE_PREFIX}/admin/analytics/revenue`,
+      },
       AUDIT_LOGS: `${BASE_PREFIX}/admin/audit-logs`,
       COMPLIANCE: {
         ASSESSMENT: (subjectType, subjectId) => `${BASE_PREFIX}/admin/compliance/assessments/${subjectType}/${subjectId}`,
@@ -338,9 +347,10 @@ export const ENDPOINTS = {
         APPLY_OVERRIDE: `${BASE_PREFIX}/admin/compliance/overrides`,
       },
       MANAGE: {
-        ADMINS: `${BASE_PREFIX}/admin/manage/admins`,
+        ADMINS: `${BASE_PREFIX}/admin/manage`,
         INVITE: `${BASE_PREFIX}/admin/manage/invite`,
-        TOGGLE_STATUS: (id) => `${BASE_PREFIX}/admin/manage/admins/${id}/status`,
+        TOGGLE_STATUS: `${BASE_PREFIX}/admin/manage/toggle-status`,
+        DELETE: (id) => `${BASE_PREFIX}/admin/manage/${id}`,
         GRANT_PERMISSION: (id) => `${BASE_PREFIX}/admin/manage/admins/${id}/permissions/grant`,
         REVOKE_PERMISSION: (id) => `${BASE_PREFIX}/admin/manage/admins/${id}/permissions/revoke`,
       },

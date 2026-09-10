@@ -4,6 +4,7 @@ import logo from '../../assets/logo.jpg';
 import Button from '../common/Button';
 import { Bell, Coins, LayoutDashboard, User, UsersRound, Wallet, Menu, X } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth.js';
+import ProfileModal from '../modals/ProfileModal.jsx';
 
 const NAV_ITEMS = [
   { to: '/dashboard-test', label: 'Dashboard', icon: LayoutDashboard },
@@ -15,6 +16,7 @@ const NAV_ITEMS = [
 
 const Navbar = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
   const { user } = useAuth();
   const displayName = user?.firstName || user?.name?.split(' ')[0] || 'Tayo';
 
@@ -27,7 +29,18 @@ const Navbar = () => {
             <img src={logo} alt="Logo" className="w-full h-full object-cover" />
           </div>
 
-          <div className="bg-white rounded-xl py-3 px-4 sm:py-4 sm:px-5 flex items-center justify-center space-x-3 sm:space-x-5 shadow-xs">
+          <div
+            onClick={() => setIsProfileOpen((prev) => !prev)}
+            className="bg-white rounded-xl py-3 px-4 sm:py-4 sm:px-5 flex items-center justify-center space-x-3 sm:space-x-5 shadow-xs cursor-pointer hover:bg-slate-50 transition-colors select-none"
+            role="button"
+            tabIndex={0}
+            aria-label="Toggle user profile"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                setIsProfileOpen((prev) => !prev);
+              }
+            }}
+          >
             <p className="font-bold text-primary-text text-sm sm:text-base">Hello {displayName}</p>
             <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full overflow-hidden shrink-0 border border-slate-100">
               <img src={logo} alt="Profile" className="w-full h-full object-cover" />
@@ -103,6 +116,12 @@ const Navbar = () => {
           ))}
         </nav>
       )}
+
+      {/* Profile Modal */}
+      <ProfileModal
+        isOpen={isProfileOpen}
+        onClose={() => setIsProfileOpen(false)}
+      />
     </header>
   );
 };

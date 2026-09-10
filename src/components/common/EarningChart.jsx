@@ -26,19 +26,20 @@ const DEFAULT_DATA = [
 ];
 
 // Custom Tooltip component to match the UI precisely
-const CustomTooltip = ({ active, payload }) => {
+const CustomTooltip = ({ active, payload, currency = '₦', growthRate = '-3.4%' }) => {
   if (active && payload && payload.length) {
+    const rawVal = payload[0].value;
+    const formatted = typeof rawVal === 'number'
+      ? rawVal.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
+      : rawVal;
+
     return (
       <div className="flex items-center gap-1.5 rounded-lg border border-gray-100 bg-white px-3 py-1.5 shadow-md">
         <span className="text-xs font-semibold text-gray-800">
-          {/* Formats the raw numeric value into the exact decimal structure seen in the UI */}
-          {Number(payload[0].value * 2592.26).toLocaleString('en-US', {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-          })}
+          {currency}{formatted}
         </span>
         <span className="rounded bg-black px-1 py-0.5 text-[10px] font-medium text-white">
-          -3.4%
+          {growthRate}
         </span>
       </div>
     );
@@ -50,6 +51,7 @@ export default function EarningsChart({
   title = 'Earning',
   totalEarnings = '3,445',
   currency = '₦',
+  growthRate = '-3.4%',
   data = DEFAULT_DATA,
   className = '',
 }) {
@@ -79,11 +81,16 @@ export default function EarningsChart({
 
             {/* Y Axis Formatting */}
             <YAxis
-              domain={[0, 250]}
+              domain={[0, (dataMax) => (dataMax > 0 ? Math.ceil(dataMax * 1.25) : 250)]}
               tickCount={6}
               axisLine={false}
               tickLine={false}
-              tickFormatter={(value) => (value === 0 ? '0' : `₦${value}`)}
+              tickFormatter={(value) => {
+                if (value === 0) return '0';
+                if (value >= 1_000_000) return `${currency}${(value / 1_000_000).toFixed(1)}M`;
+                if (value >= 1_000) return `${currency}${(value / 1_000).toFixed(0)}k`;
+                return `${currency}${value}`;
+              }}
               className="font-medium fill-gray-400"
             />
 
@@ -115,7 +122,7 @@ export default function EarningsChart({
 
             {/* Interactive Tooltip Configuration */}
             <Tooltip
-              content={<CustomTooltip />}
+              content={<CustomTooltip currency={currency} growthRate={growthRate} />}
               cursor={{ stroke: '#E5E7EB', strokeWidth: 1 }}
               position={{ y: -5 }} 
               // Active coordinate forces tooltip open on July if needed natively

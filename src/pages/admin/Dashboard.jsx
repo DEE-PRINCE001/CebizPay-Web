@@ -7,6 +7,7 @@ import WalletCard from '../../components/cards/WalletCard.jsx';
 import { Building2, Users, Clock, UserCheck, UserX, PiggyBank } from 'lucide-react';
 import EarningChart from '../../components/common/EarningChart.jsx';
 import { userService } from '../../api/services/user.service.js';
+import { adminService } from '../../api/services/admin.service.js';
 
 const VOLUME_DATA = [
   { name: 'Jan', value: 45 },
@@ -37,6 +38,31 @@ const DEFAULT_ANNOUNCEMENTS = [
 ];
 
 const Dashboard = () => {
+  // 1. Platform KPI Metrics
+  const { data: metricsData } = useQuery({
+    queryKey: ['admin-metrics'],
+    queryFn: () => adminService.dashboard.getMetrics(),
+    staleTime: 60 * 1000,
+    retry: false,
+  });
+
+  // 2. Platform Master Wallet / Treasury Summary
+  const { data: treasuryData } = useQuery({
+    queryKey: ['admin-treasury'],
+    queryFn: () => adminService.treasury.getSummary(),
+    staleTime: 60 * 1000,
+    retry: false,
+  });
+
+  // 3. Platform Revenue Analytics Time Series
+  const { data: analyticsData } = useQuery({
+    queryKey: ['admin-revenue-analytics'],
+    queryFn: () => adminService.analytics.getRevenue(),
+    staleTime: 60 * 1000,
+    retry: false,
+  });
+
+  // 4. Platform Announcements
   const { data: announcementsData } = useQuery({
     queryKey: ['platform-announcements'],
     queryFn: () => userService.getPlatformAnnouncements({ pageSize: 5 }),
@@ -52,12 +78,67 @@ const Dashboard = () => {
       }))
     : DEFAULT_ANNOUNCEMENTS;
 
+  // Formatted Treasury Values
+  const walletBalance = treasuryData?.availableBalance != null
+    ? Number(treasuryData.availableBalance).toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })
+    : '238,000,909';
+  const currencySymbol = treasuryData?.symbol || '₦';
+
+  // Formatted KPI Counts
+  const kpis = {
+    organizations: metricsData?.totalOrganizations != null
+      ? Number(metricsData.totalOrganizations).toLocaleString('en-US')
+      : '2,345',
+    individuals: metricsData?.totalIndividuals != null
+      ? Number(metricsData.totalIndividuals).toLocaleString('en-US')
+      : '10,000',
+    pendingUsers: metricsData?.pendingKycUsers != null
+      ? Number(metricsData.pendingKycUsers).toLocaleString('en-US')
+      : '9',
+    activeUsers: metricsData?.activeUsers != null
+      ? Number(metricsData.activeUsers).toLocaleString('en-US')
+      : '900',
+    rejectedUsers: metricsData?.rejectedKycUsers != null
+      ? Number(metricsData.rejectedKycUsers).toLocaleString('en-US')
+      : '87',
+    savingPlans: metricsData?.activeSavingPlans != null
+      ? Number(metricsData.activeSavingPlans).toLocaleString('en-US')
+      : '34',
+  };
+
+  // Formatted Chart Series
+  const totalRevenue = analyticsData?.totalRevenue != null
+    ? Number(analyticsData.totalRevenue).toLocaleString('en-US')
+    : '3,445';
+  const totalVolume = analyticsData?.totalTransactionVolume != null
+    ? Number(analyticsData.totalTransactionVolume).toLocaleString('en-US')
+    : '128,450';
+
+  const momGrowthRate = analyticsData?.momGrowthRate != null
+    ? `${analyticsData.momGrowthRate >= 0 ? '+' : ''}${analyticsData.momGrowthRate}%`
+    : '-3.4%';
+
+  const revenueSeries = (analyticsData?.monthlyData && analyticsData.monthlyData.length > 0)
+    ? analyticsData.monthlyData.map((d) => ({ name: d.name, value: d.revenue }))
+    : undefined;
+
+  const volumeSeries = (analyticsData?.monthlyData && analyticsData.monthlyData.length > 0)
+    ? analyticsData.monthlyData.map((d) => ({ name: d.name, value: d.volume }))
+    : VOLUME_DATA;
+
   return (
     <DashboardLayout>
       <div className="flex flex-col space-y-6 sm:space-y-8">
         {/* Top Section: Wallet + Recent Announcements */}
         <div className="flex flex-col lg:flex-row gap-5 lg:gap-6 min-h-54 h-auto lg:h-54 px-0 sm:px-2 lg:px-5">
-          <WalletCard balance="238,000,909" className="w-full lg:w-1/2 h-auto lg:h-full" />
+          <WalletCard
+            balance={walletBalance}
+            currency={currencySymbol}
+            className="w-full lg:w-1/2 h-auto lg:h-full"
+          />
           <div className="flex flex-col rounded-xl space-y-4 w-full lg:w-1/2 bg-white border border-primary shadow-2xl p-5 justify-between">
             <h2 className="text-sm text-primary font-semibold">Recent Announcements</h2>
             <div className="flex flex-col space-y-4">
@@ -74,27 +155,30 @@ const Dashboard = () => {
 
         {/* KPI Metrics Cards */}
         <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-4 lg:gap-6 px-0 sm:px-2 lg:px-5">
-          <KPICard title="Organizations" value="2,345" icon={Building2} />
-          <KPICard title="Individuals" value="10,000" icon={Users} />
-          <KPICard title="Pending Users" value="9" icon={Clock} />
-          <KPICard title="Active users" value="900" icon={UserCheck} />
-          <KPICard title="Rejected Users" value="87" icon={UserX} />
-          <KPICard title="Saving Plans" value="34" icon={PiggyBank} />
+          <KPICard title="Organizations" value={kpis.organizations} icon={Building2} />
+          <KPICard title="Individuals" value={kpis.individuals} icon={Users} />
+          <KPICard title="Pending Users" value={kpis.pendingUsers} icon={Clock} />
+          <KPICard title="Active users" value={kpis.activeUsers} icon={UserCheck} />
+          <KPICard title="Rejected Users" value={kpis.rejectedUsers} icon={UserX} />
+          <KPICard title="Saving Plans" value={kpis.savingPlans} icon={PiggyBank} />
         </div>
 
         {/* Analytical Charts */}
         <div className="flex flex-col xl:flex-row gap-6 px-0 sm:px-2 lg:px-5">
           <EarningChart
             title="Platform Revenue"
-            totalEarnings="3,445"
-            currency="₦"
+            totalEarnings={totalRevenue}
+            currency={currencySymbol}
+            growthRate={momGrowthRate}
+            data={revenueSeries}
             className="w-full xl:w-1/2"
           />
           <EarningChart
             title="Transaction Volume"
-            totalEarnings="128,450"
-            currency="₦"
-            data={VOLUME_DATA}
+            totalEarnings={totalVolume}
+            currency={currencySymbol}
+            growthRate={momGrowthRate}
+            data={volumeSeries}
             className="w-full xl:w-1/2"
           />
         </div>
