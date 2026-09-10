@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import DashboardLayout from '../../components/layout/DashboardLayout.jsx';
 import SearchInput from '../../components/forms/SearchInput.jsx';
@@ -7,7 +8,6 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '.
 import StatusBadge from '../../components/common/StatusBadge.jsx';
 import Pagination from '../../components/common/Pagination.jsx';
 import FilterDropdown from '../../components/forms/FilterDropdown.jsx';
-import OrganizationDetailsModal from '../../components/modals/OrganizationDetailsModal.jsx';
 import { ChevronDown, Loader2 } from 'lucide-react';
 import defaultProfile from '../../assets/default-profile.svg';
 import { adminService } from '../../api/services/admin.service.js';
@@ -22,7 +22,6 @@ export default function Organizations() {
   const [selectedStatus, setSelectedStatus] = useState('');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const [activeOrgModal, setActiveOrgModal] = useState(null);
 
   // 1. Fetch Platform Admin KPI Metrics (Total Organizations count)
   const { data: metricsData } = useQuery({
@@ -87,10 +86,10 @@ export default function Organizations() {
 
   // Total count formatted: prioritize live KPI metrics, then API totalCount, then fallback
   const totalOrganizationsCount = useMemo(() => {
-    if (metricsData?.totalOrganizations != null) {
+    if (metricsData?.totalOrganizations != null && metricsData.totalOrganizations > 0) {
       return Number(metricsData.totalOrganizations).toLocaleString('en-US');
     }
-    if (orgsApiData?.totalCount != null) {
+    if (orgsApiData?.totalCount != null && orgsApiData.totalCount > 0) {
       return Number(orgsApiData.totalCount).toLocaleString('en-US');
     }
     return DEFAULT_FALLBACK_COUNT;
@@ -104,8 +103,10 @@ export default function Organizations() {
     return DEFAULT_FALLBACK_TOTAL_PAGES;
   }, [orgsApiData]);
 
+  const navigate = useNavigate();
+
   const handleView = (org) => {
-    setActiveOrgModal(org);
+    navigate(`/organization/${org.id}`, { state: { organization: org } });
   };
 
   // Client-side CSV export of currently filtered data
@@ -142,7 +143,7 @@ export default function Organizations() {
         </h1>
 
         {/* Main White Card Container */}
-        <div className="bg-white rounded-2xl sm:rounded-3xl p-6 sm:p-8 shadow-xs border border-slate-100 flex flex-col space-y-6">
+        <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 lg:p-8 shadow-xs border border-slate-100 flex flex-col space-y-6">
           {/* Action Toolbar */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
             {/* Search Input on the Left */}
@@ -298,13 +299,6 @@ export default function Organizations() {
           />
         </div>
       </div>
-
-      {/* Organization Details Modal */}
-      <OrganizationDetailsModal
-        isOpen={Boolean(activeOrgModal)}
-        onClose={() => setActiveOrgModal(null)}
-        organization={activeOrgModal}
-      />
     </DashboardLayout>
   );
 }

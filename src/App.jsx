@@ -10,6 +10,7 @@ import RegisterBusiness1 from './pages/auth/RegisterBusiness1.jsx';
 import RegisterBusiness2 from './pages/auth/RegisterBusiness2.jsx';
 import Dashboard from './pages/admin/Dashboard.jsx';
 import Organizations from './pages/admin/Organizations.jsx';
+import OrganizationDetails from './pages/admin/OrganizationDetails.jsx';
 
 function DashboardPlaceholder() {
   const { user, logout, hasOrgContext, isAdmin } = useAuth();
@@ -47,6 +48,7 @@ function App() {
             
             <Route path="/dashboard-test" element={<Dashboard/> } />
             <Route path="/organization" element={<Organizations />} />
+            <Route path="/organization/:id" element={<OrganizationDetails />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Navigate to="/register/business" replace />} />
             <Route path="/register/business" element={<RegisterBusiness1 />} />
@@ -66,6 +68,7 @@ function App() {
               <Route element={<AdminGuard />}>
                 <Route path="/admin/dashboard" element={<Dashboard />} />
                 <Route path="/admin/organizations" element={<Organizations />} />
+                <Route path="/admin/organizations/:id" element={<OrganizationDetails />} />
               </Route>
             </Route>
 

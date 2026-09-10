@@ -20,7 +20,7 @@ export default function Pagination({
   };
 
   return (
-    <div className={`flex items-center justify-between w-full pt-4 ${className}`}>
+    <div className={`flex flex-wrap items-center justify-between gap-3 w-full pt-4 ${className}`}>
       {/* Left Action: Next pill button */}
       <div>
         <button

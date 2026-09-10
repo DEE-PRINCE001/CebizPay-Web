@@ -326,6 +326,10 @@ export const ENDPOINTS = {
         LIST: `${BASE_PREFIX}/admin/organizations`,
         GET_BY_ID: (id) => `${BASE_PREFIX}/admin/organizations/${id}`,
         UPDATE_STATUS: (id) => `${BASE_PREFIX}/organizations/${id}/status`,
+        REVIEW_KYB: `${BASE_PREFIX}/admin/kyb/review`,
+        PAYROLL_ANALYTICS: (id) => `${BASE_PREFIX}/admin/organizations/${id}/payroll-analytics`,
+        STAFF: (id) => `${BASE_PREFIX}/admin/organizations/${id}/staff`,
+        DOCUMENTS: (id) => `${BASE_PREFIX}/admin/organizations/${id}/documents`,
       },
       DASHBOARD: {
         METRICS: `${BASE_PREFIX}/admin/dashboard/metrics`,

@@ -40,7 +40,7 @@ export function TableRow({ children, className = '', ...props }) {
 export function TableHead({ children, className = '', ...props }) {
   return (
     <th
-      className={`py-3.5 px-4 text-xs sm:text-sm font-semibold text-primary-text select-none ${className}`}
+      className={`py-3.5 px-4 text-xs sm:text-sm font-semibold text-primary-text select-none whitespace-nowrap ${className}`}
       {...props}
     >
       {children}
@@ -51,7 +51,7 @@ export function TableHead({ children, className = '', ...props }) {
 export function TableCell({ children, className = '', ...props }) {
   return (
     <td
-      className={`py-3.5 px-4 text-xs sm:text-sm text-slate-600 align-middle ${className}`}
+      className={`py-3.5 px-4 text-xs sm:text-sm text-slate-600 align-middle whitespace-nowrap ${className}`}
       {...props}
     >
       {children}

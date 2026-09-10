@@ -13,6 +13,18 @@ export const adminService = {
     updateStatus: async (id, payload) => {
       return apiClient.patch(ENDPOINTS.ADMIN.ORGANIZATIONS.UPDATE_STATUS(id), payload);
     },
+    reviewKyb: async (payload) => {
+      return apiClient.post(ENDPOINTS.ADMIN.ORGANIZATIONS.REVIEW_KYB, payload);
+    },
+    getPayrollAnalytics: async (id) => {
+      return apiClient.get(ENDPOINTS.ADMIN.ORGANIZATIONS.PAYROLL_ANALYTICS(id));
+    },
+    getStaff: async (id, params = { pageNumber: 1, pageSize: 10, search: '' }) => {
+      return apiClient.get(ENDPOINTS.ADMIN.ORGANIZATIONS.STAFF(id), { params });
+    },
+    getDocuments: async (id) => {
+      return apiClient.get(ENDPOINTS.ADMIN.ORGANIZATIONS.DOCUMENTS(id));
+    },
   },
 
   // Dashboard & Metrics

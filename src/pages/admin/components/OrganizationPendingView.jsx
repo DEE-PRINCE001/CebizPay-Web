@@ -1,0 +1,128 @@
+import React from 'react';
+import womanPhoto from '../../../assets/woman.svg';
+
+export default function OrganizationPendingView({
+  organization,
+  onReject,
+  onVerify,
+  onViewDocument,
+}) {
+  const orgName = organization?.name || 'Cebis Tech';
+  const category = organization?.category || 'Technology';
+  const email = organization?.email || 'Cebis Technology';
+  const address = organization?.address || 'Abuja Obanikoro.......';
+  const staffCount = organization?.staffCount || 56;
+  const credentials = organization?.credentials || [
+    { id: '1', title: 'Corporative Association Community' },
+    { id: '2', title: 'Corporative Association Community' },
+    { id: '3', title: 'Corporative Association Community' },
+  ];
+
+  return (
+    <div className="flex flex-col space-y-6">
+      {/* Page Title */}
+      <h1 className="text-2xl font-bold text-primary-text px-1">
+        {orgName}
+      </h1>
+
+      {/* Main Split Content: Photo on Left, Details & Credentials on Right */}
+      <div className="flex flex-col lg:flex-row gap-6 items-stretch">
+        {/* Left Column: Organization Image */}
+        <div className="w-full lg:w-5/12 xl:w-4/12 rounded-3xl overflow-hidden shadow-xs border border-slate-100 bg-white shrink-0 h-64 sm:h-80 lg:h-auto min-h-64 sm:min-h-80 lg:min-h-96">
+          <img
+            src={womanPhoto}
+            alt={orgName}
+            className="w-full h-full object-cover"
+          />
+        </div>
+
+        {/* Right Column: Metadata Overview Card & Credentials Card */}
+        <div className="w-full lg:w-7/12 xl:w-8/12 flex flex-col space-y-6">
+          {/* Top Card: Overview */}
+          <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 lg:p-8 shadow-xs border border-slate-100">
+            <h2 className="text-2xl sm:text-3xl font-bold text-primary-text mb-4">
+              {orgName}
+            </h2>
+
+            <div className="border-t border-slate-100 pt-5 mt-4 grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div>
+                <p className="text-xs text-slate-400 font-medium">Category</p>
+                <p className="text-xs sm:text-sm font-semibold text-primary-text mt-1 truncate">
+                  {category}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-xs text-slate-400 font-medium">Email Address</p>
+                <p className="text-xs sm:text-sm font-semibold text-primary-text mt-1 truncate" title={email}>
+                  {email}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-xs text-slate-400 font-medium">Office Address</p>
+                <p className="text-xs sm:text-sm font-semibold text-primary-text mt-1 truncate" title={address}>
+                  {address}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-xs text-slate-400 font-medium">Number of Staff</p>
+                <p className="text-xs sm:text-sm font-semibold text-primary-text mt-1">
+                  {staffCount}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom Card: Credentials */}
+          <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 lg:p-8 shadow-xs border border-slate-100 flex-1">
+            <h3 className="text-base sm:text-lg font-bold text-primary-text mb-4">
+              Credentails
+            </h3>
+
+            <div className="divide-y divide-slate-100">
+              {credentials.map((doc) => (
+                <div
+                  key={doc.id}
+                  className="py-3.5 flex items-center justify-between gap-3"
+                >
+                  <span className="text-xs sm:text-sm font-medium text-slate-700 pr-2">
+                    {doc.title}
+                  </span>
+
+                  <button
+                    type="button"
+                    onClick={() => onViewDocument?.(doc)}
+                    className="inline-flex items-center justify-center bg-primary hover:bg-primary/90 active:bg-primary/80 text-white rounded-lg px-5 py-1.5 text-xs font-medium transition-colors cursor-pointer shrink-0"
+                  >
+                    View
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Bottom Action Buttons: Reject & Verify */}
+      <div className="flex items-center justify-end space-x-3 sm:space-x-4 pt-2">
+        <button
+          type="button"
+          onClick={onReject}
+          className="inline-flex items-center justify-center bg-rejected/15 hover:bg-rejected/25 active:bg-rejected/30 text-rejected font-medium text-xs sm:text-sm px-6 sm:px-9 py-2.5 rounded-xl transition-colors cursor-pointer select-none"
+        >
+          Reject
+        </button>
+
+        <button
+          type="button"
+          onClick={onVerify}
+          className="inline-flex items-center justify-center bg-primary hover:bg-primary/90 active:bg-primary/80 text-white font-medium text-xs sm:text-sm px-6 sm:px-9 py-2.5 rounded-xl transition-colors cursor-pointer shadow-xs select-none"
+        >
+          Verify
+        </button>
+      </div>
+    </div>
+  );
+}

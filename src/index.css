@@ -21,6 +21,7 @@
     --color-pending: #C07D00;
     --color-verified: #001EC5;
     --color-rejected: #DC2626;
+    --color-active: #15803D;
 
     --font-satoshi: 'Satoshi-Variable', var(--font-sans);
 }
