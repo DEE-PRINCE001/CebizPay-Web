@@ -192,7 +192,7 @@ const ProfileModal = ({ isOpen = false, onClose, user: userProp, platform: platf
                 <p className="text-xs sm:text-sm font-bold text-primary-text shadow-xs leading-none">
                   {currentUser?.phoneNumber || '07035645321'}
                 </p>
-                <p className="text-xs sm:text-sm font-bold text-primary-text shadow-xs leading-none mt-5 sm:mt-7 truncate max-w-[180px] sm:max-w-[220px]">
+                <p className="text-xs sm:text-sm font-bold text-primary-text shadow-xs leading-none mt-5 sm:mt-7 truncate max-w-45 sm:max-w-55">
                   {currentUser?.email || 'tayo.john@example.com'}
                 </p>
               </div>
