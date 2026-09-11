@@ -1,26 +1,41 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { PencilIcon } from 'lucide-react';
 import defaultProfile from '../../assets/default-profile.svg';
 import Button from '../common/Button.jsx';
 import AdminItem from './components/AdminItem.jsx';
 import ProfileSectionHeader from './components/ProfileSectionHeader.jsx';
+import ActionConfirmModal from './ActionConfirmModal.jsx';
+import AddAdminModal from './AddAdminModal.jsx';
+import PublishAnnouncementModal from './PublishAnnouncementModal.jsx';
 import { useAuth } from '../../hooks/useAuth.js';
 import { adminService } from '../../api/services/admin.service.js';
 
-const INITIAL_MOCK_USERS = [
-  { id: '1', name: 'John Mercy', isActive: false },
-  { id: '2', name: 'John Mercy', isActive: true },
-  { id: '3', name: 'John Mercy', isActive: false },
-];
-
 const ProfileModal = ({ isOpen = false, onClose, user: userProp, platform: platformProp }) => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { user: authUser, logout } = useAuth();
   const currentUser = userProp || authUser;
 
-  const [localUsers, setLocalUsers] = useState(INITIAL_MOCK_USERS);
+  // Modals state
+  const [isAddAdminOpen, setIsAddAdminOpen] = useState(false);
+  const [isPublishAnnouncementOpen, setIsPublishAnnouncementOpen] = useState(false);
+
+  // Critical action confirmation popups state (permission pop-ups.png)
+  const [actionPopup, setActionPopup] = useState({
+    isOpen: false,
+    step: 'confirm', // 'confirm' | 'success' | 'error'
+    title: '',
+    message: null,
+    subMessage: '',
+    cancelText: 'Cancel',
+    proceedText: 'Proceed',
+    successButtonText: 'Thanks',
+    isLoading: false,
+    errorMessage: '',
+    onProceed: null,
+  });
 
   // Close on Escape key and prevent background scroll when open
   useEffect(() => {
@@ -51,70 +66,196 @@ const ProfileModal = ({ isOpen = false, onClose, user: userProp, platform: platf
   });
 
   // Query live admin directory
-  const { data: adminsData, refetch: refetchAdmins } = useQuery({
+  const { data: adminsData, isLoading: isAdminsLoading } = useQuery({
     queryKey: ['admin-directory'],
     queryFn: () => adminService.manage.getAdmins({ pageNumber: 1, pageSize: 20 }),
-    staleTime: 60 * 1000,
+    staleTime: 30 * 1000,
     enabled: isOpen,
     retry: false,
   });
 
-  // Combine live admins with fallback
-  const adminsList = (adminsData?.items && adminsData.items.length > 0)
-    ? adminsData.items.map((a) => ({
+  // Live admin list from backend
+  const adminsList = useMemo(() => {
+    if (adminsData?.items && Array.isArray(adminsData.items)) {
+      return adminsData.items.map((a) => ({
         id: a.id,
         name: a.email ? a.email.split('@')[0] : 'Admin User',
         email: a.email,
         isActive: Boolean(a.isActive),
-        isReal: true,
-      }))
-    : localUsers;
+      }));
+    }
+    return [];
+  }, [adminsData]);
 
   const totalAdminsCount = adminsData?.totalCount != null ? adminsData.totalCount : adminsList.length;
 
   const commissionDisplay = platformProp?.totalCommission
     || (referralSettings?.rewardAmountPerSuccessfulReferral != null
         ? `₦${Number(referralSettings.rewardAmountPerSuccessfulReferral).toLocaleString('en-US')}`
-        : '5');
+        : '₦0');
 
-  // Toggle admin active/inactive state
-  const handleToggle = async (id) => {
-    const target = adminsList.find((u) => u.id === id);
-    if (!target) return;
-
-    const nextActive = !target.isActive;
-
-    // Optimistically update local state
-    setLocalUsers((prev) =>
-      prev.map((u) => (u.id === id ? { ...u, isActive: nextActive } : u))
-    );
-
-    if (target.isReal) {
-      try {
-        await adminService.manage.toggleStatus({
-          adminProfileId: id,
-          isActive: nextActive,
-        });
-        refetchAdmins();
-      } catch (err) {
-        console.error('Failed to toggle admin status:', err);
+  const extractErrorMessage = (err, fallback) => {
+    let msg = err?.message || fallback;
+    if (err?.detail) {
+      const firstLine = err.detail.split('\n')[0];
+      if (firstLine.includes(': ')) {
+        msg = firstLine.split(': ').slice(1).join(': ');
+      } else {
+        msg = firstLine;
       }
+    }
+    return msg || fallback;
+  };
+
+  // Trigger Delete Admin Popup (permission pop-ups.png col 1)
+  const handleRequestDelete = (admin) => {
+    const adminName = admin.name || admin.email || 'this admin';
+    setActionPopup({
+      isOpen: true,
+      step: 'confirm',
+      title: 'Delete Admin?',
+      message: (
+        <span>
+          You are about to delete <strong className="font-bold text-primary-text">{adminName}</strong> from this platform
+        </span>
+      ),
+      subMessage: 'Do you wish to proceed with this action?',
+      cancelText: 'Cancel',
+      proceedText: 'Proceed',
+      successButtonText: 'Thanks',
+      isLoading: false,
+      errorMessage: '',
+      onProceed: async () => {
+        setActionPopup((prev) => ({ ...prev, isLoading: true, errorMessage: '' }));
+        try {
+          await adminService.manage.deleteAdmin(admin.id);
+          queryClient.invalidateQueries({ queryKey: ['admin-directory'] });
+          setActionPopup((prev) => ({
+            ...prev,
+            isLoading: false,
+            step: 'success',
+            title: 'Admin Deleted',
+            message: (
+              <span>
+                You have Successfully deleted <strong className="font-bold text-primary-text">{adminName}</strong> from on this platform
+              </span>
+            ),
+            subMessage: '',
+          }));
+        } catch (err) {
+          setActionPopup((prev) => ({
+            ...prev,
+            isLoading: false,
+            errorMessage: extractErrorMessage(err, 'Failed to delete admin. Please try again.'),
+          }));
+        }
+      },
+    });
+  };
+
+  // Trigger Stop Permission or Grants Edit Permission Popup (permission pop-ups.png cols 2 & 3)
+  const handleRequestToggle = (admin) => {
+    const adminName = admin.name || admin.email || 'this admin';
+    const willDeactivate = Boolean(admin.isActive);
+
+    if (willDeactivate) {
+      // Stop Permission?
+      setActionPopup({
+        isOpen: true,
+        step: 'confirm',
+        title: 'Stop Permission?',
+        message: (
+          <span>
+            You are about to stop <strong className="font-bold text-primary-text">{adminName}</strong> from editing this platform
+          </span>
+        ),
+        subMessage: 'Do you wish to proceed with this action?',
+        cancelText: 'Cancel',
+        proceedText: 'Proceed',
+        successButtonText: 'Thanks',
+        isLoading: false,
+        errorMessage: '',
+        onProceed: async () => {
+          setActionPopup((prev) => ({ ...prev, isLoading: true, errorMessage: '' }));
+          try {
+            await adminService.manage.toggleStatus({
+              adminProfileId: admin.id,
+              isActive: false,
+            });
+            queryClient.invalidateQueries({ queryKey: ['admin-directory'] });
+            setActionPopup((prev) => ({
+              ...prev,
+              isLoading: false,
+              step: 'success',
+              title: 'Permission Stopped',
+              message: (
+                <span>
+                  You have Successfully stopped <strong className="font-bold text-primary-text">{adminName}</strong> from editing on this platform
+                </span>
+              ),
+              subMessage: '',
+            }));
+          } catch (err) {
+            setActionPopup((prev) => ({
+              ...prev,
+              isLoading: false,
+              errorMessage: extractErrorMessage(err, 'Failed to stop admin permission.'),
+            }));
+          }
+        },
+      });
+    } else {
+      // Grants Edit Permission?
+      setActionPopup({
+        isOpen: true,
+        step: 'confirm',
+        title: 'Grants Edit Permission?',
+        message: (
+          <span>
+            You are about to grant <strong className="font-bold text-primary-text">{adminName}</strong> an edit permission
+          </span>
+        ),
+        subMessage: 'Do you wish to proceed with this action?',
+        cancelText: 'Cancel',
+        proceedText: 'Proceed',
+        successButtonText: 'Thanks',
+        isLoading: false,
+        errorMessage: '',
+        onProceed: async () => {
+          setActionPopup((prev) => ({ ...prev, isLoading: true, errorMessage: '' }));
+          try {
+            await adminService.manage.toggleStatus({
+              adminProfileId: admin.id,
+              isActive: true,
+            });
+            queryClient.invalidateQueries({ queryKey: ['admin-directory'] });
+            setActionPopup((prev) => ({
+              ...prev,
+              isLoading: false,
+              step: 'success',
+              title: 'Permission Granted',
+              message: (
+                <span>
+                  You have Successfully grant <strong className="font-bold text-primary-text">{adminName}</strong> permission to edit on this platform
+                </span>
+              ),
+              subMessage: '',
+            }));
+          } catch (err) {
+            setActionPopup((prev) => ({
+              ...prev,
+              isLoading: false,
+              errorMessage: extractErrorMessage(err, 'Failed to grant edit permission.'),
+            }));
+          }
+        },
+      });
     }
   };
 
-  // Delete admin
-  const handleDelete = async (id) => {
-    const target = adminsList.find((u) => u.id === id);
-    setLocalUsers((prev) => prev.filter((u) => u.id !== id));
-
-    if (target?.isReal) {
-      try {
-        await adminService.manage.deleteAdmin(id);
-        refetchAdmins();
-      } catch (err) {
-        console.error('Failed to delete admin:', err);
-      }
-    }
+  const handleCloseActionPopup = () => {
+    if (actionPopup.isLoading) return;
+    setActionPopup((prev) => ({ ...prev, isOpen: false, errorMessage: '' }));
   };
 
   const handleLogout = async () => {
@@ -224,38 +365,39 @@ const ProfileModal = ({ isOpen = false, onClose, user: userProp, platform: platf
         />
         <div className="w-full bg-white rounded-md pt-5 sm:pt-6 pb-3 px-2 shadow-xs">
           <div className="flex flex-col pb-2 space-y-1 max-h-56 sm:max-h-64 overflow-y-auto">
-            {adminsList.map((item, index) => (
-              <AdminItem
-                key={item.id}
-                admin={item}
-                isLast={index === adminsList.length - 1}
-                onToggle={handleToggle}
-                onDelete={handleDelete}
-              />
-            ))}
+            {isAdminsLoading ? (
+              <div className="py-8 text-center text-xs text-slate-400">Loading admins...</div>
+            ) : adminsList.length > 0 ? (
+              adminsList.map((item, index) => (
+                <AdminItem
+                  key={item.id}
+                  admin={item}
+                  isLast={index === adminsList.length - 1}
+                  onToggle={() => handleRequestToggle(item)}
+                  onDelete={() => handleRequestDelete(item)}
+                />
+              ))
+            ) : (
+              <div className="py-8 text-center text-xs text-slate-400">No admins found.</div>
+            )}
           </div>
           <div className="w-full flex justify-end pr-4 pt-3 sm:pt-4">
-            <Link
-              to="/admin/manage"
-              onClick={onClose}
-              className="text-blue-600 text-xs sm:text-sm font-bold hover:underline"
+            <button
+              type="button"
+              onClick={() => setIsAddAdminOpen(true)}
+              className="text-blue-600 text-xs sm:text-sm font-bold hover:underline cursor-pointer"
             >
               Add New Admin
-            </Link>
+            </button>
           </div>
         </div>
 
         {/* Footer Actions */}
         <div className="flex px-2 mt-5 sm:mt-6 justify-center space-x-3">
-       
           <Button
-        
             size="lg"
             className="rounded-xl text-xs sm:text-sm"
-            onClick={() => {
-              onClose?.();
-              navigate('/dashboard');
-            }}
+            onClick={() => setIsPublishAnnouncementOpen(true)}
           >
             Published Announcements
           </Button>
@@ -271,6 +413,39 @@ const ProfileModal = ({ isOpen = false, onClose, user: userProp, platform: platf
         </div>
       </div>
     </div>
+
+    {/* Critical Action Confirmation Popup (Delete Admin, Stop Permission, Grant Permission) */}
+    <ActionConfirmModal
+      isOpen={actionPopup.isOpen}
+      onClose={handleCloseActionPopup}
+      step={actionPopup.step}
+      title={actionPopup.title}
+      message={actionPopup.message}
+      subMessage={actionPopup.subMessage}
+      cancelText={actionPopup.cancelText}
+      proceedText={actionPopup.proceedText}
+      successButtonText={actionPopup.successButtonText}
+      isLoading={actionPopup.isLoading}
+      errorMessage={actionPopup.errorMessage}
+      onProceed={actionPopup.onProceed}
+      onSuccessClose={handleCloseActionPopup}
+    />
+
+    {/* Add New Admin Modal */}
+    <AddAdminModal
+      isOpen={isAddAdminOpen}
+      onClose={() => setIsAddAdminOpen(false)}
+      onSuccess={() => queryClient.invalidateQueries({ queryKey: ['admin-directory'] })}
+    />
+
+    {/* Publish Announcement Modal */}
+    <PublishAnnouncementModal
+      isOpen={isPublishAnnouncementOpen}
+      onClose={() => setIsPublishAnnouncementOpen(false)}
+      onSuccess={() => {
+        queryClient.invalidateQueries({ queryKey: ['platform-announcements'] });
+      }}
+    />
   </div>
 );
 };

@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { X, Loader2, AlertCircle } from 'lucide-react';
+import Input from '../forms/Input.jsx';
 
 /**
  * Reusable modal for critical action confirmations, loading, error, and success dialogs.
@@ -22,8 +23,51 @@ export default function ActionConfirmModal({
   errorMessage = '',
   onProceed,
   onSuccessClose,
+  requireReason = false,
+  reasonLabel = 'Reason',
+  reasonPlaceholder = 'Please enter a reason...',
+  reasonValue,
+  onReasonChange,
+  reasonError = '',
+  multilineReason = true,
 }) {
+  const [internalReason, setInternalReason] = useState('');
+  const [internalReasonError, setInternalReasonError] = useState('');
+  const [prevIsOpen, setPrevIsOpen] = useState(isOpen);
+
+  if (prevIsOpen !== isOpen) {
+    setPrevIsOpen(isOpen);
+    if (!isOpen) {
+      setInternalReason('');
+      setInternalReasonError('');
+    }
+  }
+
   if (!isOpen) return null;
+
+  const isControlled = reasonValue !== undefined;
+  const currentReason = isControlled ? reasonValue : internalReason;
+  const currentReasonError = reasonError || internalReasonError;
+
+  const handleReasonChange = (e) => {
+    if (internalReasonError) {
+      setInternalReasonError('');
+    }
+    if (isControlled && onReasonChange) {
+      onReasonChange(e);
+    } else {
+      setInternalReason(e.target.value);
+    }
+  };
+
+  const handleProceedClick = () => {
+    const trimmed = (currentReason || '').trim();
+    if (requireReason && !trimmed) {
+      setInternalReasonError('Please provide a reason before proceeding.');
+      return;
+    }
+    onProceed?.(trimmed);
+  };
 
   return (
     <div
@@ -51,10 +95,29 @@ export default function ActionConfirmModal({
         </h2>
 
         {/* Message Content */}
-        <div className="text-xs sm:text-sm text-slate-600 space-y-1 mb-6">
-          <p>{message}</p>
-          {subMessage && <p>{subMessage}</p>}
+        <div className="text-xs sm:text-sm text-slate-600 space-y-1 mb-5">
+          {typeof message === 'string' ? <p>{message}</p> : <div>{message}</div>}
+          {subMessage && (typeof subMessage === 'string' ? <p>{subMessage}</p> : <div>{subMessage}</div>)}
         </div>
+
+        {/* Reason Input (when requireReason is true and in 'confirm' step) */}
+        {step === 'confirm' && requireReason && (
+          <div className="mb-5">
+            <Input
+              id="action-confirm-reason"
+              name="actionReason"
+              label={reasonLabel}
+              placeholder={reasonPlaceholder}
+              value={currentReason}
+              onChange={handleReasonChange}
+              error={currentReasonError}
+              multiline={multilineReason}
+              rows={3}
+              required
+              disabled={isLoading}
+            />
+          </div>
+        )}
 
         {/* Customer-friendly Error Banner */}
         {errorMessage && (
@@ -78,7 +141,7 @@ export default function ActionConfirmModal({
 
             <button
               type="button"
-              onClick={onProceed}
+              onClick={handleProceedClick}
               disabled={isLoading}
               className="inline-flex items-center justify-center px-6 sm:px-8 py-2.5 rounded-xl font-medium text-xs sm:text-sm bg-primary text-white hover:bg-primary/90 active:bg-primary/80 transition-colors cursor-pointer shadow-xs select-none disabled:opacity-75 disabled:cursor-not-allowed"
             >
@@ -97,10 +160,12 @@ export default function ActionConfirmModal({
             </button>
             <button
               type="button"
-              onClick={onProceed}
-              className="inline-flex items-center justify-center px-8 py-2.5 rounded-xl font-medium text-xs sm:text-sm bg-primary text-white hover:bg-primary/90 transition-colors cursor-pointer shadow-xs select-none"
+              onClick={handleProceedClick}
+              disabled={isLoading}
+              className="inline-flex items-center justify-center px-8 py-2.5 rounded-xl font-medium text-xs sm:text-sm bg-primary text-white hover:bg-primary/90 transition-colors cursor-pointer shadow-xs select-none disabled:opacity-75 disabled:cursor-not-allowed"
             >
-              Retry
+              {isLoading && <Loader2 className="w-4 h-4 animate-spin mr-2 shrink-0" />}
+              {isLoading ? 'Processing...' : 'Retry'}
             </button>
           </div>
         ) : (

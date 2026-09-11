@@ -85,6 +85,11 @@ export default function OrganizationDetails() {
     isLoading: false,
     errorMessage: '',
     pendingNewStatus: null,
+    requireReason: false,
+    reasonLabel: 'Reason',
+    reasonPlaceholder: '',
+    reason: '',
+    reasonError: '',
   });
 
   const orgDisplayName = organization?.name || 'Organization';
@@ -104,6 +109,11 @@ export default function OrganizationDetails() {
       isLoading: false,
       errorMessage: '',
       pendingNewStatus: 'Rejected',
+      requireReason: true,
+      reasonLabel: 'Reason for Rejection',
+      reasonPlaceholder: 'Please state the reason for rejection...',
+      reason: '',
+      reasonError: '',
     });
   };
 
@@ -122,6 +132,11 @@ export default function OrganizationDetails() {
       isLoading: false,
       errorMessage: '',
       pendingNewStatus: 'Verified',
+      requireReason: false,
+      reasonLabel: 'Reason',
+      reasonPlaceholder: '',
+      reason: '',
+      reasonError: '',
     });
   };
 
@@ -140,6 +155,11 @@ export default function OrganizationDetails() {
       isLoading: false,
       errorMessage: '',
       pendingNewStatus: 'Suspended',
+      requireReason: true,
+      reasonLabel: 'Reason for Suspension',
+      reasonPlaceholder: 'Please state the reason for suspension...',
+      reason: '',
+      reasonError: '',
     });
   };
 
@@ -158,6 +178,11 @@ export default function OrganizationDetails() {
       isLoading: false,
       errorMessage: '',
       pendingNewStatus: 'Verified',
+      requireReason: false,
+      reasonLabel: 'Reason',
+      reasonPlaceholder: '',
+      reason: '',
+      reasonError: '',
     });
   };
 
@@ -176,12 +201,30 @@ export default function OrganizationDetails() {
       isLoading: false,
       errorMessage: '',
       pendingNewStatus: 'Pending',
+      requireReason: false,
+      reasonLabel: 'Reason',
+      reasonPlaceholder: '',
+      reason: '',
+      reasonError: '',
     });
   };
 
   // When clicking Proceed in confirmation dialog, call backend API live & wait for response
-  const handleProceed = async () => {
+  const handleProceed = async (providedReason) => {
     const nextStatus = modalConfig.pendingNewStatus;
+    const effectiveReason = (typeof providedReason === 'string' && providedReason.length > 0
+      ? providedReason
+      : modalConfig.reason
+    )?.trim();
+
+    if (modalConfig.requireReason && !effectiveReason) {
+      setModalConfig((prev) => ({
+        ...prev,
+        reasonError: 'Please provide a reason before proceeding.',
+      }));
+      return;
+    }
+
     setModalConfig((prev) => ({ ...prev, errorMessage: '', isLoading: true }));
 
     try {
@@ -193,7 +236,7 @@ export default function OrganizationDetails() {
       // Call backend API and AWAIT the result
       const res = await updateStatusMutation.mutateAsync({
         statusName: nextStatus,
-        reason: `Admin confirmed action: ${modalConfig.title}`,
+        reason: effectiveReason || `Admin confirmed action: ${modalConfig.title}`,
       });
 
       const resolvedStatus = res?.status || nextStatus;
@@ -252,12 +295,26 @@ export default function OrganizationDetails() {
     if (modalConfig.pendingNewStatus) {
       setStatusOverride(modalConfig.pendingNewStatus);
     }
-    setModalConfig((prev) => ({ ...prev, isOpen: false, isLoading: false, errorMessage: '' }));
+    setModalConfig((prev) => ({
+      ...prev,
+      isOpen: false,
+      isLoading: false,
+      errorMessage: '',
+      reason: '',
+      reasonError: '',
+    }));
   };
 
   const handleCloseModal = () => {
     if (modalConfig.isLoading) return; // Prevent closing while in flight
-    setModalConfig((prev) => ({ ...prev, isOpen: false, isLoading: false, errorMessage: '' }));
+    setModalConfig((prev) => ({
+      ...prev,
+      isOpen: false,
+      isLoading: false,
+      errorMessage: '',
+      reason: '',
+      reasonError: '',
+    }));
   };
 
   // Open credential document in viewer or trigger download
@@ -349,6 +406,18 @@ export default function OrganizationDetails() {
         successButtonText={modalConfig.successButtonText}
         isLoading={modalConfig.isLoading}
         errorMessage={modalConfig.errorMessage}
+        requireReason={modalConfig.requireReason}
+        reasonLabel={modalConfig.reasonLabel}
+        reasonPlaceholder={modalConfig.reasonPlaceholder}
+        reasonValue={modalConfig.reason}
+        onReasonChange={(e) =>
+          setModalConfig((prev) => ({
+            ...prev,
+            reason: e.target.value,
+            reasonError: '',
+          }))
+        }
+        reasonError={modalConfig.reasonError}
         onProceed={handleProceed}
         onSuccessClose={handleSuccessClose}
       />

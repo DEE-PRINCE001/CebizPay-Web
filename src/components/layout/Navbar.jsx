@@ -5,6 +5,7 @@ import Button from '../common/Button';
 import { Bell, Coins, LayoutDashboard, User, UsersRound, Wallet, Menu, X } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth.js';
 import ProfileModal from '../modals/ProfileModal.jsx';
+import AnnouncementsModal from '../modals/AnnouncementsModal.jsx';
 
 const NAV_ITEMS = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -17,6 +18,7 @@ const NAV_ITEMS = [
 const Navbar = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isAnnouncementsOpen, setIsAnnouncementsOpen] = useState(false);
   const { user } = useAuth();
   const displayName = user?.firstName || user?.name?.split(' ')[0] || 'Tayo';
 
@@ -66,16 +68,26 @@ const Navbar = () => {
               </NavLink>
             ))}
           </nav>
-          <div className="rounded-full p-2 border hover:bg-primary/20 border-primary/30 cursor-pointer transition-colors">
+          <button
+            type="button"
+            onClick={() => setIsAnnouncementsOpen(true)}
+            className="rounded-full p-2 border hover:bg-primary/20 border-primary/30 cursor-pointer transition-colors"
+            aria-label="View announcements"
+          >
             <Bell className="w-5 h-5 text-primary" />
-          </div>
+          </button>
         </div>
 
         {/* Mobile / Tablet Actions: Bell + Menu Toggle */}
         <div className="flex xl:hidden items-center space-x-2 sm:space-x-3">
-          <div className="rounded-full p-2 border hover:bg-primary/20 border-primary/30 cursor-pointer transition-colors">
+          <button
+            type="button"
+            onClick={() => setIsAnnouncementsOpen(true)}
+            className="rounded-full p-2 border hover:bg-primary/20 border-primary/30 cursor-pointer transition-colors"
+            aria-label="View announcements"
+          >
             <Bell className="w-5 h-5 text-primary" />
-          </div>
+          </button>
           <button
             type="button"
             onClick={() => setMobileOpen((prev) => !prev)}
@@ -121,6 +133,12 @@ const Navbar = () => {
       <ProfileModal
         isOpen={isProfileOpen}
         onClose={() => setIsProfileOpen(false)}
+      />
+
+      {/* All Announcements Modal */}
+      <AnnouncementsModal
+        isOpen={isAnnouncementsOpen}
+        onClose={() => setIsAnnouncementsOpen(false)}
       />
     </header>
   );

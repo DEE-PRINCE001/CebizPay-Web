@@ -63,7 +63,7 @@ const Dashboard = () => {
 
   const announcements = useMemo(() => {
     if (announcementsData?.items && Array.isArray(announcementsData.items)) {
-      return announcementsData.items.slice(0, 3).map((a) => ({
+      return announcementsData.items.slice(0, 2).map((a) => ({
         id: a.id || a.announcementId,
         title: a.title,
         content: a.content || a.summary || a.message || '',
@@ -169,13 +169,15 @@ const Dashboard = () => {
               </div>
             ) : announcements.length > 0 ? (
               <div className="flex flex-col space-y-4">
-                {announcements.map((item) => (
+                {announcements.map((item) => {
+                  console.log('Announcement Item:', item); // Debugging log
+                  return (
                   <AnnouncementItem
                     key={item.id}
                     title={item.title}
-                    description={item.content}
+                    description={item.description}
                   />
-                ))}
+                )})}
               </div>
             ) : (
               <div className="flex-1 flex flex-col items-center justify-center py-6 text-center text-slate-400 text-xs sm:text-sm">

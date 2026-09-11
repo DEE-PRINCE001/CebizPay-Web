@@ -23,6 +23,8 @@ const Input = forwardRef(function Input({
   icon: Icon = null,
   iconPosition = 'left',
   showPasswordToggle = true,
+  multiline = false,
+  rows = 3,
   className = '',
   ...props
 }, ref) {
@@ -53,21 +55,38 @@ const Input = forwardRef(function Input({
             <Icon size={16} />
           </div>
         )}
-        <input
-          ref={ref}
-          id={inputId}
-          name={name}
-          type={computedType}
-          value={value}
-          onChange={onChange}
-          onBlur={onBlur}
-          disabled={disabled}
-          placeholder={placeholder}
-          required={required}
-          className={`w-full py-3 rounded-xl border text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-offset-0 transition-all disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed ${paddingLeft} ${paddingRight} ${errorStyles} ${className}`}
-          {...props}
-        />
-        {hasRightToggle ? (
+        {multiline ? (
+          <textarea
+            ref={ref}
+            id={inputId}
+            name={name}
+            rows={rows}
+            value={value}
+            onChange={onChange}
+            onBlur={onBlur}
+            disabled={disabled}
+            placeholder={placeholder}
+            required={required}
+            className={`w-full py-3 rounded-xl border text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-offset-0 transition-all resize-none disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed ${paddingLeft} ${paddingRight} ${errorStyles} ${className}`}
+            {...props}
+          />
+        ) : (
+          <input
+            ref={ref}
+            id={inputId}
+            name={name}
+            type={computedType}
+            value={value}
+            onChange={onChange}
+            onBlur={onBlur}
+            disabled={disabled}
+            placeholder={placeholder}
+            required={required}
+            className={`w-full py-3 rounded-xl border text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-offset-0 transition-all disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed ${paddingLeft} ${paddingRight} ${errorStyles} ${className}`}
+            {...props}
+          />
+        )}
+        {!multiline && hasRightToggle ? (
           <button
             type="button"
             onClick={() => setShowPassword((prev) => !prev)}
