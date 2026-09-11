@@ -36,7 +36,7 @@ export default function OrganizationRejectedView({
         {/* Left Column: Organization Image */}
         <div className="w-full lg:w-5/12 xl:w-4/12 rounded-3xl overflow-hidden shadow-xs border border-slate-100 bg-white shrink-0 h-64 sm:h-80 lg:h-auto min-h-64 sm:min-h-80 lg:min-h-96">
           <img
-            src={womanPhoto}
+            src={organization?.photoUrl || organization?.logoUrl || womanPhoto}
             alt={orgName}
             className="w-full h-full object-cover"
           />

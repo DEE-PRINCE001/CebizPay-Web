@@ -330,6 +330,7 @@ export const ENDPOINTS = {
         PAYROLL_ANALYTICS: (id) => `${BASE_PREFIX}/admin/organizations/${id}/payroll-analytics`,
         STAFF: (id) => `${BASE_PREFIX}/admin/organizations/${id}/staff`,
         DOCUMENTS: (id) => `${BASE_PREFIX}/admin/organizations/${id}/documents`,
+        EXPORT: `${BASE_PREFIX}/admin/organizations/export`,
       },
       DASHBOARD: {
         METRICS: `${BASE_PREFIX}/admin/dashboard/metrics`,

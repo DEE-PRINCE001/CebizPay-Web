@@ -11,13 +11,13 @@ import FilterDropdown from '../../components/forms/FilterDropdown.jsx';
 import { ChevronDown, Loader2 } from 'lucide-react';
 import defaultProfile from '../../assets/default-profile.svg';
 import { adminService } from '../../api/services/admin.service.js';
-import { getOrganizationsWithOverrides } from '../../api/mocks/organizations.mock.js';
 
 export default function Organizations() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [isExporting, setIsExporting] = useState(false);
 
   // 1. Fetch Platform Admin KPI Metrics (Total Organizations count)
   const { data: metricsData } = useQuery({
@@ -27,8 +27,14 @@ export default function Organizations() {
     retry: false,
   });
 
-  // 2. Fetch Organizations Directory list from backend
-  const { data: orgsApiData, isLoading, isFetching } = useQuery({
+  // 2. Fetch Organizations Directory list live from backend
+  const {
+    data: orgsApiData,
+    isLoading,
+    isFetching,
+    isError,
+    error,
+  } = useQuery({
     queryKey: ['admin-organizations', { page: currentPage, search: searchQuery, status: selectedStatus }],
     queryFn: () =>
       adminService.organizations.list({
@@ -41,63 +47,40 @@ export default function Organizations() {
     retry: false,
   });
 
-  // Determine organizations dataset: use live backend items if available, otherwise use fallback testing data
-  const rawOrganizations = useMemo(() => {
-    if (orgsApiData?.items && Array.isArray(orgsApiData.items) && orgsApiData.items.length > 0) {
+  // Transform live organizations data from backend
+  const displayedOrganizations = useMemo(() => {
+    if (orgsApiData?.items && Array.isArray(orgsApiData.items)) {
       return orgsApiData.items.map((item) => ({
         id: item.id || item.organizationId,
         name: item.name || item.businessName || 'Organization',
-        category: item.category || item.industry || 'Finance',
-        email: item.email || item.contactEmail || 'contact@cebizpay.com',
-        address: item.address || item.city || 'Abuja..........',
+        category: item.category || 'N/A',
+        email: item.email || item.contactEmail || 'N/A',
+        address: item.address || 'N/A',
         status: item.status || 'Verified',
         logoUrl: item.logoUrl || null,
       }));
     }
-    return getOrganizationsWithOverrides();
+    return [];
   }, [orgsApiData]);
 
-  // Client-side filtering when working with fallback data or search refining
-  const displayedOrganizations = useMemo(() => {
-    // If backend already filtered, use as is; otherwise apply client filter
-    if (orgsApiData?.items && orgsApiData.items.length > 0) {
-      return rawOrganizations;
-    }
-
-    return rawOrganizations.filter((org) => {
-      const matchesSearch =
-        !searchQuery.trim() ||
-        org.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        org.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        org.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        org.address.toLowerCase().includes(searchQuery.toLowerCase());
-
-      const matchesStatus =
-        !selectedStatus ||
-        org.status.toLowerCase() === selectedStatus.toLowerCase();
-
-      return matchesSearch && matchesStatus;
-    });
-  }, [rawOrganizations, searchQuery, selectedStatus, orgsApiData]);
-
-  // Total count formatted: prioritize live KPI metrics, then API totalCount, then displayed count
+  // Total count formatted from live backend response
   const totalOrganizationsCount = useMemo(() => {
-    if (metricsData?.totalOrganizations != null) {
-      return Number(metricsData.totalOrganizations).toLocaleString('en-US');
-    }
     if (orgsApiData?.totalCount != null) {
       return Number(orgsApiData.totalCount).toLocaleString('en-US');
     }
-    return displayedOrganizations.length;
-  }, [metricsData, orgsApiData, displayedOrganizations]);
+    if (metricsData?.totalOrganizations != null) {
+      return Number(metricsData.totalOrganizations).toLocaleString('en-US');
+    }
+    return displayedOrganizations.length.toLocaleString('en-US');
+  }, [orgsApiData, metricsData, displayedOrganizations]);
 
-  // Total pages: prioritize API totalPages, then calculate dynamically
+  // Total pages from backend pagination
   const totalPages = useMemo(() => {
     if (orgsApiData?.totalPages != null && orgsApiData.totalPages > 0) {
       return orgsApiData.totalPages;
     }
-    return Math.max(1, Math.ceil(displayedOrganizations.length / 10));
-  }, [orgsApiData, displayedOrganizations]);
+    return 1;
+  }, [orgsApiData]);
 
   const navigate = useNavigate();
 
@@ -105,29 +88,28 @@ export default function Organizations() {
     navigate(`/organization/${org.id}`, { state: { organization: org } });
   };
 
-  // Client-side CSV export of currently filtered data
-  const handleExport = () => {
-    if (!displayedOrganizations || displayedOrganizations.length === 0) return;
-
-    const headers = ['Name', 'Category', 'Email Address', 'Address', 'Status'];
-    const rows = displayedOrganizations.map((org) => [
-      `"${org.name.replace(/"/g, '""')}"`,
-      `"${org.category.replace(/"/g, '""')}"`,
-      `"${org.email.replace(/"/g, '""')}"`,
-      `"${org.address.replace(/"/g, '""')}"`,
-      `"${org.status.replace(/"/g, '""')}"`,
-    ]);
-
-    const csvContent = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', `organizations_${Date.now()}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+  // Server-side CSV export
+  const handleExport = async () => {
+    try {
+      setIsExporting(true);
+      const blobData = await adminService.organizations.export({
+        search: searchQuery,
+        status: selectedStatus,
+      });
+      const blob = new Blob([blobData], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', `organizations_${Date.now()}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Failed to export organizations:', err);
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   return (
@@ -162,6 +144,8 @@ export default function Organizations() {
                 variant="outline"
                 size="md"
                 onClick={handleExport}
+                loading={isExporting}
+                disabled={isExporting || displayedOrganizations.length === 0}
                 className="w-auto px-6 py-2"
               >
                 Export
@@ -197,7 +181,7 @@ export default function Organizations() {
 
           {/* Data Table */}
           <div className="w-full relative">
-            {isFetching && (
+            {isFetching && !isLoading && (
               <div className="absolute top-2 right-2 flex items-center space-x-1.5 text-xs text-slate-400 bg-white/80 px-2 py-1 rounded-md">
                 <Loader2 className="w-3.5 h-3.5 animate-spin text-primary" />
                 <span>Updating...</span>
@@ -217,11 +201,20 @@ export default function Organizations() {
               </TableHeader>
 
               <TableBody>
-                {isLoading && !rawOrganizations.length ? (
+                {isLoading ? (
                   <TableRow>
                     <TableCell colSpan={6} className="text-center py-12 text-slate-400">
                       <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-primary" />
                       <span>Loading organisations...</span>
+                    </TableCell>
+                  </TableRow>
+                ) : isError ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-12 text-rejected">
+                      <p className="font-semibold text-sm">Failed to load organisations</p>
+                      <p className="text-xs text-slate-500 mt-1">
+                        {error?.message || 'Unable to retrieve organisations from the server. Please check your connection.'}
+                      </p>
                     </TableCell>
                   </TableRow>
                 ) : displayedOrganizations.length > 0 ? (

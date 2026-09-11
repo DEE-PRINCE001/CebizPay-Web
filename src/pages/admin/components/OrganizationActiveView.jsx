@@ -27,8 +27,13 @@ export default function OrganizationActiveView({
   const orgName = organization?.name || 'Organization';
   const isSuspended = organization?.status === 'Suspended';
 
-  // 1. Live Staff Query: fetch from backend with graceful mock fallback
-  const { data: staffApiData } = useQuery({
+  // 1. Live Staff Query: fetch from backend
+  const {
+    data: staffApiData,
+    isLoading: isStaffLoading,
+    isError: isStaffError,
+    error: staffError,
+  } = useQuery({
     queryKey: ['admin-org-staff', organization?.id, currentPage, searchQuery, selectedStatus],
     queryFn: () =>
       adminService.organizations.getStaff(organization?.id, {
@@ -36,7 +41,7 @@ export default function OrganizationActiveView({
         pageSize: 10,
         search: searchQuery,
       }),
-    enabled: !!organization?.id,
+    enabled: !!organization?.id && activeTab === 'staff',
     staleTime: 30 * 1000,
     retry: false,
   });
@@ -51,19 +56,20 @@ export default function OrganizationActiveView({
   });
 
   const rawStaffList = useMemo(() => {
-    if (staffApiData?.items && Array.isArray(staffApiData.items) && staffApiData.items.length > 0) {
+    if (staffApiData?.items && Array.isArray(staffApiData.items)) {
       return staffApiData.items.map((s) => ({
         id: s.id || s.staffId,
         name: s.name || `${s.firstName || ''} ${s.lastName || ''}`.trim() || 'Staff Member',
-        walletId: s.walletId || s.accountNumber || '781797168ID',
-        bankAccount: s.bankAccount || s.bankAccountNumber || '02826893 AC',
-        email: s.email || 'Mile@gmail.com',
-        monthlySalary: s.monthlySalary != null ? String(s.monthlySalary) : '34,9713',
-        status: s.status || 'Verified',
+        walletId: s.walletId || s.accountNumber || 'N/A',
+        bankAccount: s.bankAccount || s.bankAccountNumber || 'N/A',
+        email: s.email || 'N/A',
+        monthlySalary: s.monthlySalary != null ? String(s.monthlySalary) : 'N/A',
+        status: s.status || 'Active',
+        avatarUrl: s.avatarUrl || null,
       }));
     }
-    return organization?.staff || [];
-  }, [staffApiData, organization]);
+    return [];
+  }, [staffApiData]);
 
   const filteredStaff = useMemo(() => {
     return rawStaffList.filter((staff) => {
@@ -83,11 +89,11 @@ export default function OrganizationActiveView({
   }, [rawStaffList, searchQuery, selectedStatus]);
 
   const tabs = useMemo(() => [
-    { id: 'staff', label: `Staff (${filteredStaff.length})` },
+    { id: 'staff', label: `Staff (${staffApiData?.totalCount ?? filteredStaff.length})` },
     { id: 'saving_plan', label: 'Saving Plan' },
     { id: 'wallet', label: 'Wallet' },
     { id: 'payroll', label: 'Payroll' },
-  ], [filteredStaff.length]);
+  ], [staffApiData, filteredStaff.length]);
 
   const handleExport = () => {
     if (!filteredStaff || filteredStaff.length === 0) return;
@@ -127,7 +133,7 @@ export default function OrganizationActiveView({
         <div className="flex items-center space-x-4 sm:space-x-5">
           <div className="w-20 h-20 sm:w-28 sm:h-28 rounded-2xl overflow-hidden shrink-0 border border-slate-100 bg-slate-50">
             <img
-              src={womanPhoto}
+              src={organization?.photoUrl || organization?.logoUrl || womanPhoto}
               alt={orgName}
               className="w-full h-full object-cover"
             />
@@ -273,7 +279,22 @@ export default function OrganizationActiveView({
                 </TableHeader>
 
                 <TableBody>
-                  {filteredStaff.length > 0 ? (
+                  {isStaffLoading ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-12 text-slate-500">
+                        <div className="flex items-center justify-center space-x-2">
+                          <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                          <span>Loading staff members...</span>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ) : isStaffError ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-12 text-rejected">
+                        {staffError?.message || 'Failed to load staff members.'}
+                      </TableCell>
+                    </TableRow>
+                  ) : filteredStaff.length > 0 ? (
                     filteredStaff.map((staff) => (
                       <TableRow key={staff.id}>
                         {/* Name with circular avatar */}
@@ -281,7 +302,7 @@ export default function OrganizationActiveView({
                           <div className="flex items-center space-x-3">
                             <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full overflow-hidden shrink-0 border border-slate-100 bg-slate-100">
                               <img
-                                src={defaultProfile}
+                                src={staff.avatarUrl || defaultProfile}
                                 alt={staff.name}
                                 className="w-full h-full object-cover"
                               />
@@ -344,7 +365,7 @@ export default function OrganizationActiveView({
             {/* Pagination */}
             <Pagination
               currentPage={currentPage}
-              totalPages={Math.max(1, Math.ceil(filteredStaff.length / 10))}
+              totalPages={Math.max(1, staffApiData?.totalPages ?? 1)}
               onPageChange={setCurrentPage}
             />
           </>

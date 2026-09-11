@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { useParams, useLocation } from 'react-router-dom';
+import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import DashboardLayout from '../../components/layout/DashboardLayout.jsx';
 import OrganizationPendingView from './components/OrganizationPendingView.jsx';
@@ -8,45 +8,39 @@ import OrganizationRejectedView from './components/OrganizationRejectedView.jsx'
 import ActionConfirmModal from '../../components/modals/ActionConfirmModal.jsx';
 import { adminService } from '../../api/services/admin.service.js';
 import { authService } from '../../api/services/auth.service.js';
-import { useAuth } from '../../hooks/useAuth.js';
 import { getStoredAccessToken } from '../../api/client.js';
-import {
-  getMockOrganizationById,
-  saveOrgStatusOverride,
-} from '../../api/mocks/organizations.mock.js';
+import { Loader2, AlertCircle } from 'lucide-react';
 
 export default function OrganizationDetails() {
   const { id } = useParams();
   const location = useLocation();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { user } = useAuth();
 
   const [statusOverride, setStatusOverride] = useState(null);
 
-  // Live Query: Fetch organization details by ID from backend if available
-  const { data: apiOrg } = useQuery({
+  // Live Query: Fetch organization details by ID from backend
+  const {
+    data: apiOrg,
+    isLoading: isOrgLoading,
+    isError: isOrgError,
+    error: orgError,
+  } = useQuery({
     queryKey: ['admin-organization-details', id],
     queryFn: () => adminService.organizations.getById(id),
     enabled: !!id,
     retry: false,
   });
 
-  // Derive organization data dynamically from API, navigation state, mock fallback, or auth me info
+  // Derive organization data dynamically from live API query or navigation state
   const organization = useMemo(() => {
-    const fallback = getMockOrganizationById(id) || location.state?.organization;
-    const liveFromAuth = user?.organizations?.find((o) => o.organizationId === id);
-    const base = apiOrg || (liveFromAuth ? {
-      ...fallback,
-      id: liveFromAuth.organizationId,
-      name: liveFromAuth.companyName || fallback?.name,
-    } : fallback);
-
+    const base = apiOrg || location.state?.organization;
+    if (!base) return null;
     return {
-      ...fallback,
       ...base,
-      status: statusOverride || fallback?.status || base?.status || 'Pending',
+      status: statusOverride || base.status || 'Pending',
     };
-  }, [apiOrg, location.state, id, statusOverride, user]);
+  }, [apiOrg, location.state, statusOverride]);
 
   // Live Mutation: Update Organization Status (Admin lifecycle transition)
   const updateStatusMutation = useMutation({
@@ -71,7 +65,6 @@ export default function OrganizationDetails() {
       const newStatus = data?.status || variables.statusName;
       if (newStatus) {
         setStatusOverride(newStatus);
-        saveOrgStatusOverride(id, newStatus);
       }
       queryClient.invalidateQueries({ queryKey: ['admin-organization-details', id] });
       queryClient.invalidateQueries({ queryKey: ['admin-organizations'] });
@@ -223,8 +216,7 @@ export default function OrganizationDetails() {
 
       const resolvedStatus = res?.status || nextStatus;
 
-      // Persist status change across application
-      saveOrgStatusOverride(id, resolvedStatus);
+      // Update reactive status override
       setStatusOverride(resolvedStatus);
 
       // Transition to success screen
@@ -277,7 +269,6 @@ export default function OrganizationDetails() {
   const handleSuccessClose = () => {
     if (modalConfig.pendingNewStatus) {
       setStatusOverride(modalConfig.pendingNewStatus);
-      saveOrgStatusOverride(id, modalConfig.pendingNewStatus);
     }
     setModalConfig((prev) => ({ ...prev, isOpen: false, isLoading: false, errorMessage: '' }));
   };
@@ -295,6 +286,40 @@ export default function OrganizationDetails() {
       console.log('Viewing credential document:', doc);
     }
   };
+
+  if (isOrgLoading && !organization) {
+    return (
+      <DashboardLayout>
+        <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          <p className="text-sm font-medium text-slate-500">Loading organisation details...</p>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (isOrgError && !organization) {
+    return (
+      <DashboardLayout>
+        <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4 text-center p-6">
+          <div className="w-12 h-12 rounded-full bg-rejected/15 flex items-center justify-center text-rejected mb-2">
+            <AlertCircle className="w-6 h-6" />
+          </div>
+          <h2 className="text-xl font-bold text-primary-text">Organisation Not Found</h2>
+          <p className="text-sm text-slate-500 max-w-md">
+            {orgError?.message || 'Unable to retrieve the requested organisation from the server. Please check your connection or sign in.'}
+          </p>
+          <button
+            type="button"
+            onClick={() => navigate('/organization')}
+            className="mt-4 px-6 py-2.5 rounded-xl text-sm font-medium bg-primary text-white hover:bg-primary/90 transition-colors cursor-pointer shadow-xs"
+          >
+            Back to Organisations
+          </button>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   const isPending = organization?.status === 'Pending';
   const isRejected = organization?.status === 'Rejected';

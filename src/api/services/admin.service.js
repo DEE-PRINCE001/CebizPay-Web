@@ -25,6 +25,12 @@ export const adminService = {
     getDocuments: async (id) => {
       return apiClient.get(ENDPOINTS.ADMIN.ORGANIZATIONS.DOCUMENTS(id));
     },
+    export: async (params = {}) => {
+      return apiClient.get(ENDPOINTS.ADMIN.ORGANIZATIONS.EXPORT, {
+        params,
+        responseType: 'blob',
+      });
+    },
   },
 
   // Dashboard & Metrics
