@@ -10,14 +10,6 @@ import FilterDropdown from '../../../components/forms/FilterDropdown.jsx';
 import womanPhoto from '../../../assets/woman.svg';
 import defaultProfile from '../../../assets/default-profile.svg';
 import { adminService } from '../../../api/services/admin.service.js';
-import { MOCK_STAFF_MEMBERS } from '../../../api/mocks/organizations.mock.js';
-
-const TABS = [
-  { id: 'staff', label: 'Staff (65)' },
-  { id: 'saving_plan', label: 'Saving Plan' },
-  { id: 'wallet', label: 'Wallet' },
-  { id: 'payroll', label: 'Payroll' },
-];
 
 export default function OrganizationActiveView({
   organization,
@@ -32,7 +24,7 @@ export default function OrganizationActiveView({
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
 
-  const orgName = organization?.name || 'Cebis Tech';
+  const orgName = organization?.name || 'Organization';
   const isSuspended = organization?.status === 'Suspended';
 
   // 1. Live Staff Query: fetch from backend with graceful mock fallback
@@ -70,7 +62,7 @@ export default function OrganizationActiveView({
         status: s.status || 'Verified',
       }));
     }
-    return organization?.staff || MOCK_STAFF_MEMBERS;
+    return organization?.staff || [];
   }, [staffApiData, organization]);
 
   const filteredStaff = useMemo(() => {
@@ -89,6 +81,13 @@ export default function OrganizationActiveView({
       return matchesSearch && matchesStatus;
     });
   }, [rawStaffList, searchQuery, selectedStatus]);
+
+  const tabs = useMemo(() => [
+    { id: 'staff', label: `Staff (${filteredStaff.length})` },
+    { id: 'saving_plan', label: 'Saving Plan' },
+    { id: 'wallet', label: 'Wallet' },
+    { id: 'payroll', label: 'Payroll' },
+  ], [filteredStaff.length]);
 
   const handleExport = () => {
     if (!filteredStaff || filteredStaff.length === 0) return;
@@ -191,7 +190,7 @@ export default function OrganizationActiveView({
       <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 lg:p-8 shadow-xs border border-slate-100 flex flex-col space-y-6">
         {/* Tabs Bar */}
         <div className="flex items-center space-x-6 sm:space-x-8 border-b border-slate-100 overflow-x-auto">
-          {TABS.map((tab) => {
+          {tabs.map((tab) => {
             const isActive = activeTab === tab.id;
             return (
               <button
@@ -345,7 +344,7 @@ export default function OrganizationActiveView({
             {/* Pagination */}
             <Pagination
               currentPage={currentPage}
-              totalPages={130}
+              totalPages={Math.max(1, Math.ceil(filteredStaff.length / 10))}
               onPageChange={setCurrentPage}
             />
           </>

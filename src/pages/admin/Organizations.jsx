@@ -11,11 +11,7 @@ import FilterDropdown from '../../components/forms/FilterDropdown.jsx';
 import { ChevronDown, Loader2 } from 'lucide-react';
 import defaultProfile from '../../assets/default-profile.svg';
 import { adminService } from '../../api/services/admin.service.js';
-import {
-  MOCK_ORGANIZATIONS,
-  DEFAULT_FALLBACK_COUNT,
-  DEFAULT_FALLBACK_TOTAL_PAGES,
-} from '../../api/mocks/organizations.mock.js';
+import { getOrganizationsWithOverrides } from '../../api/mocks/organizations.mock.js';
 
 export default function Organizations() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -58,7 +54,7 @@ export default function Organizations() {
         logoUrl: item.logoUrl || null,
       }));
     }
-    return MOCK_ORGANIZATIONS;
+    return getOrganizationsWithOverrides();
   }, [orgsApiData]);
 
   // Client-side filtering when working with fallback data or search refining
@@ -84,24 +80,24 @@ export default function Organizations() {
     });
   }, [rawOrganizations, searchQuery, selectedStatus, orgsApiData]);
 
-  // Total count formatted: prioritize live KPI metrics, then API totalCount, then fallback
+  // Total count formatted: prioritize live KPI metrics, then API totalCount, then displayed count
   const totalOrganizationsCount = useMemo(() => {
-    if (metricsData?.totalOrganizations != null && metricsData.totalOrganizations > 0) {
+    if (metricsData?.totalOrganizations != null) {
       return Number(metricsData.totalOrganizations).toLocaleString('en-US');
     }
-    if (orgsApiData?.totalCount != null && orgsApiData.totalCount > 0) {
+    if (orgsApiData?.totalCount != null) {
       return Number(orgsApiData.totalCount).toLocaleString('en-US');
     }
-    return DEFAULT_FALLBACK_COUNT;
-  }, [metricsData, orgsApiData]);
+    return displayedOrganizations.length;
+  }, [metricsData, orgsApiData, displayedOrganizations]);
 
-  // Total pages: prioritize API totalPages, then fallback
+  // Total pages: prioritize API totalPages, then calculate dynamically
   const totalPages = useMemo(() => {
-    if (orgsApiData?.totalPages != null) {
+    if (orgsApiData?.totalPages != null && orgsApiData.totalPages > 0) {
       return orgsApiData.totalPages;
     }
-    return DEFAULT_FALLBACK_TOTAL_PAGES;
-  }, [orgsApiData]);
+    return Math.max(1, Math.ceil(displayedOrganizations.length / 10));
+  }, [orgsApiData, displayedOrganizations]);
 
   const navigate = useNavigate();
 

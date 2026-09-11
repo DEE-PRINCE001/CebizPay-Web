@@ -179,13 +179,20 @@ For reference with the live endpoint `PATCH /api/v1/organizations/{id}/status`:
 - **Payload**:
 ```json
 {
-  "status": 1,
+  "status": 2,
   "reason": "Approved by administrator"
 }
 ```
-- **Enum Integer Mapping (`OrganizationStatus`)**:
-  - `0`: `Pending` (Under KYB review)
-  - `1`: `Active` / `Verified` (Approved and fully active)
-  - `2`: `Suspended` (Temporarily restricted by administrator)
+- **Enum Integer Mapping (`OrganizationStatus` - 1-based enum in backend Domain entity)**:
+  - `1`: `Pending` (Under KYB review)
+  - `2`: `Verified` / `Active` (Approved and fully operational)
   - `3`: `Rejected` (Verification rejected)
+  - `4`: `Suspended` (Temporarily restricted by administrator)
+
+- **Domain Lifecycle Transition Rules (`Organization.TransitionStatus`)**:
+  - `Pending (1)` $\rightarrow$ Can transition to `Verified (2)` or `Rejected (3)`
+  - `Verified (2)` $\rightarrow$ Can transition to `Suspended (4)`
+  - `Suspended (4)` $\rightarrow$ Can transition to `Verified (2)` (Re-activate)
+  - `Rejected (3)` $\rightarrow$ Can transition to `Pending (1)` (Review)
+  *Note: Attempting transitions outside these rules (e.g. sending 0 or jumping from Pending to Suspended directly) causes a `500 System.InvalidOperationException` on the backend.*
 

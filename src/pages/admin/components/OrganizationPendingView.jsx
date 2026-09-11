@@ -7,16 +7,22 @@ export default function OrganizationPendingView({
   onVerify,
   onViewDocument,
 }) {
-  const orgName = organization?.name || 'Cebis Tech';
-  const category = organization?.category || 'Technology';
-  const email = organization?.email || 'Cebis Technology';
-  const address = organization?.address || 'Abuja Obanikoro.......';
-  const staffCount = organization?.staffCount || 56;
-  const credentials = organization?.credentials || [
-    { id: '1', title: 'Corporative Association Community' },
-    { id: '2', title: 'Corporative Association Community' },
-    { id: '3', title: 'Corporative Association Community' },
-  ];
+  const orgName = organization?.name || 'Organization';
+  const category = organization?.category || 'General';
+  const email = organization?.email || 'N/A';
+  const address = organization?.address || 'N/A';
+  const staffCount = organization?.staffCount ?? 0;
+  const credentials = organization?.credentials?.length
+    ? organization.credentials
+    : organization?.cacCertificateUrl
+    ? [
+        {
+          id: 'cac-01',
+          title: `CAC Certificate (${organization?.cacNumber || 'Verified'})`,
+          fileUrl: organization.cacCertificateUrl,
+        },
+      ]
+    : [];
 
   return (
     <div className="flex flex-col space-y-6">
@@ -81,26 +87,32 @@ export default function OrganizationPendingView({
               Credentails
             </h3>
 
-            <div className="divide-y divide-slate-100">
-              {credentials.map((doc) => (
-                <div
-                  key={doc.id}
-                  className="py-3.5 flex items-center justify-between gap-3"
-                >
-                  <span className="text-xs sm:text-sm font-medium text-slate-700 pr-2">
-                    {doc.title}
-                  </span>
-
-                  <button
-                    type="button"
-                    onClick={() => onViewDocument?.(doc)}
-                    className="inline-flex items-center justify-center bg-primary hover:bg-primary/90 active:bg-primary/80 text-white rounded-lg px-5 py-1.5 text-xs font-medium transition-colors cursor-pointer shrink-0"
+            {credentials.length > 0 ? (
+              <div className="divide-y divide-slate-100">
+                {credentials.map((doc) => (
+                  <div
+                    key={doc.id}
+                    className="py-3.5 flex items-center justify-between gap-3"
                   >
-                    View
-                  </button>
-                </div>
-              ))}
-            </div>
+                    <span className="text-xs sm:text-sm font-medium text-slate-700 pr-2">
+                      {doc.title}
+                    </span>
+
+                    <button
+                      type="button"
+                      onClick={() => onViewDocument?.(doc)}
+                      className="inline-flex items-center justify-center bg-primary hover:bg-primary/90 active:bg-primary/80 text-white rounded-lg px-5 py-1.5 text-xs font-medium transition-colors cursor-pointer shrink-0"
+                    >
+                      View
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="py-8 text-center text-slate-400 text-sm">
+                No credentials submitted yet.
+              </div>
+            )}
           </div>
         </div>
       </div>
