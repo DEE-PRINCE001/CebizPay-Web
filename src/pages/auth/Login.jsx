@@ -11,7 +11,7 @@ const Login = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const from = location.state?.from?.pathname || '/dashboard-test';
+  const from = location.state?.from?.pathname || '/dashboard';
   const [formData, setFormData] = useState({
     email: localStorage.getItem('cebizpay_remembered_email') || '',
     password: '',

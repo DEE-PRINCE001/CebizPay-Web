@@ -254,7 +254,7 @@ const ProfileModal = ({ isOpen = false, onClose, user: userProp, platform: platf
             className="rounded-xl text-xs sm:text-sm"
             onClick={() => {
               onClose?.();
-              navigate('/dashboard-test');
+              navigate('/dashboard');
             }}
           >
             Published Announcements

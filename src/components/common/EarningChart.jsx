@@ -1,4 +1,5 @@
 import React from 'react';
+import { Loader2 } from 'lucide-react';
 import {
   ResponsiveContainer,
   AreaChart,
@@ -9,24 +10,8 @@ import {
   Tooltip
 } from 'recharts';
 
-// Sample mock data matching the chart timeline
-const DEFAULT_DATA = [
-  { name: 'Jan', value: 75 },
-  { name: 'Feb', value: 70 },
-  { name: 'Mar', value: 115 },
-  { name: 'Apr', value: 110 },
-  { name: 'May', value: 80 },
-  { name: 'Jun', value: 85 },
-  { name: 'Jul', value: 70 },
-  { name: 'Aug', value: 95 },
-  { name: 'Sep', value: 100 },
-  { name: 'Oct', value: 95 },
-  { name: 'Nov', value: 92 },
-  { name: 'Dec', value: 102 },
-];
-
 // Custom Tooltip component to match the UI precisely
-const CustomTooltip = ({ active, payload, currency = '₦', growthRate = '-3.4%' }) => {
+const CustomTooltip = ({ active, payload, currency = '₦', growthRate = '0%' }) => {
   if (active && payload && payload.length) {
     const rawVal = payload[0].value;
     const formatted = typeof rawVal === 'number'
@@ -49,10 +34,13 @@ const CustomTooltip = ({ active, payload, currency = '₦', growthRate = '-3.4%'
 
 export default function EarningsChart({
   title = 'Earning',
-  totalEarnings = '3,445',
+  totalEarnings = '0',
   currency = '₦',
-  growthRate = '-3.4%',
-  data = DEFAULT_DATA,
+  growthRate = '0%',
+  data = [],
+  isLoading = false,
+  isError = false,
+  errorMessage = '',
   className = '',
 }) {
   return (
@@ -65,13 +53,30 @@ export default function EarningsChart({
         </span>
       </div>
 
-      {/* Chart Wrapper Container */}
-      <div className="h-64 w-full text-[11px] font-medium text-gray-400">
-        <ResponsiveContainer width="100%" height="100%">
-          <AreaChart
-            data={data}
-            margin={{ top: 20, right: 5, left: -25, bottom: 0 }}
-          >
+      {/* Chart Content / Loading / Error / Empty */}
+      {isLoading ? (
+        <div className="h-64 w-full flex items-center justify-center space-x-2 text-slate-400">
+          <Loader2 className="w-5 h-5 animate-spin text-primary" />
+          <span className="text-xs font-medium">Loading analytics data...</span>
+        </div>
+      ) : isError ? (
+        <div className="h-64 w-full flex flex-col items-center justify-center text-center p-4">
+          <p className="text-xs text-rejected font-semibold">Failed to load analytics</p>
+          <p className="text-[11px] text-slate-400 mt-1 max-w-xs">
+            {errorMessage || 'Unable to retrieve chart data from server.'}
+          </p>
+        </div>
+      ) : !data || data.length === 0 ? (
+        <div className="h-64 w-full flex items-center justify-center text-xs text-slate-400">
+          No analytics data recorded yet.
+        </div>
+      ) : (
+        <div className="h-64 w-full text-[11px] font-medium text-gray-400">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart
+              data={data}
+              margin={{ top: 20, right: 5, left: -25, bottom: 0 }}
+            >
             {/* Grid Line configurations */}
             <CartesianGrid 
               vertical={false} 
@@ -146,6 +151,7 @@ export default function EarningsChart({
           </AreaChart>
         </ResponsiveContainer>
       </div>
-    </div>
-  );
+    )}
+  </div>
+);
 }

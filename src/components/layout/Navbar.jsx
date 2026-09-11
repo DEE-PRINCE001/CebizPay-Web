@@ -7,7 +7,7 @@ import { useAuth } from '../../hooks/useAuth.js';
 import ProfileModal from '../modals/ProfileModal.jsx';
 
 const NAV_ITEMS = [
-  { to: '/dashboard-test', label: 'Dashboard', icon: LayoutDashboard },
+  { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/organization', label: 'Organization', icon: UsersRound },
   { to: '/individual', label: 'Individual', icon: User },
   { to: '/wallet', label: 'Wallet', icon: Wallet },

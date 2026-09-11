@@ -7,7 +7,6 @@ import OrganizationActiveView from './components/OrganizationActiveView.jsx';
 import OrganizationRejectedView from './components/OrganizationRejectedView.jsx';
 import ActionConfirmModal from '../../components/modals/ActionConfirmModal.jsx';
 import { adminService } from '../../api/services/admin.service.js';
-import { authService } from '../../api/services/auth.service.js';
 import { getStoredAccessToken } from '../../api/client.js';
 import { Loader2, AlertCircle } from 'lucide-react';
 
@@ -183,27 +182,10 @@ export default function OrganizationDetails() {
   // When clicking Proceed in confirmation dialog, call backend API live & wait for response
   const handleProceed = async () => {
     const nextStatus = modalConfig.pendingNewStatus;
-    if (!nextStatus) return;
-
     setModalConfig((prev) => ({ ...prev, errorMessage: '', isLoading: true }));
 
     try {
-      let token = getStoredAccessToken();
-      if (!token) {
-        // Automatically attempt login with provided credentials in development/testing mode
-        try {
-          const authRes = await authService.login({
-            email: 'honour@gmail.com',
-            password: 'CephHonSec.123tryit',
-          });
-          if (authRes?.accessToken) {
-            token = authRes.accessToken;
-          }
-        } catch (authErr) {
-          console.warn('Dev auto-auth attempt failed:', authErr);
-        }
-      }
-
+      const token = getStoredAccessToken();
       if (!token) {
         throw new Error('Authentication required: You must be logged in as an administrator to change organization status. Please log in first at /login.');
       }
