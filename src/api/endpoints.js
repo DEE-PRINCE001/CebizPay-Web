@@ -341,6 +341,16 @@ export const ENDPOINTS = {
         SAVINGS: (id) => `${BASE_PREFIX}/admin/individuals/${id}/savings`,
         EXPORT: `${BASE_PREFIX}/admin/individuals/export`,
       },
+      WALLETS: {
+        ORGANIZATIONS: `${BASE_PREFIX}/admin/wallets/organizations`,
+        ORGANIZATIONS_EXPORT: `${BASE_PREFIX}/admin/wallets/organizations/export`,
+        ORGANIZATION_WALLET: (id) => `${BASE_PREFIX}/admin/organizations/${id}/wallet`,
+        ORGANIZATION_SALARIES: (id) => `${BASE_PREFIX}/admin/organizations/${id}/salaries`,
+        ORGANIZATION_SALARIES_EXPORT: (id) => `${BASE_PREFIX}/admin/organizations/${id}/salaries/export`,
+        ORGANIZATION_SAVINGS: (id) => `${BASE_PREFIX}/admin/organizations/${id}/savings`,
+        INDIVIDUALS: `${BASE_PREFIX}/admin/wallets/individuals`,
+        INDIVIDUALS_EXPORT: `${BASE_PREFIX}/admin/wallets/individuals/export`,
+      },
       DASHBOARD: {
         METRICS: `${BASE_PREFIX}/admin/dashboard/metrics`,
       },

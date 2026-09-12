@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useParams, useLocation } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import DashboardLayout from '../../components/layout/DashboardLayout.jsx';
 import Breadcrumb from '../../components/common/Breadcrumb.jsx';
 import SearchInput from '../../components/forms/SearchInput.jsx';
@@ -8,74 +9,165 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '.
 import StatusBadge from '../../components/common/StatusBadge.jsx';
 import Pagination from '../../components/common/Pagination.jsx';
 import FilterDropdown from '../../components/forms/FilterDropdown.jsx';
-import { ChevronDown, PiggyBank } from 'lucide-react';
-
-// Isolated Phase 1 Mock Data (easily replaced by live TanStack queries in Phase 2)
-import {
-  MOCK_ORGANIZATION_WALLETS,
-  MOCK_ORGANIZATION_SALARIES,
-  MOCK_ORGANIZATION_SAVINGS,
-} from '../../data/mockWallets.js';
+import { ChevronDown, PiggyBank, Loader2, AlertCircle } from 'lucide-react';
+import { adminService } from '../../api/services/admin.service.js';
 
 export default function OrganizationWalletDetails() {
   const { id } = useParams();
   const location = useLocation();
-
-  // Find organization or use fallback from location state or mock list
-  const organization = useMemo(() => {
-    return (
-      location.state?.organization ||
-      MOCK_ORGANIZATION_WALLETS.find((org) => org.id === id) ||
-      MOCK_ORGANIZATION_WALLETS[0]
-    );
-  }, [id, location.state]);
 
   const [activeTab, setActiveTab] = useState('Salaries'); // 'Salaries' | 'Organization Saving Plan'
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 10;
+  const [isExporting, setIsExporting] = useState(false);
 
-  const orgName = organization?.name || 'Cebis';
-  const currentBalance = organization?.currentBalance ?? 238000909;
-  const totalSalaryPaid = organization?.totalSalaryPaid ?? 238000909;
-  const totalLoanFund = organization?.totalLoanPaid ?? 238000909;
+  // Live Query: Fetch organization profile
+  const {
+    data: orgApiData,
+    isLoading: isOrgLoading,
+    error: orgError,
+  } = useQuery({
+    queryKey: ['admin-organization-details', id],
+    queryFn: () => adminService.organizations.getById(id),
+    enabled: !!id,
+    staleTime: 30 * 1000,
+    retry: false,
+  });
 
-  // Filter salaries by search query and status
-  const filteredSalaries = useMemo(() => {
-    return MOCK_ORGANIZATION_SALARIES.filter((item) => {
-      const matchesSearch =
-        !searchQuery.trim() ||
-        item.transactionId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.accountOrWalletId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.method.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.month.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesStatus =
-        !selectedStatus || item.status.toLowerCase() === selectedStatus.toLowerCase();
-      return matchesSearch && matchesStatus;
-    });
-  }, [searchQuery, selectedStatus]);
+  // Live Query: Fetch organization wallet metrics
+  const {
+    data: walletApiData,
+    isLoading: isWalletLoading,
+  } = useQuery({
+    queryKey: ['admin-organization-wallet', id],
+    queryFn: () => adminService.wallets.organizations.getWallet(id),
+    enabled: !!id,
+    staleTime: 30 * 1000,
+    retry: false,
+  });
 
-  const totalSalariesCount = 130; // Matches reference image of 130
-  const totalPages = Math.max(1, Math.ceil(totalSalariesCount / pageSize));
+  // Live Query: Fetch salaries list
+  const {
+    data: salariesApiData,
+    isLoading: isSalariesLoading,
+    isError: isSalariesError,
+    error: salariesError,
+  } = useQuery({
+    queryKey: ['admin-organization-salaries', id, { page: currentPage, search: searchQuery, status: selectedStatus }],
+    queryFn: () =>
+      adminService.wallets.organizations.getSalaries(id, {
+        pageNumber: currentPage,
+        pageSize: 10,
+        search: searchQuery,
+        status: selectedStatus,
+      }),
+    enabled: !!id && activeTab === 'Salaries',
+    staleTime: 30 * 1000,
+    retry: false,
+  });
 
-  const handleExportSalaries = () => {
-    const headers = 'Amount,Transaction ID,Method,Acct/Wallet ID,Months,Date n Time,Status';
-    const rows = filteredSalaries.map((s) =>
-      `"${s.amount.toLocaleString()}","${s.transactionId}","${s.method}","${s.accountOrWalletId}","${s.month}","${s.dateTime}","${s.status}"`
-    );
-    const csvContent = [headers, ...rows].join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `salaries_${orgName.replace(/\s+/g, '_')}_${Date.now()}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+  // Live Query: Fetch savings plans
+  const {
+    data: savingsApiData,
+    isLoading: isSavingsLoading,
+  } = useQuery({
+    queryKey: ['admin-organization-savings', id],
+    queryFn: () => adminService.wallets.organizations.getSavings(id),
+    enabled: !!id && activeTab === 'Organization Saving Plan',
+    staleTime: 30 * 1000,
+    retry: false,
+  });
+
+  // Base organization resolution
+  const organization = useMemo(() => {
+    return orgApiData || location.state?.organization || null;
+  }, [orgApiData, location.state]);
+
+  const orgName = organization?.name || 'Organization';
+  const currentBalance = walletApiData?.currentBalance ?? organization?.currentBalance ?? 0;
+  const totalSalaryPaid = walletApiData?.totalSalaryPaid ?? organization?.totalSalaryPaid ?? 0;
+  const totalLoanFund = walletApiData?.totalLoanFund ?? organization?.totalLoanPaid ?? 0;
+
+  // Transform salaries list
+  const displayedSalaries = useMemo(() => {
+    if (salariesApiData?.items && Array.isArray(salariesApiData.items)) {
+      return salariesApiData.items.map((item) => ({
+        id: item.id || item.disbursementId,
+        amount: item.amount ?? 0,
+        transactionId: item.transactionId || 'N/A',
+        method: item.method || 'Wallet ID',
+        accountOrWalletId: item.accountOrWalletId || 'N/A',
+        month: item.month || 'N/A',
+        dateTime: item.dateTime
+          ? new Date(item.dateTime).toLocaleString('en-US', { dateStyle: 'short', timeStyle: 'short' })
+          : 'N/A',
+        status: item.status || 'Successfull',
+      }));
+    }
+    return [];
+  }, [salariesApiData]);
+
+  const totalSalariesCount = salariesApiData?.totalCount ?? displayedSalaries.length;
+  const totalPages = salariesApiData?.totalPages && salariesApiData.totalPages > 0 ? salariesApiData.totalPages : 1;
+
+  // Transform savings plans
+  const displayedSavings = useMemo(() => {
+    if (savingsApiData?.items && Array.isArray(savingsApiData.items)) {
+      return savingsApiData.items;
+    }
+    return [];
+  }, [savingsApiData]);
+
+  // Live server-side CSV export for salaries
+  const handleExportSalaries = async () => {
+    try {
+      setIsExporting(true);
+      const blobData = await adminService.wallets.organizations.exportSalaries(id, {
+        search: searchQuery,
+        status: selectedStatus,
+      });
+      const blob = new Blob([blobData], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', `salaries_${orgName.replace(/\s+/g, '_')}_${Date.now()}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Failed to export salaries:', err);
+    } finally {
+      setIsExporting(false);
+    }
   };
+
+  if (isOrgLoading && !organization) {
+    return (
+      <DashboardLayout>
+        <div className="py-24 flex flex-col items-center justify-center space-y-3">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          <span className="text-sm text-slate-500 font-medium">Loading organization wallet...</span>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (!organization && !isOrgLoading) {
+    return (
+      <DashboardLayout>
+        <div className="bg-white rounded-2xl p-8 border border-slate-100 shadow-xs flex flex-col items-center justify-center text-center space-y-4 max-w-lg mx-auto mt-12">
+          <AlertCircle className="w-10 h-10 text-rejected" />
+          <h2 className="text-lg font-bold text-primary-text">Organization Not Found</h2>
+          <p className="text-sm text-slate-500">
+            {orgError?.message || 'We could not load the organization wallet details.'}
+          </p>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
@@ -94,9 +186,15 @@ export default function OrganizationWalletDetails() {
             <h2 className="text-xs sm:text-sm font-semibold text-slate-500 mb-4">
               Current Balance
             </h2>
-            <p className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-primary-text tracking-tight">
-              ₦{Number(currentBalance).toLocaleString('en-US')}
-            </p>
+            {isWalletLoading && !walletApiData ? (
+              <div className="py-2 flex items-center space-x-2 text-slate-400">
+                <Loader2 className="w-5 h-5 animate-spin text-primary" />
+              </div>
+            ) : (
+              <p className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-primary-text tracking-tight">
+                ₦{Number(currentBalance).toLocaleString('en-US')}
+              </p>
+            )}
           </div>
 
           {/* Card 2: Total Salary Paid */}
@@ -104,9 +202,15 @@ export default function OrganizationWalletDetails() {
             <h2 className="text-xs sm:text-sm font-semibold text-slate-500 mb-4">
               Total Salary Paid
             </h2>
-            <p className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-primary-text tracking-tight">
-              ₦{Number(totalSalaryPaid).toLocaleString('en-US')}
-            </p>
+            {isWalletLoading && !walletApiData ? (
+              <div className="py-2 flex items-center space-x-2 text-slate-400">
+                <Loader2 className="w-5 h-5 animate-spin text-primary" />
+              </div>
+            ) : (
+              <p className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-primary-text tracking-tight">
+                ₦{Number(totalSalaryPaid).toLocaleString('en-US')}
+              </p>
+            )}
           </div>
 
           {/* Card 3: Total Loan Fund */}
@@ -114,9 +218,15 @@ export default function OrganizationWalletDetails() {
             <h2 className="text-xs sm:text-sm font-semibold text-slate-500 mb-4">
               Total Loan Fund
             </h2>
-            <p className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-primary-text tracking-tight">
-              ₦{Number(totalLoanFund).toLocaleString('en-US')}
-            </p>
+            {isWalletLoading && !walletApiData ? (
+              <div className="py-2 flex items-center space-x-2 text-slate-400">
+                <Loader2 className="w-5 h-5 animate-spin text-primary" />
+              </div>
+            ) : (
+              <p className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-primary-text tracking-tight">
+                ₦{Number(totalLoanFund).toLocaleString('en-US')}
+              </p>
+            )}
           </div>
         </div>
 
@@ -172,6 +282,8 @@ export default function OrganizationWalletDetails() {
                     variant="outline"
                     size="md"
                     onClick={handleExportSalaries}
+                    loading={isExporting}
+                    disabled={isExporting || displayedSalaries.length === 0}
                     className="w-auto px-6 py-2"
                   >
                     Export
@@ -216,11 +328,31 @@ export default function OrganizationWalletDetails() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredSalaries.length > 0 ? (
-                      filteredSalaries.map((sal) => (
+                    {isSalariesLoading && displayedSalaries.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center py-16">
+                          <div className="flex flex-col items-center justify-center space-y-2">
+                            <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                            <span className="text-xs text-slate-500 font-medium">Loading salary disbursements...</span>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ) : isSalariesError && displayedSalaries.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center py-12 text-rejected">
+                          <div className="flex flex-col items-center justify-center space-y-2">
+                            <AlertCircle className="w-6 h-6 text-rejected" />
+                            <span className="text-xs font-medium">
+                              {salariesError?.message || 'Failed to load salary disbursements.'}
+                            </span>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ) : displayedSalaries.length > 0 ? (
+                      displayedSalaries.map((sal) => (
                         <TableRow key={sal.id}>
                           <TableCell className="text-xs sm:text-sm font-semibold text-primary-text">
-                            {Number(sal.amount).toLocaleString('en-US')}
+                            ₦{Number(sal.amount).toLocaleString('en-US')}
                           </TableCell>
                           <TableCell className="text-xs sm:text-sm text-slate-600">
                             {sal.transactionId}
@@ -245,7 +377,7 @@ export default function OrganizationWalletDetails() {
                     ) : (
                       <TableRow>
                         <TableCell colSpan={7} className="text-center py-12 text-slate-400">
-                          No salary transactions found.
+                          No salary disbursements recorded yet.
                         </TableCell>
                       </TableRow>
                     )}
@@ -264,9 +396,14 @@ export default function OrganizationWalletDetails() {
           ) : (
             /* Tab Content 2: Organization Saving Plan */
             <div className="py-4">
-              {MOCK_ORGANIZATION_SAVINGS.length > 0 ? (
+              {isSavingsLoading && displayedSavings.length === 0 ? (
+                <div className="py-16 flex flex-col items-center justify-center space-y-2">
+                  <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                  <span className="text-xs text-slate-500 font-medium">Loading savings plans...</span>
+                </div>
+              ) : displayedSavings.length > 0 ? (
                 <div className="divide-y divide-slate-100">
-                  {MOCK_ORGANIZATION_SAVINGS.map((plan) => (
+                  {displayedSavings.map((plan) => (
                     <div key={plan.id} className="py-4 flex items-center justify-between">
                       <div className="flex items-center space-x-3">
                         <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">

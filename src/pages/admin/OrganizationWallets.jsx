@@ -1,16 +1,15 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import DashboardLayout from '../../components/layout/DashboardLayout.jsx';
 import SearchInput from '../../components/forms/SearchInput.jsx';
 import Button from '../../components/common/Button.jsx';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/common/table/index.js';
 import Pagination from '../../components/common/Pagination.jsx';
 import FilterDropdown from '../../components/forms/FilterDropdown.jsx';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, Loader2, AlertCircle } from 'lucide-react';
 import defaultAvatar from '../../assets/Ellipse 3018.svg';
-
-// Isolated Phase 1 Mock Data (easily replaced by live TanStack queries in Phase 2)
-import { MOCK_ORGANIZATION_WALLETS } from '../../data/mockWallets.js';
+import { adminService } from '../../api/services/admin.service.js';
 
 export default function OrganizationWallets() {
   const navigate = useNavigate();
@@ -18,48 +17,90 @@ export default function OrganizationWallets() {
   const [selectedStatus, setSelectedStatus] = useState('');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 10;
+  const [isExporting, setIsExporting] = useState(false);
 
-  // Filtered organizations
-  const filteredOrganizations = useMemo(() => {
-    return MOCK_ORGANIZATION_WALLETS.filter((org) => {
-      const matchesSearch =
-        !searchQuery.trim() ||
-        org.name.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesStatus =
-        !selectedStatus || org.status === selectedStatus;
-      return matchesSearch && matchesStatus;
-    });
-  }, [searchQuery, selectedStatus]);
+  // Live Query: Fetch organization wallets directory
+  const {
+    data: apiData,
+    isLoading,
+    isError,
+    error,
+  } = useQuery({
+    queryKey: ['admin-wallets-organizations', { page: currentPage, search: searchQuery, status: selectedStatus }],
+    queryFn: () =>
+      adminService.wallets.organizations.list({
+        pageNumber: currentPage,
+        pageSize: 10,
+        search: searchQuery,
+        status: selectedStatus,
+      }),
+    staleTime: 30 * 1000,
+    retry: false,
+  });
 
-  const totalCount = 45; // Based on reference design title: Organisations (45)
-  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+  // Transform live organizations data
+  const displayedOrganizations = useMemo(() => {
+    if (apiData?.items && Array.isArray(apiData.items)) {
+      return apiData.items.map((item) => ({
+        id: item.id || item.organizationId,
+        name: item.name || item.companyName || 'Organization',
+        logoUrl: item.logoUrl || null,
+        currentBalance: item.currentBalance ?? 0,
+        totalSalaryPaid: item.totalSalaryPaid ?? 0,
+        totalLoanPaid: item.totalLoanPaid ?? 0,
+        currency: item.currency || 'NGN',
+        status: item.status || 'Active',
+      }));
+    }
+    return [];
+  }, [apiData]);
+
+  const totalCount = useMemo(() => {
+    if (apiData?.totalCount != null) {
+      return Number(apiData.totalCount).toLocaleString('en-US');
+    }
+    return displayedOrganizations.length.toLocaleString('en-US');
+  }, [apiData, displayedOrganizations]);
+
+  const totalPages = useMemo(() => {
+    if (apiData?.totalPages != null && apiData.totalPages > 0) {
+      return apiData.totalPages;
+    }
+    return 1;
+  }, [apiData]);
 
   const handleView = (org) => {
     navigate(`/wallets/organization/${org.id}`, { state: { organization: org } });
   };
 
-  const handleExport = () => {
-    const headers = 'Name,Current Balance,Total Salary Paid,Total Loan Paid';
-    const rows = filteredOrganizations.map((org) =>
-      `"${org.name}","₦${org.currentBalance.toLocaleString()}","₦${org.totalSalaryPaid.toLocaleString()}","₦${org.totalLoanPaid.toLocaleString()}"`
-    );
-    const csvContent = [headers, ...rows].join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `organization_wallets_${Date.now()}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+  // Live server-side CSV export
+  const handleExport = async () => {
+    try {
+      setIsExporting(true);
+      const blobData = await adminService.wallets.organizations.export({
+        search: searchQuery,
+        status: selectedStatus,
+      });
+      const blob = new Blob([blobData], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', `organization_wallets_${Date.now()}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Failed to export organization wallets:', err);
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   return (
     <DashboardLayout>
       <div className="flex flex-col space-y-6">
-        {/* Page Title with Total Count matching reference */}
+        {/* Page Title with Dynamic Total Count matching reference */}
         <h1 className="text-2xl font-bold text-primary-text px-1">
           Organisations ({totalCount})
         </h1>
@@ -88,6 +129,8 @@ export default function OrganizationWallets() {
                 variant="outline"
                 size="md"
                 onClick={handleExport}
+                loading={isExporting}
+                disabled={isExporting || displayedOrganizations.length === 0}
                 className="w-auto px-6 py-2"
               >
                 Export
@@ -130,8 +173,28 @@ export default function OrganizationWallets() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredOrganizations.length > 0 ? (
-                  filteredOrganizations.map((org) => (
+                {isLoading && displayedOrganizations.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-16">
+                      <div className="flex flex-col items-center justify-center space-y-2">
+                        <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                        <span className="text-xs text-slate-500 font-medium">Loading organization wallets...</span>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : isError && displayedOrganizations.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-12 text-rejected">
+                      <div className="flex flex-col items-center justify-center space-y-2">
+                        <AlertCircle className="w-6 h-6 text-rejected" />
+                        <span className="text-xs font-medium">
+                          {error?.message || 'Failed to load organization wallets.'}
+                        </span>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : displayedOrganizations.length > 0 ? (
+                  displayedOrganizations.map((org) => (
                     <TableRow key={org.id}>
                       <TableCell>
                         <div className="flex items-center space-x-3">
@@ -182,7 +245,7 @@ export default function OrganizationWallets() {
           <Pagination
             currentPage={currentPage}
             totalPages={totalPages}
-            totalItems={totalCount}
+            totalItems={apiData?.totalCount ?? displayedOrganizations.length}
             onPageChange={setCurrentPage}
           />
         </div>

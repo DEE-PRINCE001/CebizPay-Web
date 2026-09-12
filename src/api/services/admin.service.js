@@ -64,6 +64,47 @@ export const adminService = {
     },
   },
 
+  // Wallets Directory & Management
+  wallets: {
+    organizations: {
+      list: async (params = { pageNumber: 1, pageSize: 10, search: '', status: '' }) => {
+        return apiClient.get(ENDPOINTS.ADMIN.WALLETS.ORGANIZATIONS, { params });
+      },
+      export: async (params = {}) => {
+        return apiClient.get(ENDPOINTS.ADMIN.WALLETS.ORGANIZATIONS_EXPORT, {
+          params,
+          responseType: 'blob',
+        });
+      },
+      getWallet: async (id) => {
+        return apiClient.get(ENDPOINTS.ADMIN.WALLETS.ORGANIZATION_WALLET(id));
+      },
+      getSalaries: async (id, params = { pageNumber: 1, pageSize: 10, search: '', month: '', status: '' }) => {
+        return apiClient.get(ENDPOINTS.ADMIN.WALLETS.ORGANIZATION_SALARIES(id), { params });
+      },
+      exportSalaries: async (id, params = {}) => {
+        return apiClient.get(ENDPOINTS.ADMIN.WALLETS.ORGANIZATION_SALARIES_EXPORT(id), {
+          params,
+          responseType: 'blob',
+        });
+      },
+      getSavings: async (id) => {
+        return apiClient.get(ENDPOINTS.ADMIN.WALLETS.ORGANIZATION_SAVINGS(id));
+      },
+    },
+    individuals: {
+      list: async (params = { pageNumber: 1, pageSize: 10, search: '', status: '' }) => {
+        return apiClient.get(ENDPOINTS.ADMIN.WALLETS.INDIVIDUALS, { params });
+      },
+      export: async (params = {}) => {
+        return apiClient.get(ENDPOINTS.ADMIN.WALLETS.INDIVIDUALS_EXPORT, {
+          params,
+          responseType: 'blob',
+        });
+      },
+    },
+  },
+
   // Dashboard & Metrics
   dashboard: {
     getMetrics: async () => {
