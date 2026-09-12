@@ -33,6 +33,37 @@ export const adminService = {
     },
   },
 
+  // Individuals Directory & Management
+  individuals: {
+    list: async (params = { pageNumber: 1, pageSize: 10, search: '', status: '', professionalStatus: '' }) => {
+      return apiClient.get(ENDPOINTS.ADMIN.INDIVIDUALS.LIST, { params });
+    },
+    getById: async (id) => {
+      return apiClient.get(ENDPOINTS.ADMIN.INDIVIDUALS.GET_BY_ID(id));
+    },
+    updateStatus: async (id, payload) => {
+      return apiClient.patch(ENDPOINTS.ADMIN.INDIVIDUALS.UPDATE_STATUS(id), payload);
+    },
+    getTransactions: async (id, params = { pageNumber: 1, pageSize: 10, search: '', status: '' }) => {
+      return apiClient.get(ENDPOINTS.ADMIN.INDIVIDUALS.TRANSACTIONS(id), { params });
+    },
+    getWallets: async (id) => {
+      return apiClient.get(ENDPOINTS.ADMIN.INDIVIDUALS.WALLETS(id));
+    },
+    getSavings: async (id) => {
+      return apiClient.get(ENDPOINTS.ADMIN.INDIVIDUALS.SAVINGS(id));
+    },
+    getDocuments: async (id) => {
+      return apiClient.get(ENDPOINTS.COMPLIANCE.INDIVIDUAL_KYC.GET_DOCUMENTS(id));
+    },
+    export: async (params = {}) => {
+      return apiClient.get(ENDPOINTS.ADMIN.INDIVIDUALS.EXPORT, {
+        params,
+        responseType: 'blob',
+      });
+    },
+  },
+
   // Dashboard & Metrics
   dashboard: {
     getMetrics: async () => {

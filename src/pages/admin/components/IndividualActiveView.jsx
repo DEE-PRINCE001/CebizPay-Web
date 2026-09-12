@@ -8,13 +8,15 @@ import IndividualSavingsTab from './IndividualSavingsTab.jsx';
 export default function IndividualActiveView({
   individual,
   transactions = [],
+  wallet = null,
+  savingsPlans = [],
   onSuspend,
   onReactivate,
   onExportTransactions,
 }) {
   const [activeTab, setActiveTab] = useState('Transaction'); // 'Transaction' | 'Wallet' | 'Saving Plans'
 
-  const userName = individual?.name || 'Mike Johnson';
+  const userName = individual?.name || 'Individual';
   const status = individual?.status || 'Active';
   const isSuspended = status === 'Suspended';
   const photo = individual?.photoUrl || individual?.avatarUrl || womanPhoto;
@@ -120,9 +122,9 @@ export default function IndividualActiveView({
             onExport={onExportTransactions}
           />
         ) : activeTab === 'Wallet' ? (
-          <IndividualWalletTab wallet={individual?.wallet} />
+          <IndividualWalletTab wallet={wallet || individual?.wallet} />
         ) : (
-          <IndividualSavingsTab savings={individual?.savingsPlans} />
+          <IndividualSavingsTab savings={savingsPlans?.length ? savingsPlans : (individual?.savingsPlans || [])} />
         )}
       </div>
     </div>

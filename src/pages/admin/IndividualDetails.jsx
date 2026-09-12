@@ -1,35 +1,159 @@
 import React, { useState, useMemo } from 'react';
-import { useParams, useLocation } from 'react-router-dom';
+import { useParams, useLocation, useNavigate } from 'react-router-dom';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import DashboardLayout from '../../components/layout/DashboardLayout.jsx';
 import IndividualPendingView from './components/IndividualPendingView.jsx';
 import IndividualActiveView from './components/IndividualActiveView.jsx';
 import ActionConfirmModal from '../../components/modals/ActionConfirmModal.jsx';
+import { adminService } from '../../api/services/admin.service.js';
+import { useAuth } from '../../hooks/useAuth.js';
+import { queryClient } from '../../lib/queryClient.js';
+import { Loader2, AlertCircle } from 'lucide-react';
 
-// Isolated Phase 1 Mock Data (easily replaced by useQuery in Phase 2)
-import { MOCK_INDIVIDUALS, MOCK_INDIVIDUAL_TRANSACTIONS } from '../../data/mockIndividuals.js';
+const KYC_STATUS_CODES = {
+  Pending: 1,
+  Verified: 2,
+  Active: 2,
+  Rejected: 3,
+  Suspended: 4,
+};
 
 export default function IndividualDetails() {
   const { id } = useParams();
   const location = useLocation();
-
-  // Find individual by ID from navigation state or fallback to mock list
-  const baseIndividual = useMemo(() => {
-    return (
-      location.state?.individual ||
-      MOCK_INDIVIDUALS.find((ind) => ind.id === id) ||
-      MOCK_INDIVIDUALS[0]
-    );
-  }, [id, location.state]);
+  const navigate = useNavigate();
+  const { user } = useAuth();
 
   const [statusOverride, setStatusOverride] = useState(null);
+
+  // Live Query: Fetch individual profile
+  const {
+    data: individualApiData,
+    isLoading: isUserLoading,
+    error: userError,
+  } = useQuery({
+    queryKey: ['admin-individual-details', id],
+    queryFn: () => adminService.individuals.getById(id),
+    enabled: !!id,
+    staleTime: 30 * 1000,
+    retry: false,
+  });
+
+  // Live Query: Fetch submitted KYC documents
+  const { data: documentsData } = useQuery({
+    queryKey: ['admin-individual-documents', id],
+    queryFn: () => adminService.individuals.getDocuments(id),
+    enabled: !!id,
+    staleTime: 30 * 1000,
+    retry: false,
+  });
+
+  // Live Query: Fetch transactions
+  const { data: transactionsData } = useQuery({
+    queryKey: ['admin-individual-transactions', id],
+    queryFn: () => adminService.individuals.getTransactions(id, { pageNumber: 1, pageSize: 50 }),
+    enabled: !!id,
+    staleTime: 30 * 1000,
+    retry: false,
+  });
+
+  // Live Query: Fetch wallet details
+  const { data: walletData } = useQuery({
+    queryKey: ['admin-individual-wallets', id],
+    queryFn: () => adminService.individuals.getWallets(id),
+    enabled: !!id,
+    staleTime: 30 * 1000,
+    retry: false,
+  });
+
+  // Live Query: Fetch savings plans
+  const { data: savingsData } = useQuery({
+    queryKey: ['admin-individual-savings', id],
+    queryFn: () => adminService.individuals.getSavings(id),
+    enabled: !!id,
+    staleTime: 30 * 1000,
+    retry: false,
+  });
+
+  // Consolidate credentials from profile or dedicated KYC documents endpoint
+  const credentials = useMemo(() => {
+    if (individualApiData?.credentials && individualApiData.credentials.length > 0) {
+      return individualApiData.credentials.map((c, idx) => ({
+        id: c.id || `cred-${idx}`,
+        title: c.title || c.documentType || 'National Identity Card',
+        fileUrl: c.fileUrl || c.documentUrl || '',
+      }));
+    }
+    if (Array.isArray(documentsData) && documentsData.length > 0) {
+      return documentsData.map((doc, idx) => ({
+        id: doc.id || `doc-${idx}`,
+        title: doc.documentType === 'Nimc' ? 'National Identity Card' : (doc.title || doc.documentType || 'Identity Document'),
+        fileUrl: doc.documentUrl || doc.fileUrl || '',
+      }));
+    }
+    return [];
+  }, [individualApiData, documentsData]);
+
+  // Transform transactions list for the transactions tab
+  const transactions = useMemo(() => {
+    if (transactionsData?.items && Array.isArray(transactionsData.items)) {
+      return transactionsData.items.map((tx) => ({
+        id: tx.id || tx.transactionId,
+        userName: tx.counterpartyName || tx.userName || tx.recipientName || 'Transaction',
+        avatarUrl: tx.counterpartyAvatarUrl || tx.avatarUrl || null,
+        amount: tx.amount != null ? Number(tx.amount).toLocaleString('en-US', { minimumFractionDigits: 2 }) : '0.00',
+        transactionType: tx.transactionType || tx.type || 'Send',
+        receiverOrSender: tx.receiverOrSender || tx.receiverSenderId || tx.counterpartyName || 'N/A',
+        method: tx.method || tx.paymentMethod || 'Wallet ID',
+        accountOrWalletId: tx.accountOrWalletId || tx.accountNumber || 'N/A',
+        dateTime: tx.dateTime
+          ? new Date(tx.dateTime).toLocaleString('en-US', { dateStyle: 'short', timeStyle: 'short' })
+          : (tx.createdAt ? new Date(tx.createdAt).toLocaleString('en-US', { dateStyle: 'short', timeStyle: 'short' }) : 'N/A'),
+        status: tx.status || 'Successfull',
+      }));
+    }
+    return [];
+  }, [transactionsData]);
+
+  // Combine API data with navigation state fallback
+  const baseIndividual = useMemo(() => {
+    if (individualApiData && (individualApiData.id || individualApiData.name)) {
+      return individualApiData;
+    }
+    if (location.state?.individual) {
+      return location.state.individual;
+    }
+    return null;
+  }, [individualApiData, location.state]);
 
   const individual = useMemo(() => {
     if (!baseIndividual) return null;
     return {
       ...baseIndividual,
       status: statusOverride || baseIndividual.status || 'Pending',
+      credentials,
+      wallet: walletData || baseIndividual.wallet || null,
+      savingsPlans: savingsData?.items || baseIndividual.savingsPlans || [],
     };
-  }, [baseIndividual, statusOverride]);
+  }, [baseIndividual, statusOverride, credentials, walletData, savingsData]);
+
+  // Live Mutation: Update KYC Status
+  const updateStatusMutation = useMutation({
+    mutationFn: async ({ statusName, reason }) => {
+      const statusCode = KYC_STATUS_CODES[statusName] ?? 2;
+      const adminUserId = user?.userId || user?.id || '';
+      return adminService.individuals.updateStatus(id, {
+        status: statusCode,
+        adminUserId,
+        reason: reason || `${statusName} by admin`,
+      });
+    },
+    onSuccess: (_, variables) => {
+      setStatusOverride(variables.statusName);
+      queryClient.invalidateQueries({ queryKey: ['admin-individual-details', id] });
+      queryClient.invalidateQueries({ queryKey: ['admin-individuals'] });
+    },
+  });
 
   // Modal configuration state
   const [modalConfig, setModalConfig] = useState({
@@ -165,9 +289,11 @@ export default function IndividualDetails() {
 
     setModalConfig((prev) => ({ ...prev, errorMessage: '', isLoading: true }));
 
-    // Simulate async status transition (will be replaced with useMutation in Phase 2)
-    setTimeout(() => {
-      setStatusOverride(nextStatus);
+    try {
+      await updateStatusMutation.mutateAsync({
+        statusName: nextStatus,
+        reason: effectiveReason,
+      });
 
       let successTitle = 'Verified';
       let successMessage = `You have successfully verified ${userName}`;
@@ -191,7 +317,19 @@ export default function IndividualDetails() {
         message: successMessage,
         subMessage: '',
       }));
-    }, 500);
+    } catch (err) {
+      setModalConfig((prev) => ({
+        ...prev,
+        isLoading: false,
+        step: 'error',
+        title: 'Action Failed',
+        errorMessage:
+          err?.response?.data?.detail ||
+          err?.response?.data?.message ||
+          err?.message ||
+          'Failed to update individual status. Please try again.',
+      }));
+    }
   };
 
   const handleSuccessClose = () => {
@@ -223,10 +361,59 @@ export default function IndividualDetails() {
   const handleViewDocument = (doc) => {
     if (doc?.fileUrl) {
       window.open(doc.fileUrl, '_blank', 'noopener,noreferrer');
-    } else {
-      console.log('Viewing document:', doc);
     }
   };
+
+  // Transaction export handler
+  const handleExportTransactions = () => {
+    if (!transactions || transactions.length === 0) return;
+    const headers = 'Transaction Type,Reciever/Sender,Method,Acct/Wallet ID,Date n Time,Status';
+    const rows = transactions.map((tx) =>
+      `"${tx.transactionType}","${tx.receiverOrSender}","${tx.method}","${tx.accountOrWalletId}","${tx.dateTime}","${tx.status}"`
+    );
+    const csvContent = [headers, ...rows].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `transactions_${userName.replace(/\s+/g, '_')}_${Date.now()}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  if (isUserLoading && !individual) {
+    return (
+      <DashboardLayout>
+        <div className="py-24 flex flex-col items-center justify-center space-y-3">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          <span className="text-sm text-slate-500 font-medium">Loading individual details...</span>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (!individual) {
+    return (
+      <DashboardLayout>
+        <div className="bg-white rounded-2xl p-8 border border-slate-100 shadow-xs flex flex-col items-center justify-center text-center space-y-4 max-w-lg mx-auto mt-12">
+          <AlertCircle className="w-10 h-10 text-rejected" />
+          <h2 className="text-lg font-bold text-primary-text">Individual Not Found</h2>
+          <p className="text-sm text-slate-500">
+            {userError?.message || 'We could not load the individual profile you requested.'}
+          </p>
+          <button
+            type="button"
+            onClick={() => navigate('/individual')}
+            className="bg-primary hover:bg-primary/90 text-white text-xs font-medium px-6 py-2.5 rounded-xl transition-colors cursor-pointer shadow-xs"
+          >
+            Return to Individuals Directory
+          </button>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   const isPending = individual?.status === 'Pending';
   const isRejected = individual?.status === 'Rejected';
@@ -243,10 +430,12 @@ export default function IndividualDetails() {
       ) : (
         <IndividualActiveView
           individual={individual}
-          transactions={MOCK_INDIVIDUAL_TRANSACTIONS}
+          transactions={transactions}
+          wallet={walletData}
+          savingsPlans={savingsData?.items || []}
           onSuspend={handleOpenSuspend}
           onReactivate={handleOpenReactivate}
-          onExportTransactions={() => console.log('Exporting transactions...')}
+          onExportTransactions={handleExportTransactions}
         />
       )}
 

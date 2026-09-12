@@ -132,12 +132,14 @@ export default function IndividualTransactionsTab({
       </div>
 
       {/* Table Pagination */}
-      <Pagination
-        currentPage={currentPage}
-        totalPages={13}
-        totalItems={130}
-        onPageChange={setCurrentPage}
-      />
+      {filteredTransactions.length > 0 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={Math.max(1, Math.ceil(filteredTransactions.length / 10))}
+          totalItems={filteredTransactions.length}
+          onPageChange={setCurrentPage}
+        />
+      )}
     </div>
   );
 }

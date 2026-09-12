@@ -1,29 +1,37 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-const FILTER_OPTIONS = [
+const DEFAULT_STATUS_FILTER_OPTIONS = [
   { id: 'verified', label: 'Verified', value: 'Verified' },
   { id: 'pending', label: 'Pending', value: 'Pending' },
-  { id: 'suspended', label: 'Supended', value: 'Suspended' },
+  { id: 'suspended', label: 'Suspended', value: 'Suspended' },
   { id: 'rejected', label: 'Rejected', value: 'Rejected' },
 ];
 
 export default function FilterDropdown({
   isOpen,
   onClose,
+  title = 'Show for',
+  options = DEFAULT_STATUS_FILTER_OPTIONS,
+  selectedValue,
   selectedStatus,
+  onSelect,
   onApply,
+  showApplyButton = true,
+  allowClear = true,
+  align = 'right',
   className = '',
 }) {
-  const [prevSelected, setPrevSelected] = useState(selectedStatus || '');
-  const [tempSelected, setTempSelected] = useState(selectedStatus || '');
+  const currentVal = selectedValue ?? selectedStatus ?? '';
+  const [prevSelected, setPrevSelected] = useState(currentVal);
+  const [tempSelected, setTempSelected] = useState(currentVal);
   const dropdownRef = useRef(null);
 
-  if (prevSelected !== (selectedStatus || '')) {
-    setPrevSelected(selectedStatus || '');
-    setTempSelected(selectedStatus || '');
+  if (prevSelected !== currentVal) {
+    setPrevSelected(currentVal);
+    setTempSelected(currentVal);
   }
 
-  // Handle click outside to close
+  // Handle click outside & escape key to close
   useEffect(() => {
     function handleClickOutside(event) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -50,26 +58,38 @@ export default function FilterDropdown({
   if (!isOpen) return null;
 
   const handleSelect = (value) => {
-    // Toggle off if already selected, or select new
-    setTempSelected((prev) => (prev === value ? '' : value));
+    const nextVal = allowClear && tempSelected === value ? '' : value;
+    setTempSelected(nextVal);
+    if (!showApplyButton) {
+      onSelect?.(nextVal);
+      onApply?.(nextVal);
+      onClose?.();
+    }
   };
 
   const handleApply = () => {
     onApply?.(tempSelected);
+    if (!onApply && onSelect) {
+      onSelect(tempSelected);
+    }
     onClose?.();
   };
+
+  const alignmentClass = align === 'left' ? 'left-0' : 'right-0';
 
   return (
     <div
       ref={dropdownRef}
-      className={`absolute right-0 top-full mt-2 w-44 sm:w-48 bg-white rounded-2xl shadow-xl border border-slate-100 p-5 z-50 select-none ${className}`}
+      className={`absolute ${alignmentClass} top-full mt-2 w-44 sm:w-48 bg-white rounded-2xl shadow-xl border border-slate-100 p-5 z-50 select-none ${className}`}
       role="dialog"
-      aria-label="Filter options"
+      aria-label={title}
     >
-      <h3 className="text-sm font-semibold text-primary-text mb-4">Show for</h3>
+      {title && (
+        <h3 className="text-sm font-semibold text-primary-text mb-4">{title}</h3>
+      )}
 
       <div className="space-y-3.5">
-        {FILTER_OPTIONS.map((option) => {
+        {options.map((option) => {
           const isChecked = tempSelected === option.value;
           return (
             <div
@@ -103,15 +123,17 @@ export default function FilterDropdown({
         })}
       </div>
 
-      <div className="mt-5">
-        <button
-          type="button"
-          onClick={handleApply}
-          className="inline-flex items-center justify-center bg-primary hover:bg-primary/90 text-white font-medium text-xs px-5 py-2 rounded-lg shadow-xs cursor-pointer transition-colors"
-        >
-          Apply
-        </button>
-      </div>
+      {showApplyButton && (
+        <div className="mt-5">
+          <button
+            type="button"
+            onClick={handleApply}
+            className="inline-flex items-center justify-center bg-primary hover:bg-primary/90 text-white font-medium text-xs px-5 py-2 rounded-lg shadow-xs cursor-pointer transition-colors"
+          >
+            Apply
+          </button>
+        </div>
+      )}
     </div>
   );
 }

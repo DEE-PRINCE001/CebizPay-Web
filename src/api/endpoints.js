@@ -332,6 +332,15 @@ export const ENDPOINTS = {
         DOCUMENTS: (id) => `${BASE_PREFIX}/admin/organizations/${id}/documents`,
         EXPORT: `${BASE_PREFIX}/admin/organizations/export`,
       },
+      INDIVIDUALS: {
+        LIST: `${BASE_PREFIX}/admin/individuals`,
+        GET_BY_ID: (id) => `${BASE_PREFIX}/admin/individuals/${id}`,
+        UPDATE_STATUS: (id) => `${BASE_PREFIX}/individuals/${id}/kyc-status`,
+        TRANSACTIONS: (id) => `${BASE_PREFIX}/admin/individuals/${id}/transactions`,
+        WALLETS: (id) => `${BASE_PREFIX}/admin/individuals/${id}/wallets`,
+        SAVINGS: (id) => `${BASE_PREFIX}/admin/individuals/${id}/savings`,
+        EXPORT: `${BASE_PREFIX}/admin/individuals/export`,
+      },
       DASHBOARD: {
         METRICS: `${BASE_PREFIX}/admin/dashboard/metrics`,
       },

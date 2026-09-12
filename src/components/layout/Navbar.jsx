@@ -1,17 +1,18 @@
 import React, { useState } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import logo from '../../assets/logo.jpg';
 import Button from '../common/Button';
 import { Bell, Coins, LayoutDashboard, User, UsersRound, Wallet, Menu, X } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth.js';
 import ProfileModal from '../modals/ProfileModal.jsx';
 import AnnouncementsModal from '../modals/AnnouncementsModal.jsx';
+import WalletDropdown from './WalletDropdown.jsx';
 
 const NAV_ITEMS = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/organization', label: 'Organization', icon: UsersRound },
   { to: '/individual', label: 'Individual', icon: User },
-  { to: '/wallet', label: 'Wallet', icon: Wallet },
+  { to: '/wallets', label: 'Wallets', icon: Wallet, isDropdown: true },
   { to: '/saving-plan', label: 'Saving Plan', icon: Coins },
 ];
 
@@ -19,8 +20,14 @@ const Navbar = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isAnnouncementsOpen, setIsAnnouncementsOpen] = useState(false);
+  const [isWalletOpen, setIsWalletOpen] = useState(false);
+  const location = useLocation();
   const { user } = useAuth();
   const displayName = user?.firstName || user?.name?.split(' ')[0] || 'Tayo';
+
+  const isWalletActive =
+    location.pathname.startsWith('/wallets') ||
+    location.pathname.startsWith('/wallet');
 
   return (
     <header className="w-full flex flex-col">
@@ -53,20 +60,39 @@ const Navbar = () => {
         {/* Desktop Navigation Links & Notification */}
         <div className="hidden xl:flex flex-1 ml-5 items-center bg-white rounded-xl px-3 py-2 justify-between">
           <nav className="flex space-x-3" aria-label="Main Navigation">
-            {NAV_ITEMS.map((item) => (
-              <NavLink key={item.to} to={item.to} className="inline-flex">
-                {({ isActive }) => (
+            {NAV_ITEMS.map((item) =>
+              item.isDropdown ? (
+                <div key={item.label} className="relative inline-flex">
                   <Button
-                    as="span"
                     icon={item.icon}
                     size="lg"
-                    variant={isActive ? 'primaryLink' : 'outline'}
+                    variant={isWalletActive ? 'primaryLink' : 'outline'}
+                    onClick={() => setIsWalletOpen((prev) => !prev)}
+                    aria-haspopup="dialog"
+                    aria-expanded={isWalletOpen}
                   >
                     {item.label}
                   </Button>
-                )}
-              </NavLink>
-            ))}
+                  <WalletDropdown
+                    isOpen={isWalletOpen}
+                    onClose={() => setIsWalletOpen(false)}
+                  />
+                </div>
+              ) : (
+                <NavLink key={item.to} to={item.to} className="inline-flex">
+                  {({ isActive }) => (
+                    <Button
+                      as="span"
+                      icon={item.icon}
+                      size="lg"
+                      variant={isActive ? 'primaryLink' : 'outline'}
+                    >
+                      {item.label}
+                    </Button>
+                  )}
+                </NavLink>
+              )
+            )}
           </nav>
           <button
             type="button"
@@ -106,26 +132,64 @@ const Navbar = () => {
           className="xl:hidden w-full bg-white rounded-xl p-4 shadow-lg border border-slate-100 flex flex-col space-y-2 mt-3"
           aria-label="Mobile Navigation"
         >
-          {NAV_ITEMS.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              onClick={() => setMobileOpen(false)}
-              className="w-full inline-flex"
-            >
-              {({ isActive }) => (
+          {NAV_ITEMS.map((item) =>
+            item.isDropdown ? (
+              <div key={item.label} className="w-full flex flex-col space-y-1">
                 <Button
-                  as="span"
                   icon={item.icon}
                   size="md"
-                  variant={isActive ? 'primaryLink' : 'outline'}
+                  variant={isWalletActive ? 'primaryLink' : 'outline'}
+                  onClick={() => setIsWalletOpen((prev) => !prev)}
                   className="w-full justify-start px-4"
                 >
                   {item.label}
                 </Button>
-              )}
-            </NavLink>
-          ))}
+                {isWalletOpen && (
+                  <div className="pl-6 flex flex-col space-y-1 py-1">
+                    <NavLink
+                      to="/wallets/organization"
+                      onClick={() => {
+                        setIsWalletOpen(false);
+                        setMobileOpen(false);
+                      }}
+                      className="text-sm font-medium text-slate-700 hover:text-primary py-1 px-2 rounded-lg hover:bg-slate-50"
+                    >
+                      • Organization
+                    </NavLink>
+                    <NavLink
+                      to="/wallets/individual"
+                      onClick={() => {
+                        setIsWalletOpen(false);
+                        setMobileOpen(false);
+                      }}
+                      className="text-sm font-medium text-slate-700 hover:text-primary py-1 px-2 rounded-lg hover:bg-slate-50"
+                    >
+                      • Individual
+                    </NavLink>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                onClick={() => setMobileOpen(false)}
+                className="w-full inline-flex"
+              >
+                {({ isActive }) => (
+                  <Button
+                    as="span"
+                    icon={item.icon}
+                    size="md"
+                    variant={isActive ? 'primaryLink' : 'outline'}
+                    className="w-full justify-start px-4"
+                  >
+                    {item.label}
+                  </Button>
+                )}
+              </NavLink>
+            )
+          )}
         </nav>
       )}
 

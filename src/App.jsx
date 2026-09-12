@@ -12,6 +12,9 @@ import Organizations from './pages/admin/Organizations.jsx';
 import OrganizationDetails from './pages/admin/OrganizationDetails.jsx';
 import Individuals from './pages/admin/Individuals.jsx';
 import IndividualDetails from './pages/admin/IndividualDetails.jsx';
+import OrganizationWallets from './pages/admin/OrganizationWallets.jsx';
+import OrganizationWalletDetails from './pages/admin/OrganizationWalletDetails.jsx';
+import IndividualWallets from './pages/admin/IndividualWallets.jsx';
 
 function App() {
   return (
@@ -34,12 +37,24 @@ function App() {
               <Route path="/individual" element={<Individuals />} />
               <Route path="/individual/:id" element={<IndividualDetails />} />
 
+              {/* Wallet Routes */}
+              <Route path="/wallets" element={<Navigate to="/wallets/organization" replace />} />
+              <Route path="/wallet" element={<Navigate to="/wallets/organization" replace />} />
+              <Route path="/wallets/organization" element={<OrganizationWallets />} />
+              <Route path="/wallets/organizations" element={<OrganizationWallets />} />
+              <Route path="/wallets/organization/:id" element={<OrganizationWalletDetails />} />
+              <Route path="/wallets/individual" element={<IndividualWallets />} />
+              <Route path="/wallets/individuals" element={<IndividualWallets />} />
+
               {/* Admin alias routes */}
               <Route path="/admin/dashboard" element={<Dashboard />} />
               <Route path="/admin/organizations" element={<Organizations />} />
               <Route path="/admin/organizations/:id" element={<OrganizationDetails />} />
               <Route path="/admin/individuals" element={<Individuals />} />
               <Route path="/admin/individuals/:id" element={<IndividualDetails />} />
+              <Route path="/admin/wallets/organization" element={<OrganizationWallets />} />
+              <Route path="/admin/wallets/organization/:id" element={<OrganizationWalletDetails />} />
+              <Route path="/admin/wallets/individual" element={<IndividualWallets />} />
             </Route>
 
             {/* Default Route */}

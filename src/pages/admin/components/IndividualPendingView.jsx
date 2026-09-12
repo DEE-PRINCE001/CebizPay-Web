@@ -8,19 +8,11 @@ export default function IndividualPendingView({
   onVerify,
   onViewDocument,
 }) {
-  const userName = individual?.name || 'Mike Johnson';
-  const email = individual?.email || 'Mike@gmial.com';
-  const phoneNumber = individual?.phoneNumber || '0815275927';
+  const userName = individual?.name || 'Individual';
+  const email = individual?.email || 'N/A';
+  const phoneNumber = individual?.phoneNumber || 'N/A';
   const photo = individual?.photoUrl || individual?.avatarUrl || womanPhoto;
-  const credentials = individual?.credentials?.length
-    ? individual.credentials
-    : [
-        {
-          id: 'doc-01',
-          title: 'National Identity Card',
-          fileUrl: individual?.documentUrl || '',
-        },
-      ];
+  const credentials = individual?.credentials || [];
 
   return (
     <div className="flex flex-col space-y-6">

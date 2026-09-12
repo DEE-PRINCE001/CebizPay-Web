@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import DashboardLayout from '../../components/layout/DashboardLayout.jsx';
 import SearchInput from '../../components/forms/SearchInput.jsx';
 import Button from '../../components/common/Button.jsx';
@@ -7,11 +8,9 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '.
 import StatusBadge from '../../components/common/StatusBadge.jsx';
 import Pagination from '../../components/common/Pagination.jsx';
 import FilterDropdown from '../../components/forms/FilterDropdown.jsx';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, Loader2, AlertCircle } from 'lucide-react';
 import defaultAvatar from '../../assets/Ellipse 3018.svg';
-
-// Isolated Phase 1 Mock Data (easily replaced by useQuery in Phase 2)
-import { MOCK_INDIVIDUALS } from '../../data/mockIndividuals.js';
+import { adminService } from '../../api/services/admin.service.js';
 
 export default function Individuals() {
   const navigate = useNavigate();
@@ -21,31 +20,86 @@ export default function Individuals() {
   const [currentPage, setCurrentPage] = useState(1);
   const [isExporting, setIsExporting] = useState(false);
 
-  // Filter individuals based on search and status
-  const displayedIndividuals = useMemo(() => {
-    return MOCK_INDIVIDUALS.filter((ind) => {
-      const matchesSearch =
-        !searchQuery.trim() ||
-        ind.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        ind.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        ind.companyName.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesStatus =
-        !selectedStatus || ind.status.toLowerCase() === selectedStatus.toLowerCase();
-      return matchesSearch && matchesStatus;
-    });
-  }, [searchQuery, selectedStatus]);
+  // Live Query: Fetch individuals directory list from backend
+  const {
+    data: apiData,
+    isLoading,
+    isError,
+    error,
+  } = useQuery({
+    queryKey: ['admin-individuals', { page: currentPage, search: searchQuery, status: selectedStatus }],
+    queryFn: () =>
+      adminService.individuals.list({
+        pageNumber: currentPage,
+        pageSize: 10,
+        search: searchQuery,
+        status: selectedStatus,
+      }),
+    staleTime: 30 * 1000,
+    retry: false,
+  });
 
-  const totalCount = 42; // Matches design "Individual (42)"
+  // Transform live individuals data from backend
+  const displayedIndividuals = useMemo(() => {
+    if (apiData?.items && Array.isArray(apiData.items)) {
+      return apiData.items.map((item) => ({
+        id: item.id || item.individualId,
+        name: item.name || item.fullName || 'Individual',
+        email: item.email || 'N/A',
+        phoneNumber: item.phoneNumber || 'N/A',
+        professionalStatus: item.professionalStatus || 'Not-a-Staff',
+        companyName: item.companyName || 'None',
+        status: item.status || 'Verified',
+        avatarUrl: item.avatarUrl || null,
+        photoUrl: item.photoUrl || null,
+        createdAt: item.createdAt || null,
+      }));
+    }
+    return [];
+  }, [apiData]);
+
+  // Total count formatted from live backend response
+  const totalIndividualsCount = useMemo(() => {
+    if (apiData?.totalCount != null) {
+      return Number(apiData.totalCount).toLocaleString('en-US');
+    }
+    return displayedIndividuals.length.toLocaleString('en-US');
+  }, [apiData, displayedIndividuals]);
+
+  // Total pages from backend pagination
+  const totalPages = useMemo(() => {
+    if (apiData?.totalPages != null && apiData.totalPages > 0) {
+      return apiData.totalPages;
+    }
+    return 1;
+  }, [apiData]);
 
   const handleView = (individual) => {
     navigate(`/individual/${individual.id}`, { state: { individual } });
   };
 
-  const handleExport = () => {
-    setIsExporting(true);
-    setTimeout(() => {
+  // Server-side CSV export
+  const handleExport = async () => {
+    try {
+      setIsExporting(true);
+      const blobData = await adminService.individuals.export({
+        search: searchQuery,
+        status: selectedStatus,
+      });
+      const blob = new Blob([blobData], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', `individuals_${Date.now()}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Failed to export individuals:', err);
+    } finally {
       setIsExporting(false);
-    }, 800);
+    }
   };
 
   return (
@@ -53,7 +107,7 @@ export default function Individuals() {
       <div className="flex flex-col space-y-6">
         {/* Page Title with Total Count */}
         <h1 className="text-2xl font-bold text-primary-text px-1">
-          Individual ({totalCount})
+          Individual ({totalIndividualsCount})
         </h1>
 
         {/* Main White Card Container */}
@@ -126,7 +180,25 @@ export default function Individuals() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {displayedIndividuals.length > 0 ? (
+                {isLoading && displayedIndividuals.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-16">
+                      <div className="flex flex-col items-center justify-center space-y-2">
+                        <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                        <span className="text-xs text-slate-500 font-medium">Loading individuals...</span>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : isError && displayedIndividuals.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-12 text-rejected">
+                      <div className="flex flex-col items-center justify-center space-y-2">
+                        <AlertCircle className="w-6 h-6 text-rejected" />
+                        <span className="text-xs font-medium">{error?.message || 'Failed to load individuals from server.'}</span>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : displayedIndividuals.length > 0 ? (
                   displayedIndividuals.map((ind) => (
                     <TableRow key={ind.id}>
                       <TableCell>
@@ -180,8 +252,8 @@ export default function Individuals() {
           {/* Table Pagination */}
           <Pagination
             currentPage={currentPage}
-            totalPages={13}
-            totalItems={130}
+            totalPages={totalPages}
+            totalItems={apiData?.totalCount ?? displayedIndividuals.length}
             onPageChange={setCurrentPage}
           />
         </div>
