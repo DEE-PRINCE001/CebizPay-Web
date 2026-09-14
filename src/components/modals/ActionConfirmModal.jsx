@@ -2,12 +2,6 @@ import React, { useState } from 'react';
 import { X, Loader2, AlertCircle } from 'lucide-react';
 import Input from '../forms/Input.jsx';
 
-/**
- * Reusable modal for critical action confirmations, loading, error, and success dialogs.
- * Implements the exact design patterns from:
- * - verify-popup.png (Reject / Verify confirmation and success)
- * - verify-popup2.png (Suspend / Re-activate confirmation and success)
- */
 export default function ActionConfirmModal({
   isOpen,
   onClose,

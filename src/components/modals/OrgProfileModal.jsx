@@ -281,7 +281,6 @@ export default function OrgProfileModal({
         aria-hidden="true"
       />
 
-      {/* Left Slide-Over Drawer matching ProfileModal.png */}
       <div
         className={`fixed inset-y-0 left-0 max-w-full flex transition-transform duration-300 ease-in-out transform ${
           isOpen ? 'translate-x-0' : '-translate-x-full'

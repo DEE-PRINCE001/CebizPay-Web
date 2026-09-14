@@ -22,7 +22,6 @@ const ProfileModal = ({ isOpen = false, onClose, user: userProp, platform: platf
   const [isAddAdminOpen, setIsAddAdminOpen] = useState(false);
   const [isPublishAnnouncementOpen, setIsPublishAnnouncementOpen] = useState(false);
 
-  // Critical action confirmation popups state (permission pop-ups.png)
   const [actionPopup, setActionPopup] = useState({
     isOpen: false,
     step: 'confirm', // 'confirm' | 'success' | 'error'
@@ -107,7 +106,6 @@ const ProfileModal = ({ isOpen = false, onClose, user: userProp, platform: platf
     return msg || fallback;
   };
 
-  // Trigger Delete Admin Popup (permission pop-ups.png col 1)
   const handleRequestDelete = (admin) => {
     const adminName = admin.name || admin.email || 'this admin';
     setActionPopup({
@@ -153,7 +151,6 @@ const ProfileModal = ({ isOpen = false, onClose, user: userProp, platform: platf
     });
   };
 
-  // Trigger Stop Permission or Grants Edit Permission Popup (permission pop-ups.png cols 2 & 3)
   const handleRequestToggle = (admin) => {
     const adminName = admin.name || admin.email || 'this admin';
     const willDeactivate = Boolean(admin.isActive);

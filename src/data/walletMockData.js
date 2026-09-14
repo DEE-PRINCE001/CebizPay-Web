@@ -1,11 +1,3 @@
-/**
- * Centralized Mock Data for Wallet Operations
- * (Funding via Transfer/Card, Peer Wallet & Bank Transfers, Saved Cards, Beneficiaries)
- * 
- * NOTE: When backend API integration is ready, this file can be easily swapped 
- * or replaced with live API endpoints.
- */
-
 export const MOCK_VIRTUAL_ACCOUNTS = [
   {
     id: 'wema',

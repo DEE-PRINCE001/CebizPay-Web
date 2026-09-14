@@ -94,7 +94,6 @@ export default function OrganizationDetails() {
 
   const orgDisplayName = organization?.name || 'Organization';
 
-  // 1. Trigger Reject Modal (verify-popup.png)
   const handleOpenReject = () => {
     setModalConfig({
       isOpen: true,
@@ -117,7 +116,6 @@ export default function OrganizationDetails() {
     });
   };
 
-  // 2. Trigger Verify Modal (verify-popup.png)
   const handleOpenVerify = () => {
     setModalConfig({
       isOpen: true,
@@ -140,7 +138,6 @@ export default function OrganizationDetails() {
     });
   };
 
-  // 3. Trigger Suspend Modal (verify-popup2.png)
   const handleOpenSuspend = () => {
     setModalConfig({
       isOpen: true,
@@ -163,7 +160,6 @@ export default function OrganizationDetails() {
     });
   };
 
-  // 4. Trigger Re-activate Modal (verify-popup2.png)
   const handleOpenReactivate = () => {
     setModalConfig({
       isOpen: true,

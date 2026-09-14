@@ -7,6 +7,7 @@ import AnnouncementsModal from '../../components/modals/AnnouncementsModal.jsx';
 import AddMoneyOptionsModal from '../../components/modals/wallet/AddMoneyOptionsModal.jsx';
 import TransferOptionsModal from '../../components/modals/wallet/TransferOptionsModal.jsx';
 import AddMoneyTransferModal from '../../components/modals/wallet/AddMoneyTransferModal.jsx';
+import AddMoneyCardModal from '../../components/modals/wallet/AddMoneyCardModal.jsx';
 
 const MOCK_FINANCE_DATA = [
   { name: 'Jan', value: 110 },
@@ -48,6 +49,7 @@ export default function OrgDashboard() {
   const [isAnnouncementsModalOpen, setIsAnnouncementsModalOpen] = useState(false);
   const [isAddMoneyOptionsOpen, setIsAddMoneyOptionsOpen] = useState(false);
   const [isAddMoneyTransferOpen, setIsAddMoneyTransferOpen] = useState(false);
+  const [isAddMoneyCardOpen, setIsAddMoneyCardOpen] = useState(false);
   const [isTransferOptionsOpen, setIsTransferOptionsOpen] = useState(false);
 
   return (
@@ -146,7 +148,6 @@ export default function OrgDashboard() {
         onClose={() => setIsAnnouncementsModalOpen(false)}
       />
 
-      {/* Wallet Action Modals (Stage 1) */}
       <AddMoneyOptionsModal
         isOpen={isAddMoneyOptionsOpen}
         onClose={() => setIsAddMoneyOptionsOpen(false)}
@@ -154,6 +155,8 @@ export default function OrgDashboard() {
           setIsAddMoneyOptionsOpen(false);
           if (option === 'transfer') {
             setIsAddMoneyTransferOpen(true);
+          } else if (option === 'card') {
+            setIsAddMoneyCardOpen(true);
           }
         }}
       />
@@ -163,11 +166,18 @@ export default function OrgDashboard() {
         onClose={() => setIsAddMoneyTransferOpen(false)}
       />
 
+      <AddMoneyCardModal
+        isOpen={isAddMoneyCardOpen}
+        onClose={() => setIsAddMoneyCardOpen(false)}
+        onProceed={(data) => {
+          console.log('Proceed with card funding:', data);
+        }}
+      />
+
       <TransferOptionsModal
         isOpen={isTransferOptionsOpen}
         onClose={() => setIsTransferOptionsOpen(false)}
         onSelectOption={(option) => {
-          // Prepared for Stage 3 transfer flow
         }}
       />
     </OrgDashboardLayout>

@@ -178,7 +178,6 @@ export default function IndividualDetails() {
 
   const userName = individual?.name || 'Mike Johnson';
 
-  // 1. Trigger Reject Modal (verify-popup.png style with reason)
   const handleOpenReject = () => {
     setModalConfig({
       isOpen: true,
@@ -201,7 +200,6 @@ export default function IndividualDetails() {
     });
   };
 
-  // 2. Trigger Verify Modal (verify-popup.png style)
   const handleOpenVerify = () => {
     setModalConfig({
       isOpen: true,
@@ -224,7 +222,6 @@ export default function IndividualDetails() {
     });
   };
 
-  // 3. Trigger Suspend Modal (verify-popup2.png style with reason)
   const handleOpenSuspend = () => {
     setModalConfig({
       isOpen: true,
@@ -247,7 +244,6 @@ export default function IndividualDetails() {
     });
   };
 
-  // 4. Trigger Re-activate Modal (verify-popup2.png style)
   const handleOpenReactivate = () => {
     setModalConfig({
       isOpen: true,
