@@ -12,7 +12,6 @@ const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const from = location.state?.from?.pathname || '/dashboard';
-
   const [formData, setFormData] = useState({
     email: localStorage.getItem('cebizpay_remembered_email') || '',
     password: '',
@@ -34,7 +33,9 @@ const Login = () => {
     },
     onError: (err) => {
       setGeneralError(err.message || 'Invalid email or password. Please try again.');
-      if (err.errors) {
+      if (err.fieldErrors && Object.keys(err.fieldErrors).length > 0) {
+        setFieldErrors(err.fieldErrors);
+      } else if (err.errors && !Array.isArray(err.errors) && typeof err.errors === 'object') {
         setFieldErrors(err.errors);
       }
     },

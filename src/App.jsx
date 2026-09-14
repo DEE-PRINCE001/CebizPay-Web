@@ -3,37 +3,18 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from './lib/queryClient.js';
 import { AuthProvider } from './context/AuthContext.jsx';
-import { ProtectedRoute, OrgGuard, AdminGuard } from './components/guards/index.js';
-import { useAuth } from './hooks/useAuth.js';
+import { ProtectedRoute } from './components/guards/index.js';
 import Login from './pages/auth/Login.jsx';
 import RegisterBusiness1 from './pages/auth/RegisterBusiness1.jsx';
 import RegisterBusiness2 from './pages/auth/RegisterBusiness2.jsx';
-
-function DashboardPlaceholder() {
-  const { user, logout, hasOrgContext, isAdmin } = useAuth();
-  return (
-    <div style={{ padding: '2rem', fontFamily: 'system-ui, sans-serif' }}>
-      <h1>Welcome to CebizPay</h1>
-      <p>Logged in as: <strong>{user?.fullName || user?.name || user?.email}</strong></p>
-      <p>Context: <strong>{hasOrgContext ? 'Organization Member' : 'Individual Account'}</strong></p>
-      <p>Role(s): <strong>{user?.roles?.join(', ') || 'Standard User'}</strong></p>
-      {isAdmin && <p style={{ color: '#2563eb', fontWeight: 600 }}>Platform Administrator Privileges Active</p>}
-      <button
-        onClick={logout}
-        style={{
-          padding: '0.5rem 1rem',
-          background: '#ef4444',
-          color: '#fff',
-          border: 'none',
-          borderRadius: '4px',
-          cursor: 'pointer',
-        }}
-      >
-        Log Out
-      </button>
-    </div>
-  );
-}
+import Dashboard from './pages/admin/Dashboard.jsx';
+import Organizations from './pages/admin/Organizations.jsx';
+import OrganizationDetails from './pages/admin/OrganizationDetails.jsx';
+import Individuals from './pages/admin/Individuals.jsx';
+import IndividualDetails from './pages/admin/IndividualDetails.jsx';
+import OrganizationWallets from './pages/admin/OrganizationWallets.jsx';
+import OrganizationWalletDetails from './pages/admin/OrganizationWalletDetails.jsx';
+import IndividualWallets from './pages/admin/IndividualWallets.jsx';
 
 function App() {
   return (
@@ -48,22 +29,36 @@ function App() {
             <Route path="/register/business/step-1" element={<RegisterBusiness1 />} />
             <Route path="/register/business/step-2" element={<RegisterBusiness2 />} />
 
-            {/* Protected Routes */}
+            {/* Protected Routes (unauthenticated visitors redirect to /login) */}
             <Route element={<ProtectedRoute />}>
-              <Route path="/dashboard" element={<DashboardPlaceholder />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/organization" element={<Organizations />} />
+              <Route path="/organization/:id" element={<OrganizationDetails />} />
+              <Route path="/individual" element={<Individuals />} />
+              <Route path="/individual/:id" element={<IndividualDetails />} />
 
-              {/* Organization Protected Routes */}
-              <Route element={<OrgGuard />}>
-                {/* Workforce, Payroll, ERP routes */}
-              </Route>
+              {/* Wallet Routes */}
+              <Route path="/wallets" element={<Navigate to="/wallets/organization" replace />} />
+              <Route path="/wallet" element={<Navigate to="/wallets/organization" replace />} />
+              <Route path="/wallets/organization" element={<OrganizationWallets />} />
+              <Route path="/wallets/organizations" element={<OrganizationWallets />} />
+              <Route path="/wallets/organization/:id" element={<OrganizationWalletDetails />} />
+              <Route path="/wallets/individual" element={<IndividualWallets />} />
+              <Route path="/wallets/individuals" element={<IndividualWallets />} />
 
-              {/* Platform Admin Protected Routes */}
-              <Route element={<AdminGuard />}>
-                {/* Admin routes */}
-              </Route>
+              {/* Admin alias routes */}
+              <Route path="/admin/dashboard" element={<Dashboard />} />
+              <Route path="/admin/organizations" element={<Organizations />} />
+              <Route path="/admin/organizations/:id" element={<OrganizationDetails />} />
+              <Route path="/admin/individuals" element={<Individuals />} />
+              <Route path="/admin/individuals/:id" element={<IndividualDetails />} />
+              <Route path="/admin/wallets/organization" element={<OrganizationWallets />} />
+              <Route path="/admin/wallets/organization/:id" element={<OrganizationWalletDetails />} />
+              <Route path="/admin/wallets/individual" element={<IndividualWallets />} />
             </Route>
 
             {/* Default Route */}
+            <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
         </BrowserRouter>

@@ -34,6 +34,8 @@ export const ENDPOINTS = {
         REGISTER_DEVICE: `${BASE_PREFIX}/notifications/device-token`,
       },
       ANNOUNCEMENTS: {
+        PLATFORM: `${BASE_PREFIX}/announcements/platform`,
+        WORKPLACE: `${BASE_PREFIX}/announcements/workplace`,
         ACTIVE: `${BASE_PREFIX}/announcements/active`,
         LIST: `${BASE_PREFIX}/announcements`,
         GET_BY_ID: (id) => `${BASE_PREFIX}/announcements/${id}`,
@@ -320,6 +322,44 @@ export const ENDPOINTS = {
       },
     },
     ADMIN: {
+      ORGANIZATIONS: {
+        LIST: `${BASE_PREFIX}/admin/organizations`,
+        GET_BY_ID: (id) => `${BASE_PREFIX}/admin/organizations/${id}`,
+        UPDATE_STATUS: (id) => `${BASE_PREFIX}/organizations/${id}/status`,
+        REVIEW_KYB: `${BASE_PREFIX}/admin/kyb/review`,
+        PAYROLL_ANALYTICS: (id) => `${BASE_PREFIX}/admin/organizations/${id}/payroll-analytics`,
+        STAFF: (id) => `${BASE_PREFIX}/admin/organizations/${id}/staff`,
+        DOCUMENTS: (id) => `${BASE_PREFIX}/admin/organizations/${id}/documents`,
+        EXPORT: `${BASE_PREFIX}/admin/organizations/export`,
+      },
+      INDIVIDUALS: {
+        LIST: `${BASE_PREFIX}/admin/individuals`,
+        GET_BY_ID: (id) => `${BASE_PREFIX}/admin/individuals/${id}`,
+        UPDATE_STATUS: (id) => `${BASE_PREFIX}/individuals/${id}/kyc-status`,
+        TRANSACTIONS: (id) => `${BASE_PREFIX}/admin/individuals/${id}/transactions`,
+        WALLETS: (id) => `${BASE_PREFIX}/admin/individuals/${id}/wallets`,
+        SAVINGS: (id) => `${BASE_PREFIX}/admin/individuals/${id}/savings`,
+        EXPORT: `${BASE_PREFIX}/admin/individuals/export`,
+      },
+      WALLETS: {
+        ORGANIZATIONS: `${BASE_PREFIX}/admin/wallets/organizations`,
+        ORGANIZATIONS_EXPORT: `${BASE_PREFIX}/admin/wallets/organizations/export`,
+        ORGANIZATION_WALLET: (id) => `${BASE_PREFIX}/admin/organizations/${id}/wallet`,
+        ORGANIZATION_SALARIES: (id) => `${BASE_PREFIX}/admin/organizations/${id}/salaries`,
+        ORGANIZATION_SALARIES_EXPORT: (id) => `${BASE_PREFIX}/admin/organizations/${id}/salaries/export`,
+        ORGANIZATION_SAVINGS: (id) => `${BASE_PREFIX}/admin/organizations/${id}/savings`,
+        INDIVIDUALS: `${BASE_PREFIX}/admin/wallets/individuals`,
+        INDIVIDUALS_EXPORT: `${BASE_PREFIX}/admin/wallets/individuals/export`,
+      },
+      DASHBOARD: {
+        METRICS: `${BASE_PREFIX}/admin/dashboard/metrics`,
+      },
+      TREASURY: {
+        SUMMARY: `${BASE_PREFIX}/admin/treasury/summary`,
+      },
+      ANALYTICS: {
+        REVENUE: `${BASE_PREFIX}/admin/analytics/revenue`,
+      },
       AUDIT_LOGS: `${BASE_PREFIX}/admin/audit-logs`,
       COMPLIANCE: {
         ASSESSMENT: (subjectType, subjectId) => `${BASE_PREFIX}/admin/compliance/assessments/${subjectType}/${subjectId}`,
@@ -336,9 +376,10 @@ export const ENDPOINTS = {
         APPLY_OVERRIDE: `${BASE_PREFIX}/admin/compliance/overrides`,
       },
       MANAGE: {
-        ADMINS: `${BASE_PREFIX}/admin/manage/admins`,
+        ADMINS: `${BASE_PREFIX}/admin/manage`,
         INVITE: `${BASE_PREFIX}/admin/manage/invite`,
-        TOGGLE_STATUS: (id) => `${BASE_PREFIX}/admin/manage/admins/${id}/status`,
+        TOGGLE_STATUS: `${BASE_PREFIX}/admin/manage/toggle-status`,
+        DELETE: (id) => `${BASE_PREFIX}/admin/manage/${id}`,
         GRANT_PERMISSION: (id) => `${BASE_PREFIX}/admin/manage/admins/${id}/permissions/grant`,
         REVOKE_PERMISSION: (id) => `${BASE_PREFIX}/admin/manage/admins/${id}/permissions/revoke`,
       },

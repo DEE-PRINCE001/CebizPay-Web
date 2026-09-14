@@ -2,6 +2,130 @@ import apiClient from '../client.js';
 import { ENDPOINTS } from '../endpoints.js';
 
 export const adminService = {
+  // Organizations Directory & Management
+  organizations: {
+    list: async (params = { pageNumber: 1, pageSize: 20, search: '', status: '' }) => {
+      return apiClient.get(ENDPOINTS.ADMIN.ORGANIZATIONS.LIST, { params });
+    },
+    getById: async (id) => {
+      return apiClient.get(ENDPOINTS.ADMIN.ORGANIZATIONS.GET_BY_ID(id));
+    },
+    updateStatus: async (id, payload) => {
+      return apiClient.patch(ENDPOINTS.ADMIN.ORGANIZATIONS.UPDATE_STATUS(id), payload);
+    },
+    reviewKyb: async (payload) => {
+      return apiClient.post(ENDPOINTS.ADMIN.ORGANIZATIONS.REVIEW_KYB, payload);
+    },
+    getPayrollAnalytics: async (id) => {
+      return apiClient.get(ENDPOINTS.ADMIN.ORGANIZATIONS.PAYROLL_ANALYTICS(id));
+    },
+    getStaff: async (id, params = { pageNumber: 1, pageSize: 10, search: '' }) => {
+      return apiClient.get(ENDPOINTS.ADMIN.ORGANIZATIONS.STAFF(id), { params });
+    },
+    getDocuments: async (id) => {
+      return apiClient.get(ENDPOINTS.ADMIN.ORGANIZATIONS.DOCUMENTS(id));
+    },
+    export: async (params = {}) => {
+      return apiClient.get(ENDPOINTS.ADMIN.ORGANIZATIONS.EXPORT, {
+        params,
+        responseType: 'blob',
+      });
+    },
+  },
+
+  // Individuals Directory & Management
+  individuals: {
+    list: async (params = { pageNumber: 1, pageSize: 10, search: '', status: '', professionalStatus: '' }) => {
+      return apiClient.get(ENDPOINTS.ADMIN.INDIVIDUALS.LIST, { params });
+    },
+    getById: async (id) => {
+      return apiClient.get(ENDPOINTS.ADMIN.INDIVIDUALS.GET_BY_ID(id));
+    },
+    updateStatus: async (id, payload) => {
+      return apiClient.patch(ENDPOINTS.ADMIN.INDIVIDUALS.UPDATE_STATUS(id), payload);
+    },
+    getTransactions: async (id, params = { pageNumber: 1, pageSize: 10, search: '', status: '' }) => {
+      return apiClient.get(ENDPOINTS.ADMIN.INDIVIDUALS.TRANSACTIONS(id), { params });
+    },
+    getWallets: async (id) => {
+      return apiClient.get(ENDPOINTS.ADMIN.INDIVIDUALS.WALLETS(id));
+    },
+    getSavings: async (id) => {
+      return apiClient.get(ENDPOINTS.ADMIN.INDIVIDUALS.SAVINGS(id));
+    },
+    getDocuments: async (id) => {
+      return apiClient.get(ENDPOINTS.COMPLIANCE.INDIVIDUAL_KYC.GET_DOCUMENTS(id));
+    },
+    export: async (params = {}) => {
+      return apiClient.get(ENDPOINTS.ADMIN.INDIVIDUALS.EXPORT, {
+        params,
+        responseType: 'blob',
+      });
+    },
+  },
+
+  // Wallets Directory & Management
+  wallets: {
+    organizations: {
+      list: async (params = { pageNumber: 1, pageSize: 10, search: '', status: '' }) => {
+        return apiClient.get(ENDPOINTS.ADMIN.WALLETS.ORGANIZATIONS, { params });
+      },
+      export: async (params = {}) => {
+        return apiClient.get(ENDPOINTS.ADMIN.WALLETS.ORGANIZATIONS_EXPORT, {
+          params,
+          responseType: 'blob',
+        });
+      },
+      getWallet: async (id) => {
+        return apiClient.get(ENDPOINTS.ADMIN.WALLETS.ORGANIZATION_WALLET(id));
+      },
+      getSalaries: async (id, params = { pageNumber: 1, pageSize: 10, search: '', month: '', status: '' }) => {
+        return apiClient.get(ENDPOINTS.ADMIN.WALLETS.ORGANIZATION_SALARIES(id), { params });
+      },
+      exportSalaries: async (id, params = {}) => {
+        return apiClient.get(ENDPOINTS.ADMIN.WALLETS.ORGANIZATION_SALARIES_EXPORT(id), {
+          params,
+          responseType: 'blob',
+        });
+      },
+      getSavings: async (id) => {
+        return apiClient.get(ENDPOINTS.ADMIN.WALLETS.ORGANIZATION_SAVINGS(id));
+      },
+    },
+    individuals: {
+      list: async (params = { pageNumber: 1, pageSize: 10, search: '', status: '' }) => {
+        return apiClient.get(ENDPOINTS.ADMIN.WALLETS.INDIVIDUALS, { params });
+      },
+      export: async (params = {}) => {
+        return apiClient.get(ENDPOINTS.ADMIN.WALLETS.INDIVIDUALS_EXPORT, {
+          params,
+          responseType: 'blob',
+        });
+      },
+    },
+  },
+
+  // Dashboard & Metrics
+  dashboard: {
+    getMetrics: async () => {
+      return apiClient.get(ENDPOINTS.ADMIN.DASHBOARD.METRICS);
+    },
+  },
+
+  // Treasury & Platform Master Wallet
+  treasury: {
+    getSummary: async (params = {}) => {
+      return apiClient.get(ENDPOINTS.ADMIN.TREASURY.SUMMARY, { params });
+    },
+  },
+
+  // Analytics & Revenue
+  analytics: {
+    getRevenue: async (params = { year: new Date().getFullYear() }) => {
+      return apiClient.get(ENDPOINTS.ADMIN.ANALYTICS.REVENUE, { params });
+    },
+  },
+
   // Audit Logs
   getAuditLogs: async (params = { pageNumber: 1, pageSize: 20 }) => {
     return apiClient.get(ENDPOINTS.ADMIN.AUDIT_LOGS, { params });
@@ -57,8 +181,11 @@ export const adminService = {
     inviteAdmin: async (payload) => {
       return apiClient.post(ENDPOINTS.ADMIN.MANAGE.INVITE, payload);
     },
-    toggleStatus: async (id, payload) => {
-      return apiClient.patch(ENDPOINTS.ADMIN.MANAGE.TOGGLE_STATUS(id), payload);
+    toggleStatus: async (payload) => {
+      return apiClient.patch(ENDPOINTS.ADMIN.MANAGE.TOGGLE_STATUS, payload);
+    },
+    deleteAdmin: async (id) => {
+      return apiClient.delete(ENDPOINTS.ADMIN.MANAGE.DELETE(id));
     },
     grantPermission: async (id, payload) => {
       return apiClient.post(ENDPOINTS.ADMIN.MANAGE.GRANT_PERMISSION(id), payload);

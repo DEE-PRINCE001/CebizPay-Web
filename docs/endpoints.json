@@ -6,7 +6,7 @@
   },
   "servers": [
     {
-      "url": "http://127.0.0.1:5015/"
+      "url": "https://cebizpay.onrender.com/"
     }
   ],
   "paths": {
