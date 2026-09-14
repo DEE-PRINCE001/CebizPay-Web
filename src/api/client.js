@@ -41,7 +41,7 @@ export const clearStoredAuth = () => {
 };
 
 // Base Axios instance
-const baseURL = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_BASE_URL) || 'http://127.0.0.1:5015';
+const baseURL = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_BASE_URL) || 'https://cebizpay.onrender.com';
 
 const apiClient = axios.create({
   baseURL,
@@ -69,6 +69,7 @@ const processQueue = (error, token = null) => {
 // Request Interceptor: Attach JWT token, Organization ID, and Idempotency Key
 apiClient.interceptors.request.use(
   (config) => {
+    console.log(baseURL);
     const accessToken = getStoredAccessToken();
     if (accessToken && !config.headers.Authorization) {
       config.headers.Authorization = `Bearer ${accessToken}`;
