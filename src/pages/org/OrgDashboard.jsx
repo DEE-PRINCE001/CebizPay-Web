@@ -8,6 +8,7 @@ import AddMoneyOptionsModal from '../../components/modals/wallet/AddMoneyOptions
 import TransferOptionsModal from '../../components/modals/wallet/TransferOptionsModal.jsx';
 import AddMoneyTransferModal from '../../components/modals/wallet/AddMoneyTransferModal.jsx';
 import AddMoneyCardModal from '../../components/modals/wallet/AddMoneyCardModal.jsx';
+import TransferProcessModal from '../../components/modals/wallet/TransferProcessModal.jsx';
 
 const MOCK_FINANCE_DATA = [
   { name: 'Jan', value: 110 },
@@ -51,6 +52,8 @@ export default function OrgDashboard() {
   const [isAddMoneyTransferOpen, setIsAddMoneyTransferOpen] = useState(false);
   const [isAddMoneyCardOpen, setIsAddMoneyCardOpen] = useState(false);
   const [isTransferOptionsOpen, setIsTransferOptionsOpen] = useState(false);
+  const [isTransferProcessOpen, setIsTransferProcessOpen] = useState(false);
+  const [transferMode, setTransferMode] = useState('bank');
 
   return (
     <OrgDashboardLayout>
@@ -178,6 +181,18 @@ export default function OrgDashboard() {
         isOpen={isTransferOptionsOpen}
         onClose={() => setIsTransferOptionsOpen(false)}
         onSelectOption={(option) => {
+          setTransferMode(option);
+          setIsTransferOptionsOpen(false);
+          setIsTransferProcessOpen(true);
+        }}
+      />
+
+      <TransferProcessModal
+        isOpen={isTransferProcessOpen}
+        onClose={() => setIsTransferProcessOpen(false)}
+        mode={transferMode}
+        onProceed={(data) => {
+          console.log('Proceed with transfer:', data);
         }}
       />
     </OrgDashboardLayout>
