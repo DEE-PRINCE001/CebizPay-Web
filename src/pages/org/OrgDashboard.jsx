@@ -4,6 +4,9 @@ import WalletCard from '../../components/cards/WalletCard.jsx';
 import AnnouncementItem from '../../components/common/AnnouncementItem.jsx';
 import EarningChart from '../../components/common/EarningChart.jsx';
 import AnnouncementsModal from '../../components/modals/AnnouncementsModal.jsx';
+import AddMoneyOptionsModal from '../../components/modals/wallet/AddMoneyOptionsModal.jsx';
+import TransferOptionsModal from '../../components/modals/wallet/TransferOptionsModal.jsx';
+import AddMoneyTransferModal from '../../components/modals/wallet/AddMoneyTransferModal.jsx';
 
 const MOCK_FINANCE_DATA = [
   { name: 'Jan', value: 110 },
@@ -43,6 +46,9 @@ const MOCK_ANNOUNCEMENTS = [
 
 export default function OrgDashboard() {
   const [isAnnouncementsModalOpen, setIsAnnouncementsModalOpen] = useState(false);
+  const [isAddMoneyOptionsOpen, setIsAddMoneyOptionsOpen] = useState(false);
+  const [isAddMoneyTransferOpen, setIsAddMoneyTransferOpen] = useState(false);
+  const [isTransferOptionsOpen, setIsTransferOptionsOpen] = useState(false);
 
   return (
     <OrgDashboardLayout>
@@ -59,12 +65,14 @@ export default function OrgDashboard() {
               <div className="flex flex-wrap items-center gap-3">
                 <button
                   type="button"
+                  onClick={() => setIsAddMoneyOptionsOpen(true)}
                   className="inline-flex items-center justify-center px-6 py-2.5 rounded-xl border border-primary/25 bg-blue-50/70 hover:bg-blue-100/70 text-primary font-medium text-xs sm:text-sm transition-colors cursor-pointer select-none"
                 >
                   Fund Wallet
                 </button>
                 <button
                   type="button"
+                  onClick={() => setIsTransferOptionsOpen(true)}
                   className="inline-flex items-center justify-center px-6 py-2.5 rounded-xl border border-primary/25 bg-blue-50/70 hover:bg-blue-100/70 text-primary font-medium text-xs sm:text-sm transition-colors cursor-pointer select-none"
                 >
                   Transfer Fund
@@ -136,6 +144,31 @@ export default function OrgDashboard() {
       <AnnouncementsModal
         isOpen={isAnnouncementsModalOpen}
         onClose={() => setIsAnnouncementsModalOpen(false)}
+      />
+
+      {/* Wallet Action Modals (Stage 1) */}
+      <AddMoneyOptionsModal
+        isOpen={isAddMoneyOptionsOpen}
+        onClose={() => setIsAddMoneyOptionsOpen(false)}
+        onSelectOption={(option) => {
+          setIsAddMoneyOptionsOpen(false);
+          if (option === 'transfer') {
+            setIsAddMoneyTransferOpen(true);
+          }
+        }}
+      />
+
+      <AddMoneyTransferModal
+        isOpen={isAddMoneyTransferOpen}
+        onClose={() => setIsAddMoneyTransferOpen(false)}
+      />
+
+      <TransferOptionsModal
+        isOpen={isTransferOptionsOpen}
+        onClose={() => setIsTransferOptionsOpen(false)}
+        onSelectOption={(option) => {
+          // Prepared for Stage 3 transfer flow
+        }}
       />
     </OrgDashboardLayout>
   );
