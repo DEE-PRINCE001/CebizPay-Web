@@ -53,12 +53,12 @@ export default function Button({
   return (
     <Component {...componentProps}>
       {loading ? (
-        <Loader2 size={iconSizes[size] || 16} className="animate-spin" />
+        <Loader2 size={iconSizes[size] || 16} className="animate-spin shrink-0" />
       ) : (
-        Icon && iconPosition === 'left' && <Icon size={iconSizes[size] || 16} />
+        Icon && iconPosition === 'left' && <Icon size={iconSizes[size] || 16} className="shrink-0" />
       )}
-      <span>{children}</span>
-      {!loading && Icon && iconPosition === 'right' && <Icon size={iconSizes[size] || 16} />}
+      <span className="inline-flex items-center gap-1.5 whitespace-nowrap">{children}</span>
+      {!loading && Icon && iconPosition === 'right' && <Icon size={iconSizes[size] || 16} className="shrink-0" />}
     </Component>
   );
 }

@@ -8,7 +8,7 @@ export const AdminItem = ({ admin, isLast = false, onToggle, onDelete, disabled 
   return (
     <div
       className={`flex items-center justify-between p-3 sm:p-4 ${
-        !isLast ? 'border-b border-dashed border-sky-400' : ''
+        !isLast ? 'border-b border-slate-100' : ''
       }`}
     >
       {/* Admin Name / Identifier */}

@@ -175,7 +175,7 @@ const Dashboard = () => {
                   <AnnouncementItem
                     key={item.id}
                     title={item.title}
-                    description={item.description}
+                    description={item.content}
                   />
                 )})}
               </div>

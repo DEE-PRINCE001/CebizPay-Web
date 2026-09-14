@@ -5,9 +5,9 @@ const STATUS_STYLES = {
   pending: 'text-pending',
   verified: 'text-verified',
   rejected: 'text-rejected',
-  active: 'text-emerald-600',
-  successfull: 'text-emerald-600',
-  successful: 'text-emerald-600',
+  active: 'text-active',
+  successfull: 'text-active',
+  successful: 'text-active',
   reversed: 'text-rejected',
   failed: 'text-rejected',
 };

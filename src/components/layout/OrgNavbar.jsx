@@ -2,40 +2,54 @@ import React, { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import logo from '../../assets/logo.jpg';
 import Button from '../common/Button';
-import { Bell, Coins, LayoutDashboard, User, UsersRound, Wallet, Menu, X } from 'lucide-react';
+import {
+  Bell,
+  LayoutDashboard,
+  UsersRound,
+  Wallet,
+  Settings,
+  Landmark,
+  UserPlus,
+  ChevronDown,
+  Menu,
+  X,
+} from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth.js';
-import ProfileModal from '../modals/ProfileModal.jsx';
+import OrgProfileModal from '../modals/OrgProfileModal.jsx';
 import AnnouncementsModal from '../modals/AnnouncementsModal.jsx';
-import WalletDropdown from './WalletDropdown.jsx';
+import FinanceDropdown from './FinanceDropdown.jsx';
 
-const NAV_ITEMS = [
-  { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { to: '/organization', label: 'Organization', icon: UsersRound },
-  { to: '/individual', label: 'Individual', icon: User },
-  { to: '/wallets', label: 'Wallets', icon: Wallet, isDropdown: true },
-  { to: '/saving-plan', label: 'Saving Plan', icon: Coins },
+const ORG_NAV_ITEMS = [
+  { to: '/org/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { to: '/org/members', label: 'Members', icon: UsersRound },
+  { to: '/org/wallet', label: 'Wallet', icon: Wallet },
+  { to: '/org/settings', label: 'Settings', icon: Settings },
+  { to: '/org/finance', label: 'Finance', icon: Landmark, isDropdown: true },
+  { to: '/org/invite', label: 'Invite users', icon: UserPlus },
 ];
 
-const Navbar = () => {
+export default function OrgNavbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isAnnouncementsOpen, setIsAnnouncementsOpen] = useState(false);
-  const [isWalletOpen, setIsWalletOpen] = useState(false);
+  const [isFinanceOpen, setIsFinanceOpen] = useState(false);
   const location = useLocation();
   const { user } = useAuth();
   const displayName = user?.firstName || user?.name?.split(' ')[0] || 'Tayo';
 
-  const isWalletActive =
-    location.pathname.startsWith('/wallets') ||
-    location.pathname.startsWith('/wallet');
+  const isFinanceActive =
+    location.pathname.startsWith('/org/payroll') ||
+    location.pathname.startsWith('/org/inventory') ||
+    location.pathname.startsWith('/org/invoices') ||
+    location.pathname.startsWith('/org/vouchers');
 
   return (
     <header className="w-full flex flex-col">
-      <div className="flex items-center justify-between xl:gap-x-7 w-full">
+      <div className="flex items-center justify-between xl:gap-x-6 w-full">
         {/* Brand Logo & Greeting Card */}
         <div className="flex items-center space-x-3 sm:space-x-5">
           <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full overflow-hidden shrink-0 border border-slate-100 shadow-xs">
-            <img src={logo} alt="Logo" className="w-full h-full object-cover" />
+            <img src={logo} alt="CebizPay" className="w-full h-full object-cover" />
           </div>
 
           <div
@@ -51,7 +65,7 @@ const Navbar = () => {
             }}
           >
             <p className="font-bold text-primary-text text-xs sm:text-sm">Hello {displayName}</p>
-            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full overflow-hidden shrink-0 border border-slate-100">
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full overflow-hidden shrink-0 border border-slate-100 bg-[#C3E3BE]/40">
               <img src={logo} alt="Profile" className="w-full h-full object-cover" />
             </div>
           </div>
@@ -59,24 +73,25 @@ const Navbar = () => {
 
         {/* Desktop Navigation Links & Notification */}
         <div className="hidden xl:flex flex-1 ml-4 items-center bg-white rounded-2xl px-3 py-2 justify-between border border-slate-100 shadow-xs">
-          <nav className="flex items-center space-x-2.5" aria-label="Main Navigation">
-            {NAV_ITEMS.map((item) =>
+          <nav className="flex items-center space-x-2.5" aria-label="Organization Main Navigation">
+            {ORG_NAV_ITEMS.map((item) =>
               item.isDropdown ? (
                 <div key={item.label} className="relative inline-flex">
                   <Button
                     icon={item.icon}
                     size="md"
-                    variant={isWalletActive ? 'primaryLink' : 'outline'}
-                    onClick={() => setIsWalletOpen((prev) => !prev)}
+                    variant={isFinanceActive ? 'primaryLink' : 'outline'}
+                    onClick={() => setIsFinanceOpen((prev) => !prev)}
                     className="w-auto px-4 py-2 text-xs sm:text-sm whitespace-nowrap"
-                    aria-haspopup="dialog"
-                    aria-expanded={isWalletOpen}
+                    aria-haspopup="menu"
+                    aria-expanded={isFinanceOpen}
                   >
-                    {item.label}
+                    <span>{item.label}</span>
+                    <ChevronDown className="w-3.5 h-3.5 shrink-0 opacity-80" />
                   </Button>
-                  <WalletDropdown
-                    isOpen={isWalletOpen}
-                    onClose={() => setIsWalletOpen(false)}
+                  <FinanceDropdown
+                    isOpen={isFinanceOpen}
+                    onClose={() => setIsFinanceOpen(false)}
                   />
                 </div>
               ) : (
@@ -96,6 +111,7 @@ const Navbar = () => {
               )
             )}
           </nav>
+
           <button
             type="button"
             onClick={() => setIsAnnouncementsOpen(true)}
@@ -111,19 +127,19 @@ const Navbar = () => {
           <button
             type="button"
             onClick={() => setIsAnnouncementsOpen(true)}
-            className="rounded-full p-2 border hover:bg-primary/20 border-primary/30 cursor-pointer transition-colors"
+            className="rounded-full p-2.5 border bg-white hover:bg-primary/10 border-slate-200 text-slate-500 hover:text-primary cursor-pointer transition-colors shadow-xs"
             aria-label="View announcements"
           >
-            <Bell className="w-5 h-5 text-primary" />
+            <Bell className="w-4 h-4" />
           </button>
           <button
             type="button"
             onClick={() => setMobileOpen((prev) => !prev)}
-            className="rounded-xl p-2 bg-white border border-slate-200 text-primary hover:bg-slate-50 cursor-pointer focus:outline-none"
+            className="rounded-2xl p-2.5 bg-white border border-slate-200 text-primary hover:bg-slate-50 cursor-pointer focus:outline-none shadow-xs"
             aria-label="Toggle navigation menu"
             aria-expanded={mobileOpen}
           >
-            {mobileOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
         </div>
       </div>
@@ -131,42 +147,66 @@ const Navbar = () => {
       {/* Mobile Drawer Dropdown */}
       {mobileOpen && (
         <nav
-          className="xl:hidden w-full bg-white rounded-xl p-4 shadow-lg border border-slate-100 flex flex-col space-y-2 mt-3"
+          className="xl:hidden w-full bg-white rounded-2xl p-4 shadow-xl border border-slate-100 flex flex-col space-y-2 mt-3 animate-in fade-in slide-in-from-top-2 duration-150"
           aria-label="Mobile Navigation"
         >
-          {NAV_ITEMS.map((item) =>
+          {ORG_NAV_ITEMS.map((item) =>
             item.isDropdown ? (
               <div key={item.label} className="w-full flex flex-col space-y-1">
                 <Button
                   icon={item.icon}
                   size="md"
-                  variant={isWalletActive ? 'primaryLink' : 'outline'}
-                  onClick={() => setIsWalletOpen((prev) => !prev)}
-                  className="w-full justify-start px-4"
+                  variant={isFinanceActive ? 'primaryLink' : 'outline'}
+                  onClick={() => setIsFinanceOpen((prev) => !prev)}
+                  className="w-full justify-between px-4"
                 >
-                  {item.label}
+                  <span className="flex items-center space-x-2">
+                    <item.icon className="w-4 h-4" />
+                    <span>{item.label}</span>
+                  </span>
+                  <ChevronDown className="w-4 h-4" />
                 </Button>
-                {isWalletOpen && (
-                  <div className="pl-6 flex flex-col space-y-1 py-1">
+                {isFinanceOpen && (
+                  <div className="pl-6 flex flex-col space-y-1.5 py-1.5 border-l-2 border-primary/20 ml-4">
                     <NavLink
-                      to="/wallets/organization"
+                      to="/org/payroll"
                       onClick={() => {
-                        setIsWalletOpen(false);
+                        setIsFinanceOpen(false);
                         setMobileOpen(false);
                       }}
-                      className="text-sm font-medium text-slate-700 hover:text-primary py-1 px-2 rounded-lg hover:bg-slate-50"
+                      className="text-xs sm:text-sm font-medium text-slate-700 hover:text-primary py-1 px-2 rounded-lg hover:bg-slate-50"
                     >
-                      • Organization
+                      • Payroll
                     </NavLink>
                     <NavLink
-                      to="/wallets/individual"
+                      to="/org/inventory"
                       onClick={() => {
-                        setIsWalletOpen(false);
+                        setIsFinanceOpen(false);
                         setMobileOpen(false);
                       }}
-                      className="text-sm font-medium text-slate-700 hover:text-primary py-1 px-2 rounded-lg hover:bg-slate-50"
+                      className="text-xs sm:text-sm font-medium text-slate-700 hover:text-primary py-1 px-2 rounded-lg hover:bg-slate-50"
                     >
-                      • Individual
+                      • Inventory
+                    </NavLink>
+                    <NavLink
+                      to="/org/invoices"
+                      onClick={() => {
+                        setIsFinanceOpen(false);
+                        setMobileOpen(false);
+                      }}
+                      className="text-xs sm:text-sm font-medium text-slate-700 hover:text-primary py-1 px-2 rounded-lg hover:bg-slate-50"
+                    >
+                      • Invoice
+                    </NavLink>
+                    <NavLink
+                      to="/org/vouchers"
+                      onClick={() => {
+                        setIsFinanceOpen(false);
+                        setMobileOpen(false);
+                      }}
+                      className="text-xs sm:text-sm font-medium text-slate-700 hover:text-primary py-1 px-2 rounded-lg hover:bg-slate-50"
+                    >
+                      • Voucher
                     </NavLink>
                   </div>
                 )}
@@ -195,19 +235,17 @@ const Navbar = () => {
         </nav>
       )}
 
-      {/* Profile Modal */}
-      <ProfileModal
+      {/* Profile Modal Drawer */}
+      <OrgProfileModal
         isOpen={isProfileOpen}
         onClose={() => setIsProfileOpen(false)}
       />
 
-      {/* All Announcements Modal */}
+      {/* Announcements Modal */}
       <AnnouncementsModal
         isOpen={isAnnouncementsOpen}
         onClose={() => setIsAnnouncementsOpen(false)}
       />
     </header>
   );
-};
-
-export default Navbar;
+}
