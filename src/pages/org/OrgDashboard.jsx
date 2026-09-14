@@ -9,6 +9,8 @@ import TransferOptionsModal from '../../components/modals/wallet/TransferOptions
 import AddMoneyTransferModal from '../../components/modals/wallet/AddMoneyTransferModal.jsx';
 import AddMoneyCardModal from '../../components/modals/wallet/AddMoneyCardModal.jsx';
 import TransferProcessModal from '../../components/modals/wallet/TransferProcessModal.jsx';
+import TransactionPinModal from '../../components/modals/wallet/TransactionPinModal.jsx';
+import TransactionSuccessModal from '../../components/modals/wallet/TransactionSuccessModal.jsx';
 
 const MOCK_FINANCE_DATA = [
   { name: 'Jan', value: 110 },
@@ -54,6 +56,10 @@ export default function OrgDashboard() {
   const [isTransferOptionsOpen, setIsTransferOptionsOpen] = useState(false);
   const [isTransferProcessOpen, setIsTransferProcessOpen] = useState(false);
   const [transferMode, setTransferMode] = useState('bank');
+  const [isPinModalOpen, setIsPinModalOpen] = useState(false);
+  const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
+  const [pendingTransaction, setPendingTransaction] = useState(null);
+  const [transactionSuccessData, setTransactionSuccessData] = useState(null);
 
   return (
     <OrgDashboardLayout>
@@ -173,7 +179,12 @@ export default function OrgDashboard() {
         isOpen={isAddMoneyCardOpen}
         onClose={() => setIsAddMoneyCardOpen(false)}
         onProceed={(data) => {
-          console.log('Proceed with card funding:', data);
+          setIsAddMoneyCardOpen(false);
+          setPendingTransaction({
+            type: 'fund',
+            ...data,
+          });
+          setIsPinModalOpen(true);
         }}
       />
 
@@ -192,8 +203,36 @@ export default function OrgDashboard() {
         onClose={() => setIsTransferProcessOpen(false)}
         mode={transferMode}
         onProceed={(data) => {
-          console.log('Proceed with transfer:', data);
+          setIsTransferProcessOpen(false);
+          setPendingTransaction({
+            type: 'transfer',
+            ...data,
+          });
+          setIsPinModalOpen(true);
         }}
+      />
+
+      <TransactionPinModal
+        isOpen={isPinModalOpen}
+        onClose={() => setIsPinModalOpen(false)}
+        onSubmit={(enteredPin) => {
+          setIsPinModalOpen(false);
+          setTransactionSuccessData({
+            ...pendingTransaction,
+            pin: enteredPin,
+          });
+          setIsSuccessModalOpen(true);
+        }}
+      />
+
+      <TransactionSuccessModal
+        isOpen={isSuccessModalOpen}
+        onClose={() => {
+          setIsSuccessModalOpen(false);
+          setPendingTransaction(null);
+          setTransactionSuccessData(null);
+        }}
+        data={transactionSuccessData}
       />
     </OrgDashboardLayout>
   );
