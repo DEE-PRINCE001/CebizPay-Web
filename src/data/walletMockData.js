@@ -19,6 +19,18 @@ export const MOCK_VIRTUAL_ACCOUNTS = [
   },
 ];
 
+export const MOCK_BANKS = [
+  { code: '033', name: 'United Bank for Africa (UBA)', shortName: 'UBA' },
+  { code: '058', name: 'Guaranty Trust Bank (GTBank)', shortName: 'GTB' },
+  { code: '044', name: 'Access Bank', shortName: 'Access' },
+  { code: '057', name: 'Zenith Bank', shortName: 'Zenith' },
+  { code: '011', name: 'First Bank of Nigeria', shortName: 'FirstBank' },
+  { code: '035', name: 'Wema Bank', shortName: 'Wema' },
+  { code: '090110', name: 'Moniepoint MFB', shortName: 'Moniepoint' },
+  { code: '090267', name: 'Kuda Bank', shortName: 'Kuda' },
+  { code: '090405', name: 'OPay', shortName: 'OPay' },
+];
+
 export const MOCK_SAVED_CARDS = [
   {
     id: 'card-1',
@@ -58,15 +70,19 @@ export const MOCK_BENEFICIARIES = {
   bank: [
     {
       accountNumber: '092729197',
-      formattedAccountNumber: 'UBA-092 729 197',
+      bankCode: '033',
       bankName: 'United Bank for Africa (UBA)',
+      shortBankName: 'UBA',
+      formattedAccountNumber: 'UBA-092 729 197',
       accountName: 'Johnson Adebiyi',
       confirmedRecipientName: 'Micheal Johnson',
     },
     {
       accountNumber: '0123456789',
-      formattedAccountNumber: 'GTB-012 345 678',
+      bankCode: '058',
       bankName: 'Guaranty Trust Bank (GTBank)',
+      shortBankName: 'GTB',
+      formattedAccountNumber: 'GTB-012 345 678',
       accountName: 'Amaka Okafor',
       confirmedRecipientName: 'Amaka Okafor',
     },

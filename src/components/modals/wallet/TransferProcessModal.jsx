@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, ChevronDown, Check } from 'lucide-react';
+import { ArrowLeft, ChevronDown, Check, Search } from 'lucide-react';
 import WalletBaseModal from './WalletBaseModal.jsx';
-import { MOCK_BENEFICIARIES } from '../../../data/walletMockData.js';
+import { MOCK_BENEFICIARIES, MOCK_BANKS } from '../../../data/walletMockData.js';
 
 export default function TransferProcessModal({
   isOpen,
@@ -14,7 +14,10 @@ export default function TransferProcessModal({
   const [amount, setAmount] = useState('');
   const [error, setError] = useState('');
   const [beneficiary, setBeneficiary] = useState(null);
+  const [selectedBank, setSelectedBank] = useState(null);
+  const [isBankDropdownOpen, setIsBankDropdownOpen] = useState(false);
   const [isWalletDropdownOpen, setIsWalletDropdownOpen] = useState(false);
+  const [bankSearch, setBankSearch] = useState('');
 
   const isBankMode = mode === 'bank';
   const title = isBankMode ? 'Transfer to Bank' : 'Transfer to Wallet';
@@ -26,11 +29,28 @@ export default function TransferProcessModal({
       setAmount('');
       setError('');
       setBeneficiary(null);
+      setSelectedBank(null);
+      setIsBankDropdownOpen(false);
       setIsWalletDropdownOpen(false);
+      setBankSearch('');
     }
   }, [isOpen, mode]);
 
   if (!isOpen) return null;
+
+  const handleAccountNumberChange = (val) => {
+    setIdentifier(val);
+    setError('');
+
+    const clean = val.replace(/\s/g, '');
+    const matchedBeneficiary = MOCK_BENEFICIARIES.bank.find((b) => b.accountNumber === clean);
+    if (matchedBeneficiary) {
+      const bank = MOCK_BANKS.find((b) => b.code === matchedBeneficiary.bankCode);
+      if (bank) {
+        setSelectedBank(bank);
+      }
+    }
+  };
 
   const handleStep1Proceed = () => {
     const trimmed = identifier.trim();
@@ -40,11 +60,19 @@ export default function TransferProcessModal({
     }
 
     if (isBankMode) {
-      const match = MOCK_BENEFICIARIES.bank.find((b) => b.accountNumber === trimmed.replace(/\s/g, ''));
+      if (!selectedBank) {
+        setError('Please select a destination bank.');
+        return;
+      }
+
+      const match = MOCK_BENEFICIARIES.bank.find(
+        (b) => b.accountNumber === trimmed.replace(/\s/g, '') && b.bankCode === selectedBank.code
+      );
+
       const resolved = match || {
         accountNumber: trimmed,
-        formattedAccountNumber: `UBA-${trimmed}`,
-        bankName: 'United Bank for Africa (UBA)',
+        formattedAccountNumber: `${selectedBank.shortName}-${trimmed}`,
+        bankName: selectedBank.name,
         accountName: 'Johnson Adebiyi',
         confirmedRecipientName: 'Micheal Johnson',
       };
@@ -75,6 +103,7 @@ export default function TransferProcessModal({
     onProceed?.({
       mode,
       identifier,
+      selectedBank,
       beneficiary,
       amount: cleanAmount,
       formattedAmount: `₦${Number(cleanAmount).toLocaleString()}`,
@@ -91,6 +120,11 @@ export default function TransferProcessModal({
     setAmount(Number(val).toLocaleString());
   };
 
+  const filteredBanks = MOCK_BANKS.filter((b) =>
+    b.name.toLowerCase().includes(bankSearch.toLowerCase()) ||
+    b.shortName.toLowerCase().includes(bankSearch.toLowerCase())
+  );
+
   return (
     <WalletBaseModal
       isOpen={isOpen}
@@ -105,7 +139,7 @@ export default function TransferProcessModal({
       )}
 
       {step === 1 && (
-        <div className="space-y-5 animate-in fade-in duration-150">
+        <div className="space-y-4 animate-in fade-in duration-150">
           <div>
             <label className="block text-xs sm:text-sm font-medium text-slate-700 mb-1.5">
               {isBankMode ? 'Account Number' : 'Wallet ID'}
@@ -116,10 +150,7 @@ export default function TransferProcessModal({
                 <input
                   type="text"
                   value={identifier}
-                  onChange={(e) => {
-                    setIdentifier(e.target.value);
-                    setError('');
-                  }}
+                  onChange={(e) => handleAccountNumberChange(e.target.value)}
                   placeholder="e.g. 092729197"
                   className="w-full px-3.5 py-3 rounded-xl border border-slate-200 bg-white text-xs sm:text-sm font-medium text-slate-800 placeholder-slate-400 hover:border-slate-300 focus:border-primary focus:outline-hidden transition-colors"
                   autoFocus
@@ -128,10 +159,10 @@ export default function TransferProcessModal({
                   <span className="text-[11px] text-slate-400">Quick test:</span>
                   <button
                     type="button"
-                    onClick={() => setIdentifier('092729197')}
+                    onClick={() => handleAccountNumberChange('092729197')}
                     className="text-[11px] text-primary hover:underline cursor-pointer"
                   >
-                    092729197 (Johnson Adebiyi)
+                    092729197 (UBA - Johnson Adebiyi)
                   </button>
                 </div>
               </div>
@@ -194,6 +225,73 @@ export default function TransferProcessModal({
             )}
           </div>
 
+          {isBankMode && (
+            <div>
+              <label className="block text-xs sm:text-sm font-medium text-slate-700 mb-1.5">
+                Select Bank
+              </label>
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setIsBankDropdownOpen((prev) => !prev)}
+                  className="w-full flex items-center justify-between px-3.5 py-3 rounded-xl border border-slate-200 bg-white hover:border-slate-300 focus:outline-hidden text-left cursor-pointer transition-colors"
+                >
+                  <span className={`text-xs sm:text-sm font-medium ${selectedBank ? 'text-slate-800' : 'text-slate-400'}`}>
+                    {selectedBank ? selectedBank.name : 'Choose destination bank'}
+                  </span>
+                  <ChevronDown
+                    className={`w-4 h-4 text-slate-400 transition-transform duration-200 shrink-0 ml-2 ${
+                      isBankDropdownOpen ? 'rotate-180' : ''
+                    }`}
+                  />
+                </button>
+
+                {isBankDropdownOpen && (
+                  <div className="mt-2 p-2 bg-white border border-slate-100 rounded-xl shadow-xl space-y-2 animate-in fade-in zoom-in-98 duration-150 z-20 relative">
+                    <div className="relative">
+                      <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                      <input
+                        type="text"
+                        value={bankSearch}
+                        onChange={(e) => setBankSearch(e.target.value)}
+                        placeholder="Search banks..."
+                        className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50/50 focus:outline-hidden focus:border-primary"
+                        autoFocus
+                      />
+                    </div>
+                    <div className="max-h-48 overflow-y-auto space-y-0.5">
+                      {filteredBanks.map((bank) => (
+                        <button
+                          key={bank.code}
+                          type="button"
+                          onClick={() => {
+                            setSelectedBank(bank);
+                            setIsBankDropdownOpen(false);
+                            setError('');
+                            setBankSearch('');
+                          }}
+                          className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-left text-xs hover:bg-blue-50/50 cursor-pointer transition-colors"
+                        >
+                          <span className="font-medium text-slate-800">
+                            {bank.name}
+                          </span>
+                          {selectedBank?.code === bank.code && (
+                            <Check className="w-3.5 h-3.5 text-primary" />
+                          )}
+                        </button>
+                      ))}
+                      {filteredBanks.length === 0 && (
+                        <div className="text-center py-3 text-xs text-slate-400">
+                          No banks found
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           <div className="pt-2">
             <button
               type="button"
@@ -225,7 +323,7 @@ export default function TransferProcessModal({
                     {beneficiary?.accountName || 'Johnson Adebiyi'}
                   </h3>
                   <span className="text-xs text-slate-500 mt-0.5">
-                    {beneficiary?.formattedAccountNumber || `UBA-${identifier}`}
+                    {beneficiary?.formattedAccountNumber || `${selectedBank?.shortName || 'Bank'}-${identifier}`}
                   </span>
                 </div>
               ) : (
