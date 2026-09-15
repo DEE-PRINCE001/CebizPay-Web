@@ -217,9 +217,9 @@ export default function TransferProcessModal({
                           <Loader2 className="w-3.5 h-3.5 animate-spin text-primary" />
                           <span>Loading banks...</span>
                         </div>
-                      ) : filteredBanks.map((bank) => (
+                      ) : filteredBanks.map((bank, idx) => (
                         <button
-                          key={bank.code}
+                          key={`${bank.code}-${bank.slug || idx}`}
                           type="button"
                           onClick={() => {
                             setSelectedBank(bank);

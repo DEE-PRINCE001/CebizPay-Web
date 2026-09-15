@@ -69,7 +69,6 @@ const processQueue = (error, token = null) => {
 // Request Interceptor: Attach JWT token, Organization ID, and Idempotency Key
 apiClient.interceptors.request.use(
   (config) => {
-    console.log(baseURL);
     const accessToken = getStoredAccessToken();
     if (accessToken && !config.headers.Authorization) {
       config.headers.Authorization = `Bearer ${accessToken}`;
