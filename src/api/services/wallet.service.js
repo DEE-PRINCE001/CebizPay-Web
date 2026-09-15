@@ -70,4 +70,40 @@ export const walletService = {
       params: organizationId ? { organizationId } : {},
     });
   },
+
+  // Organization Wallet & Transactions
+  getOrgWallet: async () => {
+    return apiClient.get(ENDPOINTS.WALLET.ORG_WALLET);
+  },
+
+  getOrgTransactions: async (params = { pageNumber: 1, pageSize: 20 }) => {
+    return apiClient.get(ENDPOINTS.WALLET.ORG_TRANSACTIONS, { params });
+  },
+
+  getOrgVirtualAccounts: async () => {
+    return apiClient.get(ENDPOINTS.WALLET.ORG_VIRTUAL_ACCOUNTS);
+  },
+
+  // Commercial Banks Directory & Recipient Resolution
+  getBanks: async (params = {}) => {
+    return apiClient.get(ENDPOINTS.WALLET.BANKS, { params });
+  },
+
+  resolveWallet: async (walletId) => {
+    return apiClient.get(ENDPOINTS.WALLET.RESOLVE_WALLET(walletId));
+  },
+
+  // Security & Transaction PIN
+  verifyPin: async (pin) => {
+    return apiClient.post(ENDPOINTS.WALLET.PIN.VERIFY, { pin });
+  },
+
+  setupPin: async (payload) => {
+    return apiClient.post(ENDPOINTS.WALLET.PIN.SETUP, payload);
+  },
+
+  changePin: async (payload) => {
+    return apiClient.post(ENDPOINTS.WALLET.PIN.CHANGE, payload);
+  },
 };
+

@@ -19,9 +19,9 @@ export const cardsService = {
   },
 
   chargeSavedCard: async (payload, idempotencyKey = null) => {
-    return apiClient.post(ENDPOINTS.CARDS.CHARGE, payload, {
+    return apiClient.post(ENDPOINTS.CARDS.CHARGE_SAVED, payload, {
       idempotent: true,
-      headers: idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {},
+      headers: idempotencyKey ? { 'Idempotency-Key': idempotencyKey, 'X-Idempotency-Key': idempotencyKey } : {},
     });
   },
 

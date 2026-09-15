@@ -91,5 +91,17 @@ export const organizationService = {
     terminate: async (id, payload) => {
       return apiClient.post(ENDPOINTS.ORGANIZATION.STAFF.TERMINATE(id), payload);
     },
+    getSalaries: async (id, params = { pageNumber: 1, pageSize: 20 }) => {
+      return apiClient.get(ENDPOINTS.ORGANIZATION.STAFF.SALARIES(id), { params });
+    },
+    getSavings: async (id, params = { pageNumber: 1, pageSize: 20 }) => {
+      return apiClient.get(ENDPOINTS.ORGANIZATION.STAFF.SAVINGS(id), { params });
+    },
+  },
+
+  // Organization Administrators Directory
+  getAdmins: async () => {
+    return apiClient.get(ENDPOINTS.ORGANIZATION.ADMINS);
   },
 };
+

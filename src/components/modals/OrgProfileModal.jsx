@@ -8,6 +8,7 @@ import ProfileSectionHeader from './components/ProfileSectionHeader.jsx';
 import ActionConfirmModal from './ActionConfirmModal.jsx';
 import { useAuth } from '../../hooks/useAuth.js';
 import { adminService } from '../../api/services/admin.service.js';
+import { organizationService } from '../../api/services/organization.service.js';
 
 export default function OrgProfileModal({
   isOpen = false,
@@ -65,7 +66,7 @@ export default function OrgProfileModal({
   // Query organization admins
   const { data: adminsData, isLoading: isAdminsLoading } = useQuery({
     queryKey: ['org-admins-directory'],
-    queryFn: () => adminService.manage.getAdmins({ pageNumber: 1, pageSize: 20 }),
+    queryFn: () => organizationService.getAdmins(),
     staleTime: 30 * 1000,
     enabled: isOpen,
     retry: false,
@@ -73,21 +74,14 @@ export default function OrgProfileModal({
 
   // Admins list
   const adminsList = useMemo(() => {
-    if (adminsData?.items && Array.isArray(adminsData.items)) {
-      return adminsData.items.map((a) => ({
-        id: a.id,
-        name: a.name || (a.email ? a.email.split('@')[0] : 'Admin User'),
-        email: a.email,
-        isActive: Boolean(a.isActive),
-      }));
-    }
-    // Static fallback list matching mockup if not yet loaded or empty
-    return [
-      { id: 'adm-1', name: 'John Mercy', email: 'john@gmail.com', isActive: false },
-      { id: 'adm-2', name: 'John Mercy', email: 'john@gmail.com', isActive: true },
-      { id: 'adm-3', name: 'John Mercy', email: 'john@gmail.com', isActive: false },
-      { id: 'adm-4', name: 'John Mercy', email: 'john@gmail.com', isActive: true },
-    ];
+    const list = Array.isArray(adminsData) ? adminsData : (adminsData?.items || []);
+    return list.map((a) => ({
+      id: a.membershipId || a.id || a.userId,
+      name: `${a.firstName || ''} ${a.lastName || ''}`.trim() || a.name || (a.email ? a.email.split('@')[0] : 'Admin User'),
+      email: a.email,
+      role: a.role || 'Admin',
+      isActive: Boolean(a.isActive ?? true),
+    }));
   }, [adminsData]);
 
   const totalAdminsCount = adminsData?.totalCount != null ? adminsData.totalCount : adminsList.length;

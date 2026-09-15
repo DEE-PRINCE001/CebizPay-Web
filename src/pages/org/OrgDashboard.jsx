@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import OrgDashboardLayout from '../../components/layout/OrgDashboardLayout.jsx';
 import WalletCard from '../../components/cards/WalletCard.jsx';
 import AnnouncementItem from '../../components/common/AnnouncementItem.jsx';
@@ -11,44 +12,12 @@ import AddMoneyCardModal from '../../components/modals/wallet/AddMoneyCardModal.
 import TransferProcessModal from '../../components/modals/wallet/TransferProcessModal.jsx';
 import TransactionPinModal from '../../components/modals/wallet/TransactionPinModal.jsx';
 import TransactionSuccessModal from '../../components/modals/wallet/TransactionSuccessModal.jsx';
-
-const MOCK_FINANCE_DATA = [
-  { name: 'Jan', value: 110 },
-  { name: 'Feb', value: 130 },
-  { name: 'Mar', value: 195 },
-  { name: 'Apr', value: 180 },
-  { name: 'May', value: 160 },
-  { name: 'Jun', value: 175 },
-  { name: 'Jul', value: 160 },
-  { name: 'Aug', value: 185 },
-  { name: 'Sep', value: 195 },
-  { name: 'Oct', value: 188 },
-  { name: 'Nov', value: 180 },
-  { name: 'Dec', value: 190 },
-];
-
-const MOCK_ANNOUNCEMENTS = [
-  {
-    id: 'ann-1',
-    title: 'Pending User',
-    description: 'many variations of passages of Lorem Ipsum available, but the majority have suffered alteration in some form, by injected humour, or .....',
-    indicatorColor: 'green',
-  },
-  {
-    id: 'ann-2',
-    title: 'Pending User',
-    description: 'many variations of passages of Lorem Ipsum available, but the......',
-    indicatorColor: 'purple',
-  },
-  {
-    id: 'ann-3',
-    title: 'Pending User',
-    description: 'many variations of passages of Lorem Ipsum available, but the......',
-    indicatorColor: 'orange',
-  },
-];
+import { walletService } from '../../api/services/wallet.service.js';
+import { cardsService } from '../../api/services/cards.service.js';
+import { Bell } from 'lucide-react';
 
 export default function OrgDashboard() {
+  const queryClient = useQueryClient();
   const [isAnnouncementsModalOpen, setIsAnnouncementsModalOpen] = useState(false);
   const [isAddMoneyOptionsOpen, setIsAddMoneyOptionsOpen] = useState(false);
   const [isAddMoneyTransferOpen, setIsAddMoneyTransferOpen] = useState(false);
@@ -60,6 +29,96 @@ export default function OrgDashboard() {
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
   const [pendingTransaction, setPendingTransaction] = useState(null);
   const [transactionSuccessData, setTransactionSuccessData] = useState(null);
+  const [isPinSubmitting, setIsPinSubmitting] = useState(false);
+  const [pinErrorMessage, setPinErrorMessage] = useState('');
+
+  // Fetch corporate wallet metrics
+  const {
+    data: walletData,
+    isLoading: isWalletLoading,
+  } = useQuery({
+    queryKey: ['org-wallet-metrics'],
+    queryFn: () => walletService.getOrgWallet(),
+    retry: false,
+    staleTime: 30 * 1000,
+  });
+
+  const formattedBalance = isWalletLoading
+    ? '---'
+    : walletData?.availableBalance != null
+      ? Number(walletData.availableBalance).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+      : '0.00';
+
+  const currencySymbol = walletData?.currencySymbol || '₦';
+
+  const handlePinSubmit = async (enteredPin) => {
+    if (!pendingTransaction) return;
+
+    setIsPinSubmitting(true);
+    setPinErrorMessage('');
+
+    try {
+      if (pendingTransaction.type === 'fund') {
+        const res = await cardsService.chargeSavedCard({
+          savedCardId: pendingTransaction.card?.id,
+          amount: Number(pendingTransaction.amount),
+          currency: 'NGN',
+          transactionPin: enteredPin,
+        });
+
+        setIsPinModalOpen(false);
+        setTransactionSuccessData({
+          ...pendingTransaction,
+          pin: enteredPin,
+          reference: res?.reference || res?.fundingTransactionId || `FND-${Date.now().toString().slice(-6)}`,
+          date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+        });
+        setIsSuccessModalOpen(true);
+        queryClient.invalidateQueries({ queryKey: ['org-wallet-metrics'] });
+      } else if (pendingTransaction.type === 'transfer') {
+        if (pendingTransaction.mode === 'bank') {
+          const res = await walletService.bankTransfer({
+            destinationBankCode: pendingTransaction.selectedBank?.code,
+            destinationAccountNumber: pendingTransaction.identifier,
+            amount: Number(pendingTransaction.amount),
+            currency: 'NGN',
+            transactionPin: enteredPin,
+          });
+
+          setIsPinModalOpen(false);
+          setTransactionSuccessData({
+            ...pendingTransaction,
+            pin: enteredPin,
+            reference: res?.reference || res?.transferId || `TRF-${Date.now().toString().slice(-6)}`,
+            date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+          });
+          setIsSuccessModalOpen(true);
+          queryClient.invalidateQueries({ queryKey: ['org-wallet-metrics'] });
+        } else {
+          const res = await walletService.peerTransfer({
+            recipientIdentifier: pendingTransaction.identifier,
+            amount: Number(pendingTransaction.amount),
+            currency: 'NGN',
+            transactionPin: enteredPin,
+          });
+
+          setIsPinModalOpen(false);
+          setTransactionSuccessData({
+            ...pendingTransaction,
+            pin: enteredPin,
+            reference: res?.reference || res?.transferId || `PWR-${Date.now().toString().slice(-6)}`,
+            date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+          });
+          setIsSuccessModalOpen(true);
+          queryClient.invalidateQueries({ queryKey: ['org-wallet-metrics'] });
+        }
+      }
+    } catch (err) {
+      setPinErrorMessage(err?.message || 'Transaction failed. Please verify your PIN and balance.');
+    } finally {
+      setIsPinSubmitting(false);
+    }
+  };
 
   return (
     <OrgDashboardLayout>
@@ -69,8 +128,8 @@ export default function OrgDashboard() {
           {/* Left Card: Wallet Card with Fund & Transfer buttons */}
           <WalletCard
             title="Wallet"
-            balance="238,000,909"
-            currency="#"
+            balance={formattedBalance}
+            currency={currencySymbol}
             className="h-full"
             actions={
               <div className="flex flex-wrap items-center gap-3">
@@ -107,16 +166,14 @@ export default function OrgDashboard() {
               </button>
             </div>
 
-            <div className="flex flex-col space-y-3.5 divide-y divide-slate-100/60">
-              {MOCK_ANNOUNCEMENTS.map((ann, idx) => (
-                <div key={ann.id} className={idx > 0 ? 'pt-3' : ''}>
-                  <AnnouncementItem
-                    title={ann.title}
-                    description={ann.description}
-                    indicatorColor={ann.indicatorColor}
-                  />
-                </div>
-              ))}
+            <div className="py-8 flex flex-col items-center justify-center text-center space-y-2 text-slate-400">
+              <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-300">
+                <Bell className="w-5 h-5" />
+              </div>
+              <p className="text-xs sm:text-sm font-medium text-slate-600">No Announcements</p>
+              <p className="text-[11px] text-slate-400 max-w-xs">
+                Important platform notices and organization updates will appear here.
+              </p>
             </div>
           </div>
         </div>
@@ -129,10 +186,10 @@ export default function OrgDashboard() {
             </h3>
             <EarningChart
               title="Earning"
-              totalEarnings="3,445"
-              currency="#"
-              growthRate="+3.4%"
-              data={MOCK_FINANCE_DATA}
+              totalEarnings="0.00"
+              currency="₦"
+              growthRate="0%"
+              data={[]}
             />
           </div>
 
@@ -142,10 +199,10 @@ export default function OrgDashboard() {
             </h3>
             <EarningChart
               title="Earning"
-              totalEarnings="3,445"
-              currency="#"
-              growthRate="+3.4%"
-              data={MOCK_FINANCE_DATA}
+              totalEarnings="0.00"
+              currency="₦"
+              growthRate="0%"
+              data={[]}
             />
           </div>
         </div>
@@ -184,6 +241,7 @@ export default function OrgDashboard() {
             type: 'fund',
             ...data,
           });
+          setPinErrorMessage('');
           setIsPinModalOpen(true);
         }}
       />
@@ -208,21 +266,20 @@ export default function OrgDashboard() {
             type: 'transfer',
             ...data,
           });
+          setPinErrorMessage('');
           setIsPinModalOpen(true);
         }}
       />
 
       <TransactionPinModal
         isOpen={isPinModalOpen}
-        onClose={() => setIsPinModalOpen(false)}
-        onSubmit={(enteredPin) => {
+        onClose={() => {
           setIsPinModalOpen(false);
-          setTransactionSuccessData({
-            ...pendingTransaction,
-            pin: enteredPin,
-          });
-          setIsSuccessModalOpen(true);
+          setPinErrorMessage('');
         }}
+        onSubmit={handlePinSubmit}
+        isLoading={isPinSubmitting}
+        errorMessage={pinErrorMessage}
       />
 
       <TransactionSuccessModal

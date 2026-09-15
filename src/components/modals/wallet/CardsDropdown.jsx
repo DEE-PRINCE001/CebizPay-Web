@@ -1,12 +1,20 @@
 import React from 'react';
 import { CreditCard } from 'lucide-react';
-import { MOCK_SAVED_CARDS } from '../../../data/walletMockData.js';
+
 export default function CardsDropdown({
-  cards = MOCK_SAVED_CARDS,
+  cards = [],
   selectedCardId,
   onSelectCard,
   className = '',
 }) {
+  if (!cards || cards.length === 0) {
+    return (
+      <div className={`bg-white rounded-2xl p-4 border border-slate-100/90 shadow-sm text-center text-xs text-slate-500 ${className}`}>
+        No saved cards found.
+      </div>
+    );
+  }
+
   return (
     <div
       className={`bg-white rounded-2xl p-2.5 border border-slate-100/90 shadow-sm space-y-2 ${className}`}

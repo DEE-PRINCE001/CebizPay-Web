@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { Loader2 } from 'lucide-react';
 import WalletBaseModal from './WalletBaseModal.jsx';
-import { MOCK_SECURITY } from '../../../data/walletMockData.js';
 
 export default function TransactionPinModal({
   isOpen,
@@ -135,22 +135,14 @@ export default function TransactionPinModal({
           ))}
         </div>
 
-        <div className="flex flex-col items-center space-y-2 pt-2">
-          <button
-            type="button"
-            onClick={() => {
-              const testPin = MOCK_SECURITY.validPin.split('');
-              setPin(testPin);
-              setTimeout(() => {
-                handleSubmit(MOCK_SECURITY.validPin);
-              }, 150);
-            }}
-            className="text-xs text-primary hover:underline cursor-pointer"
-          >
-            Quick test: auto-fill PIN ({MOCK_SECURITY.validPin})
-          </button>
-        </div>
+        {isLoading && (
+          <div className="flex items-center justify-center space-x-2 text-xs text-primary pt-1">
+            <Loader2 className="w-4 h-4 animate-spin" />
+            <span>Verifying transaction...</span>
+          </div>
+        )}
       </div>
     </WalletBaseModal>
   );
 }
+

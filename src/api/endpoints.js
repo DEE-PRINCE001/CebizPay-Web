@@ -74,6 +74,16 @@ export const ENDPOINTS = {
       PEER_TRANSFER: `${BASE_PREFIX}/wallet/transfer/peer`,
       BANK_TRANSFER: `${BASE_PREFIX}/wallet/transfer/bank`,
       RESOLVE_ACCOUNT: `${BASE_PREFIX}/wallet/transfer/resolve-account`,
+      RESOLVE_WALLET: (walletId) => `${BASE_PREFIX}/wallet/transfer/resolve-wallet/${walletId}`,
+      BANKS: `${BASE_PREFIX}/banks`,
+      PIN: {
+        VERIFY: `${BASE_PREFIX}/wallet/pin/verify`,
+        SETUP: `${BASE_PREFIX}/wallet/pin/setup`,
+        CHANGE: `${BASE_PREFIX}/wallet/pin/change`,
+      },
+      ORG_WALLET: `${BASE_PREFIX}/org/wallet`,
+      ORG_TRANSACTIONS: `${BASE_PREFIX}/org/wallet/transactions`,
+      ORG_VIRTUAL_ACCOUNTS: `${BASE_PREFIX}/org/wallet/virtual-accounts`,
       EXTERNAL_ACCOUNTS: `${BASE_PREFIX}/wallet/external-accounts`,
       EXTERNAL_ACCOUNT_BY_ID: (id) => `${BASE_PREFIX}/wallet/external-accounts/${id}`,
       PROVISION_MONNIFY: `${BASE_PREFIX}/wallet/external-accounts/monnify`,
@@ -90,6 +100,7 @@ export const ENDPOINTS = {
       DELETE: (id) => `${BASE_PREFIX}/saved-cards/${id}`,
       SET_DEFAULT: (id) => `${BASE_PREFIX}/saved-cards/${id}/default`,
       CHARGE: `${BASE_PREFIX}/saved-cards/charge`,
+      CHARGE_SAVED: `${BASE_PREFIX}/funding/card/charge-saved`,
       FUNDING: {
         INITIALIZE: `${BASE_PREFIX}/card-funding/initialize`,
         VERIFY: `${BASE_PREFIX}/card-funding/verify`,
@@ -158,6 +169,7 @@ export const ENDPOINTS = {
         UPDATE: (id) => `${BASE_PREFIX}/org/levels/${id}`,
         DELETE: (id) => `${BASE_PREFIX}/org/levels/${id}`,
       },
+      ADMINS: `${BASE_PREFIX}/org/admins`,
       STAFF: {
         LIST: `${BASE_PREFIX}/org/staff`,
         GET_BY_ID: (id) => `${BASE_PREFIX}/org/staff/${id}`,
@@ -169,6 +181,8 @@ export const ENDPOINTS = {
         SUSPEND: (id) => `${BASE_PREFIX}/org/staff/${id}/suspend`,
         REACTIVATE: (id) => `${BASE_PREFIX}/org/staff/${id}/reactivate`,
         TERMINATE: (id) => `${BASE_PREFIX}/org/staff/${id}/terminate`,
+        SALARIES: (id) => `${BASE_PREFIX}/org/staff/${id}/salaries`,
+        SAVINGS: (id) => `${BASE_PREFIX}/org/staff/${id}/savings`,
       },
       PAYROLL: {
         PREVIEW: `${BASE_PREFIX}/org/payroll/preview`,

@@ -1,5 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import OrgDashboardLayout from '../../components/layout/OrgDashboardLayout.jsx';
 import SearchInput from '../../components/forms/SearchInput.jsx';
 import Button from '../../components/common/Button.jsx';
@@ -7,81 +8,9 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '.
 import Pagination from '../../components/common/Pagination.jsx';
 import FilterDropdown from '../../components/forms/FilterDropdown.jsx';
 import StatusBadge from '../../components/common/StatusBadge.jsx';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, Loader2, AlertCircle } from 'lucide-react';
 import defaultAvatar from '../../assets/Ellipse 3018.svg';
-
-const INITIAL_MEMBERS = [
-  {
-    id: 'mem-1',
-    name: 'Cebis Tech',
-    department: 'Team Lead',
-    position: 'IT Designer',
-    level: 'Level 2',
-    email: 'eamda@gmail.com',
-    status: 'Active',
-    avatarUrl: null,
-  },
-  {
-    id: 'mem-2',
-    name: 'Cebis Tech',
-    department: 'Team Lead',
-    position: 'IT Designer',
-    level: 'Level 2',
-    email: 'eamda@gmail.com',
-    status: 'Suspended',
-    avatarUrl: null,
-  },
-  {
-    id: 'mem-3',
-    name: 'Cebis Tech',
-    department: 'Team Lead',
-    position: 'IT Designer',
-    level: 'Level 2',
-    email: 'eamda@gmail.com',
-    status: 'Active',
-    avatarUrl: null,
-  },
-  {
-    id: 'mem-4',
-    name: 'Cebis Tech',
-    department: 'Team Lead',
-    position: 'IT Designer',
-    level: 'Level 2',
-    email: 'eamda@gmail.com',
-    status: 'Active',
-    avatarUrl: null,
-  },
-  {
-    id: 'mem-5',
-    name: 'Cebis Tech',
-    department: 'Team Lead',
-    position: 'IT Designer',
-    level: 'Level 2',
-    email: 'eamda@gmail.com',
-    status: 'Active',
-    avatarUrl: null,
-  },
-  {
-    id: 'mem-6',
-    name: 'Cebis Tech',
-    department: 'Team Lead',
-    position: 'IT Designer',
-    level: 'Level 2',
-    email: 'eamda@gmail.com',
-    status: 'Active',
-    avatarUrl: null,
-  },
-  {
-    id: 'mem-7',
-    name: 'Cebis Tech',
-    department: 'Team Lead',
-    position: 'IT Designer',
-    level: 'Level 2',
-    email: 'eamda@gmail.com',
-    status: 'Active',
-    avatarUrl: null,
-  },
-];
+import { organizationService } from '../../api/services/organization.service.js';
 
 export default function Members() {
   const navigate = useNavigate();
@@ -90,33 +19,51 @@ export default function Members() {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
 
-  const filteredMembers = useMemo(() => {
-    return INITIAL_MEMBERS.filter((member) => {
-      const matchesSearch =
-        !searchQuery.trim() ||
-        member.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        member.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        member.department.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        member.position.toLowerCase().includes(searchQuery.toLowerCase());
+  const {
+    data: staffData,
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: ['org-staff-roster', currentPage, searchQuery, selectedStatus],
+    queryFn: () =>
+      organizationService.staff.list({
+        pageNumber: currentPage,
+        pageSize: 10,
+        search: searchQuery.trim(),
+        status: selectedStatus,
+      }),
+    staleTime: 30 * 1000,
+  });
 
-      const matchesStatus =
-        !selectedStatus || member.status.toLowerCase() === selectedStatus.toLowerCase();
+  const rawItems = staffData?.items || (Array.isArray(staffData) ? staffData : []);
 
-      return matchesSearch && matchesStatus;
-    });
-  }, [searchQuery, selectedStatus]);
+  const membersList = rawItems.map((m) => ({
+    id: m.membershipId || m.id,
+    membershipId: m.membershipId || m.id,
+    userId: m.userId,
+    name: `${m.firstName || ''} ${m.lastName || ''}`.trim() || m.email || 'Staff Member',
+    department: m.departmentName || '-',
+    position: m.roleTitle || m.role || 'Staff',
+    level: m.salaryLevelName || '-',
+    email: m.email,
+    status: m.status || 'Active',
+    avatarUrl: m.avatarUrl || null,
+    raw: m,
+  }));
 
-  const totalCount = 45;
-  const totalPages = 130;
+  const totalCount = staffData?.totalCount != null ? staffData.totalCount : membersList.length;
+  const totalPages = staffData?.totalPages != null ? Math.max(1, staffData.totalPages) : 1;
 
   const handleView = (member) => {
     navigate(`/org/members/${member.id}`, { state: { member } });
   };
 
   const handleExport = () => {
-    if (!filteredMembers || filteredMembers.length === 0) return;
+    if (!membersList || membersList.length === 0) return;
     const headers = ['Name', 'Department', 'Position', 'Level', 'Email Address', 'Status'];
-    const rows = filteredMembers.map((m) => [
+    const rows = membersList.map((m) => [
       `"${m.name}"`,
       `"${m.department}"`,
       `"${m.position}"`,
@@ -124,16 +71,14 @@ export default function Members() {
       `"${m.email}"`,
       `"${m.status}"`,
     ]);
-    const csvContent = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
+    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
-    link.href = url;
-    link.download = `staff_members_${Date.now()}.csv`;
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `staff_roster_${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    URL.revokeObjectURL(url);
   };
 
   return (
@@ -221,8 +166,35 @@ export default function Members() {
               </TableHeader>
 
               <TableBody>
-                {filteredMembers.length > 0 ? (
-                  filteredMembers.map((member) => (
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-12 text-slate-400">
+                      <div className="flex items-center justify-center space-x-2">
+                        <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                        <span>Loading staff roster...</span>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : isError ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-12 text-slate-500">
+                      <div className="flex flex-col items-center justify-center space-y-2">
+                        <AlertCircle className="w-5 h-5 text-red-500" />
+                        <span className="text-xs text-red-600 font-medium">
+                          {error?.message || 'Failed to load staff members.'}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => refetch()}
+                          className="text-xs font-semibold text-primary hover:underline cursor-pointer"
+                        >
+                          Retry
+                        </button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : membersList.length > 0 ? (
+                  membersList.map((member) => (
                     <TableRow key={member.id}>
                       {/* Name with circular avatar */}
                       <TableCell>

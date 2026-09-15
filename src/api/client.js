@@ -92,10 +92,17 @@ apiClient.interceptors.request.use(
   (error) => Promise.reject(normalizeApiError(error))
 );
 
-// Response Interceptor: Silent Token Refresh & ProblemDetails normalization
+export const unwrapData = (payload) => {
+  if (payload && typeof payload === 'object' && payload.success === true && 'data' in payload) {
+    return payload.data;
+  }
+  return payload;
+};
+
+// Response Interceptor: Silent Token Refresh & Normalization
 apiClient.interceptors.response.use(
   (response) => {
-    return response.data;
+    return unwrapData(response.data);
   },
   async (error) => {
     const originalRequest = error.config;

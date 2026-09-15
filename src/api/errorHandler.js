@@ -78,8 +78,11 @@ export function normalizeApiError(error) {
     }
   }
 
+  const code = data?.code || null;
+
   return {
     message,
+    code,
     status,
     title,
     detail,
