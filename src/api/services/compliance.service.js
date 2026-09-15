@@ -19,15 +19,15 @@ export const complianceService = {
 
   // Organization KYB
   registerKybStep1: async (payload) => {
-    return apiClient.post(ENDPOINTS.ORGANIZATION_KYB.REGISTER_STEP1, payload);
+    return apiClient.post(ENDPOINTS.COMPLIANCE.ORGANIZATION_KYB.REGISTER_STEP1, payload);
   },
 
   registerKybStep2: async (payload) => {
-    return apiClient.post(ENDPOINTS.ORGANIZATION_KYB.REGISTER_STEP2, payload);
+    return apiClient.post(ENDPOINTS.COMPLIANCE.ORGANIZATION_KYB.REGISTER_STEP2, payload);
   },
 
   updateOrgStatus: async (orgId, payload) => {
-    return apiClient.patch(ENDPOINTS.ORGANIZATION_KYB.UPDATE_STATUS(orgId), payload);
+    return apiClient.patch(ENDPOINTS.COMPLIANCE.ORGANIZATION_KYB.UPDATE_STATUS(orgId), payload);
   },
 
   // Direct Identity & Background Verification
