@@ -30,7 +30,7 @@ const RegisterBusiness2 = () => {
   const step2Mutation = useMutation({
     mutationFn: (payload) => complianceService.registerKybStep2(payload),
     onSuccess: () => {
-      navigate('/dashboard', { replace: true });
+      navigate('/org/dashboard', { replace: true });
     },
     onError: (err) => {
       setGeneralError(err.message || 'Registration step 2 failed. Please verify the submitted documents.');

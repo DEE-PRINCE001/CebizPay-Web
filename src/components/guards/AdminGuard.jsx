@@ -1,15 +1,13 @@
 import React from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth.js';
+import LoadingScreen from '../common/LoadingScreen.jsx';
 
-/**
- * Route guard strictly ensuring only Platform Admins and Compliance Officers can access.
- */
-export const AdminGuard = ({ children, fallbackPath = '/dashboard' }) => {
+export const AdminGuard = ({ children, fallbackPath = '/unauthorized' }) => {
   const { isAdmin, isLoading } = useAuth();
 
   if (isLoading) {
-    return null;
+    return <LoadingScreen message="Checking admin privileges..." />;
   }
 
   if (!isAdmin) {

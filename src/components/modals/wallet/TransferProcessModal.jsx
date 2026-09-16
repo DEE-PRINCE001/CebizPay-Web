@@ -69,6 +69,7 @@ export default function TransferProcessModal({
       setIsResolving(true);
       setError('');
       try {
+        console.log('Resolving bank account:', selectedBank.code, clean);
         const res = await walletService.resolveAccount({
           bankCode: selectedBank.code,
           accountNumber: clean,
@@ -93,6 +94,7 @@ export default function TransferProcessModal({
       setIsResolving(true);
       setError('');
       try {
+        console.log('Resolving wallet:', clean);
         const res = await walletService.resolveWallet(clean);
         const holderName = res?.holderName || res?.name || res?.fullName || res?.email || 'Verified User';
         setBeneficiary({

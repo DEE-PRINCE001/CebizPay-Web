@@ -1,15 +1,13 @@
 import React from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth.js';
+import LoadingScreen from '../common/LoadingScreen.jsx';
 
-/**
- * Route guard that requires a minimum KYC verification status.
- */
-export const KycGuard = ({ children, fallbackPath = '/kyc/verify' }) => {
+export const KycGuard = ({ children, fallbackPath = '/unauthorized' }) => {
   const { user, isLoading } = useAuth();
 
   if (isLoading) {
-    return null;
+    return <LoadingScreen message="Checking verification status..." />;
   }
 
   const isVerified =

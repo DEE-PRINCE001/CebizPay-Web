@@ -1,15 +1,13 @@
 import React from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth.js';
+import LoadingScreen from '../common/LoadingScreen.jsx';
 
-/**
- * Route guard that requires one or more specific roles.
- */
 export const RoleGuard = ({ roles = [], children, fallbackPath = '/unauthorized' }) => {
   const { hasRole, isLoading } = useAuth();
 
   if (isLoading) {
-    return null;
+    return <LoadingScreen message="Verifying permissions..." />;
   }
 
   if (!hasRole(roles)) {

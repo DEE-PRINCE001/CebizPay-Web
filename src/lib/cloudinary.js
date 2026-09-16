@@ -5,8 +5,8 @@
 export async function uploadToCloudinary(file, options = {}) {
   if (!file) throw new Error('No file provided for upload.');
 
-  const cloudName = options.cloudName || import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || 'cebizpay';
-  const uploadPreset = options.uploadPreset || import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || 'cebizpay_preset';
+  const cloudName = options.cloudName || import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || "ax0sfpfo";
+  const uploadPreset = options.uploadPreset || import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || "CEBIZPAY";
 
   const formData = new FormData();
   formData.append('file', file);
@@ -26,6 +26,7 @@ export async function uploadToCloudinary(file, options = {}) {
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
+    console.log()
     throw new Error(errorData.error?.message || `Cloudinary upload failed with status ${response.status}`);
   }
 
