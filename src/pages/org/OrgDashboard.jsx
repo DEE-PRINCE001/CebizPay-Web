@@ -1,9 +1,10 @@
-import React, { useState, useMemo } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import React, { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import OrgDashboardLayout from '../../components/layout/OrgDashboardLayout.jsx';
 import WalletCard from '../../components/cards/WalletCard.jsx';
 import EarningChart from '../../components/common/EarningChart.jsx';
 import AnnouncementsModal from '../../components/modals/AnnouncementsModal.jsx';
+import CreateTenantAnnouncementModal from '../../components/modals/CreateTenantAnnouncementModal.jsx';
 import AddMoneyOptionsModal from '../../components/modals/wallet/AddMoneyOptionsModal.jsx';
 import TransferOptionsModal from '../../components/modals/wallet/TransferOptionsModal.jsx';
 import AddMoneyTransferModal from '../../components/modals/wallet/AddMoneyTransferModal.jsx';
@@ -19,6 +20,7 @@ import { Bell, Loader2 } from 'lucide-react';
 export default function OrgDashboard() {
   const queryClient = useQueryClient();
   const [isAnnouncementsModalOpen, setIsAnnouncementsModalOpen] = useState(false);
+  const [isCreateAnnouncementOpen, setIsCreateAnnouncementOpen] = useState(false);
   const [isAddMoneyOptionsOpen, setIsAddMoneyOptionsOpen] = useState(false);
   const [isAddMoneyTransferOpen, setIsAddMoneyTransferOpen] = useState(false);
   const [isAddMoneyCardOpen, setIsAddMoneyCardOpen] = useState(false);
@@ -51,33 +53,31 @@ export default function OrgDashboard() {
 
   const currencySymbol = walletData?.currencySymbol || '₦';
 
-  // Fetch Workplace and Platform Announcements
-  const { data: workplaceAnnouncements, isLoading: isWorkplaceAnnLoading } = useQuery({
+  // Fetch Workplace Announcements only (matching reference design)
+  const { data: workplaceAnnouncements, isLoading: isAnnouncementsLoading } = useQuery({
     queryKey: ['workplace-announcements'],
     queryFn: () => userService.getWorkplaceAnnouncements({ pageSize: 10 }),
     staleTime: 30 * 1000,
     retry: false,
   });
 
-  const { data: platformAnnouncements, isLoading: isPlatformAnnLoading } = useQuery({
-    queryKey: ['platform-announcements'],
-    queryFn: () => userService.getPlatformAnnouncements({ pageSize: 10 }),
-    staleTime: 30 * 1000,
-    retry: false,
+  const recentAnnouncements = workplaceAnnouncements?.items || [];
+
+  // Create Announcement Mutation
+  const announcementMutation = useMutation({
+    mutationFn: (payload) =>
+      userService.createAnnouncement({
+        title: payload.title,
+        description: payload.description,
+        bannerUrl: payload.bannerUrl || null,
+        scope: 2, // 2 = Workplace
+        publishImmediately: true,
+      }),
+    onSuccess: () => {
+      setIsCreateAnnouncementOpen(false);
+      queryClient.invalidateQueries({ queryKey: ['workplace-announcements'] });
+    },
   });
-
-  const allRecentAnnouncements = useMemo(() => {
-    const wp = (workplaceAnnouncements?.items || []).map((item) => ({ ...item, _source: 'workplace' }));
-    const pf = (platformAnnouncements?.items || []).map((item) => ({ ...item, _source: 'platform' }));
-    return [...wp, ...pf].sort((a, b) => {
-      const dateA = new Date(a.publishedAtUtc || a.createdAtUtc || 0).getTime();
-      const dateB = new Date(b.publishedAtUtc || b.createdAtUtc || 0).getTime();
-      return dateB - dateA;
-    });
-  }, [workplaceAnnouncements, platformAnnouncements]);
-
-  const latestAnnouncement = allRecentAnnouncements[0] || null;
-  const isAnnouncementLoading = isWorkplaceAnnLoading || isPlatformAnnLoading;
 
   const handlePinSubmit = async (enteredPin) => {
     if (!pendingTransaction) return;
@@ -194,43 +194,35 @@ export default function OrgDashboard() {
               </button>
             </div>
 
-            {isAnnouncementLoading ? (
+            {isAnnouncementsLoading ? (
               <div className="py-8 flex flex-col items-center justify-center space-y-2 text-slate-400">
                 <Loader2 className="w-5 h-5 animate-spin text-primary" />
                 <span className="text-xs">Loading announcements...</span>
               </div>
-            ) : latestAnnouncement ? (
-              <div className="flex flex-col justify-between flex-1 py-1 space-y-2.5">
-                <div className="space-y-1.5">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span
-                      className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                        latestAnnouncement.scope === 1 || latestAnnouncement._source === 'platform'
-                          ? 'bg-blue-50 text-primary border border-primary/20'
-                          : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                      }`}
+            ) : recentAnnouncements.length > 0 ? (
+              <div className="space-y-4 py-1">
+                {recentAnnouncements.slice(0, 3).map((item, idx) => {
+                  const borderColors = [
+                    'border-l-emerald-500',
+                    'border-l-pink-500',
+                    'border-l-amber-500',
+                  ];
+                  const barColor = borderColors[idx % borderColors.length];
+
+                  return (
+                    <div
+                      key={item.id || idx}
+                      className={`border-l-2 ${barColor} pl-3 py-0.5 space-y-0.5`}
                     >
-                      {latestAnnouncement.scope === 1 || latestAnnouncement._source === 'platform'
-                        ? 'Platform'
-                        : 'Workplace'}
-                    </span>
-                    <span className="text-[11px] text-slate-400">
-                      {new Date(
-                        latestAnnouncement.publishedAtUtc || latestAnnouncement.createdAtUtc
-                      ).toLocaleDateString('en-US', {
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric',
-                      })}
-                    </span>
-                  </div>
-                  <h3 className="text-sm sm:text-base font-bold text-primary-text line-clamp-1">
-                    {latestAnnouncement.title}
-                  </h3>
-                </div>
-                <p className="text-xs text-slate-600 line-clamp-3 leading-relaxed">
-                  {latestAnnouncement.description || latestAnnouncement.content}
-                </p>
+                      <h3 className="text-sm sm:text-base font-bold text-primary-text line-clamp-1 leading-snug">
+                        {item.title}
+                      </h3>
+                      <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">
+                        {item.description || item.content}
+                      </p>
+                    </div>
+                  );
+                })}
               </div>
             ) : (
               <div className="py-8 flex flex-col items-center justify-center text-center space-y-2 text-slate-400">
@@ -239,7 +231,7 @@ export default function OrgDashboard() {
                 </div>
                 <p className="text-xs sm:text-sm font-medium text-slate-600">No Announcements</p>
                 <p className="text-[11px] text-slate-400 max-w-xs">
-                  Important platform notices and organization updates will appear here.
+                  Workplace updates and company notices will appear here.
                 </p>
               </div>
             )}
@@ -276,10 +268,22 @@ export default function OrgDashboard() {
         </div>
       </div>
 
-      {/* Announcements Modal */}
+      {/* Announcements Modal matching AnnouncementModal.png */}
       <AnnouncementsModal
         isOpen={isAnnouncementsModalOpen}
         onClose={() => setIsAnnouncementsModalOpen(false)}
+        onAddAnnouncement={() => {
+          setIsAnnouncementsModalOpen(false);
+          setIsCreateAnnouncementOpen(true);
+        }}
+      />
+
+      {/* Create Announcement Modal */}
+      <CreateTenantAnnouncementModal
+        isOpen={isCreateAnnouncementOpen}
+        onClose={() => setIsCreateAnnouncementOpen(false)}
+        onSubmit={(payload) => announcementMutation.mutate(payload)}
+        isLoading={announcementMutation.isPending}
       />
 
       <AddMoneyOptionsModal

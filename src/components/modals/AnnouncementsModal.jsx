@@ -1,21 +1,27 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { X, Bell, Loader2 } from 'lucide-react';
-import Button from '../common/Button.jsx';
+import React, { useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { X, Loader2 } from 'lucide-react';
 import { userService } from '../../api/services/user.service.js';
+
+function formatAnnouncementDate(dateString) {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return dateString;
+  const day = date.getDate();
+  const suffix = ['th', 'st', 'nd', 'rd'][
+    day % 10 > 3 || Math.floor((day % 100) / 10) === 1 ? 0 : day % 10
+  ];
+  const month = date.toLocaleDateString('en-US', { month: 'short' });
+  const year = date.getFullYear();
+  return `${day}${suffix} ${month}, ${year}`;
+}
 
 export default function AnnouncementsModal({
   isOpen,
   onClose,
-  scope = 'all',
+  onAddAnnouncement,
 }) {
-  const [activeTab, setActiveTab] = useState(scope);
-
-  useEffect(() => {
-    if (isOpen) {
-      setActiveTab(scope || 'all');
-    }
-  }, [isOpen, scope]);
+  const queryClient = useQueryClient();
 
   // Handle ESC key and lock body scroll
   useEffect(() => {
@@ -34,12 +40,12 @@ export default function AnnouncementsModal({
     };
   }, [isOpen, onClose]);
 
-  // 1. Fetch Workplace Announcements
+  // Fetch Workplace Announcements only (matching reference design)
   const {
     data: workplaceData,
-    isLoading: isWorkplaceLoading,
-    isError: isWorkplaceError,
-    error: workplaceError,
+    isLoading,
+    isError,
+    error,
   } = useQuery({
     queryKey: ['workplace-announcements'],
     queryFn: () => userService.getWorkplaceAnnouncements({ pageSize: 50 }),
@@ -48,55 +54,20 @@ export default function AnnouncementsModal({
     retry: false,
   });
 
-  // 2. Fetch Platform Announcements
-  const {
-    data: platformData,
-    isLoading: isPlatformLoading,
-    isError: isPlatformError,
-    error: platformError,
-  } = useQuery({
-    queryKey: ['platform-announcements'],
-    queryFn: () => userService.getPlatformAnnouncements({ pageSize: 50 }),
-    enabled: isOpen,
-    staleTime: 30 * 1000,
-    retry: false,
+  // Delete Announcement Mutation
+  const deleteMutation = useMutation({
+    mutationFn: (id) => userService.deleteAnnouncement(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['workplace-announcements'] });
+    },
+    onError: (err) => {
+      console.error('Failed to delete announcement:', err);
+    },
   });
-
-  const workplaceItems = useMemo(
-    () => (workplaceData?.items || []).map((item) => ({ ...item, _source: 'workplace' })),
-    [workplaceData]
-  );
-
-  const platformItems = useMemo(
-    () => (platformData?.items || []).map((item) => ({ ...item, _source: 'platform' })),
-    [platformData]
-  );
-
-  const allItems = useMemo(() => {
-    return [...workplaceItems, ...platformItems].sort((a, b) => {
-      const dateA = new Date(a.publishedAtUtc || a.createdAtUtc || 0).getTime();
-      const dateB = new Date(b.publishedAtUtc || b.createdAtUtc || 0).getTime();
-      return dateB - dateA;
-    });
-  }, [workplaceItems, platformItems]);
 
   if (!isOpen) return null;
 
-  const currentItems =
-    activeTab === 'workplace'
-      ? workplaceItems
-      : activeTab === 'platform'
-        ? platformItems
-        : allItems;
-
-  const isLoading = isWorkplaceLoading || isPlatformLoading;
-  const isError =
-    activeTab === 'workplace'
-      ? isWorkplaceError
-      : activeTab === 'platform'
-        ? isPlatformError
-        : isWorkplaceError && isPlatformError;
-  const activeError = workplaceError || platformError;
+  const items = workplaceData?.items || [];
 
   return (
     <div
@@ -109,143 +80,84 @@ export default function AnnouncementsModal({
         className="bg-white w-full max-w-lg rounded-2xl sm:rounded-3xl p-6 sm:p-8 shadow-2xl border border-slate-100 relative animate-in fade-in zoom-in-95 duration-200 max-h-[85vh] flex flex-col overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
+        {/* Header matching AnnouncementModal.png */}
         <div className="flex items-center justify-between pb-4 border-b border-slate-100 shrink-0">
-          <div className="flex items-center space-x-2.5">
-            <div className="p-2 rounded-xl bg-primary/10 text-primary">
-              <Bell className="w-5 h-5" />
-            </div>
-            <div>
-              <h2 className="text-lg sm:text-xl font-bold text-primary-text">
-                Announcements
-              </h2>
-              <p className="text-xs text-slate-400">
-                {currentItems.length} {currentItems.length === 1 ? 'announcement' : 'announcements'}
-              </p>
-            </div>
-          </div>
+          <h2 className="text-xl sm:text-2xl font-bold text-[#0A1931] tracking-tight">
+            Announcements
+          </h2>
 
           <button
             type="button"
             onClick={onClose}
-            className="p-1 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+            className="p-1 rounded-full text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
             aria-label="Close"
           >
-            <X className="w-5 h-5" />
+            <X size={20} />
           </button>
         </div>
 
-        {/* Interactive Filter Tabs */}
-        <div className="flex items-center gap-2 py-3 border-b border-slate-100 shrink-0">
-          <button
-            type="button"
-            onClick={() => setActiveTab('all')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer select-none ${
-              activeTab === 'all'
-                ? 'bg-primary text-white shadow-xs'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200/70'
-            }`}
-          >
-            All ({allItems.length})
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('workplace')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer select-none ${
-              activeTab === 'workplace'
-                ? 'bg-primary text-white shadow-xs'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200/70'
-            }`}
-          >
-            Workplace ({workplaceItems.length})
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('platform')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer select-none ${
-              activeTab === 'platform'
-                ? 'bg-primary text-white shadow-xs'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200/70'
-            }`}
-          >
-            Platform ({platformItems.length})
-          </button>
-        </div>
-
-        {/* Content List */}
-        <div className="flex-1 overflow-y-auto py-4 space-y-4 divide-y divide-slate-100 pr-1">
+        {/* Content List matching AnnouncementModal.png card layout */}
+        <div className="flex-1 overflow-y-auto py-4 space-y-4 pr-1">
           {isLoading ? (
             <div className="py-12 flex flex-col items-center justify-center space-y-2 text-slate-400">
               <Loader2 className="w-6 h-6 animate-spin text-primary" />
               <span className="text-xs">Loading announcements...</span>
             </div>
-          ) : isError && currentItems.length === 0 ? (
+          ) : isError ? (
             <div className="py-12 text-center text-xs text-rejected">
-              {activeError?.message || 'Failed to load announcements.'}
+              {error?.message || 'Failed to load announcements.'}
             </div>
-          ) : currentItems.length > 0 ? (
-            currentItems.map((item) => {
-              const isPlatform = item.scope === 1 || item._source === 'platform';
-              const formattedDate = item.publishedAtUtc || item.createdAtUtc
-                ? new Date(item.publishedAtUtc || item.createdAtUtc).toLocaleDateString('en-US', {
-                    month: 'short',
-                    day: 'numeric',
-                    year: 'numeric',
-                  })
-                : null;
+          ) : items.length > 0 ? (
+            items.map((item) => (
+              <div
+                key={item.id}
+                className="bg-white rounded-2xl border border-slate-200/90 p-4 sm:p-5 space-y-2.5 shadow-xs"
+              >
+                <h3 className="text-sm sm:text-base font-bold text-[#0A1931]">
+                  {item.title}
+                </h3>
 
-              return (
-                <div key={item.id} className="pt-4 first:pt-0">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span
-                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                            isPlatform
-                              ? 'bg-blue-50 text-primary border border-primary/20'
-                              : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                          }`}
-                        >
-                          {isPlatform ? 'Platform' : 'Workplace'}
-                        </span>
-                        <h3 className="font-semibold text-primary-text text-sm sm:text-base">
-                          {item.title}
-                        </h3>
-                      </div>
-                    </div>
-                    {formattedDate && (
-                      <span className="text-[11px] text-slate-400 whitespace-nowrap shrink-0 mt-0.5">
-                        {formattedDate}
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-xs sm:text-sm text-slate-600 mt-2 leading-relaxed whitespace-pre-line">
-                    {item.description || item.content}
-                  </p>
+                <p className="text-xs sm:text-sm text-slate-500 leading-relaxed whitespace-pre-line">
+                  {item.description || item.content}
+                </p>
+
+                <div className="flex items-center justify-between pt-1">
+                  <span className="text-xs sm:text-sm font-bold text-[#0A1931]">
+                    {formatAnnouncementDate(item.publishedAtUtc || item.createdAtUtc)}
+                  </span>
+
+                  <button
+                    type="button"
+                    onClick={() => deleteMutation.mutate(item.id)}
+                    disabled={deleteMutation.isPending && deleteMutation.variables === item.id}
+                    className="px-4 py-1.5 rounded-lg text-xs font-medium text-red-400 bg-red-50 hover:bg-red-100 hover:text-red-500 transition-colors cursor-pointer disabled:opacity-50"
+                  >
+                    {deleteMutation.isPending && deleteMutation.variables === item.id
+                      ? 'Deleting...'
+                      : 'Delete'}
+                  </button>
                 </div>
-              );
-            })
+              </div>
+            ))
           ) : (
             <div className="py-12 text-center text-slate-400 text-sm">
-              {activeTab === 'workplace'
-                ? 'No workplace announcements published yet.'
-                : activeTab === 'platform'
-                  ? 'No platform announcements published yet.'
-                  : 'No announcements published yet.'}
+              No announcements published yet.
             </div>
           )}
         </div>
 
-        {/* Footer */}
-        <div className="pt-4 border-t border-slate-100 flex justify-end shrink-0">
-          <Button
-            variant="outline"
-            size="md"
-            onClick={onClose}
-            className="w-auto px-6 py-2 text-xs sm:text-sm cursor-pointer"
+        {/* Modal Bottom matching AnnouncementModal.png: Add Annoucement link */}
+        <div className="pt-3 border-t border-slate-100 flex justify-end shrink-0">
+          <button
+            type="button"
+            onClick={() => {
+              onClose?.();
+              onAddAnnouncement?.();
+            }}
+            className="text-primary text-xs sm:text-sm font-medium underline hover:text-primary/80 transition-colors cursor-pointer"
           >
-            Close
-          </Button>
+            Add Annoucement
+          </button>
         </div>
       </div>
     </div>

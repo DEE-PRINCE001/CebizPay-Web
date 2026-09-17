@@ -381,7 +381,10 @@ export default function OrgSettings() {
       <AnnouncementsModal
         isOpen={isAnnouncementsListOpen}
         onClose={() => setIsAnnouncementsListOpen(false)}
-        scope="workplace"
+        onAddAnnouncement={() => {
+          setIsAnnouncementsListOpen(false);
+          setIsAnnouncementOpen(true);
+        }}
       />
 
       <AddMoneyCardModal
