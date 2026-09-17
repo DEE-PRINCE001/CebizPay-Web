@@ -4,6 +4,12 @@ import Input from '../forms/Input.jsx';
 import Button from '../common/Button.jsx';
 import FormError from '../forms/FormError.jsx';
 
+const REPAYMENT_FREQUENCY_OPTIONS = [
+  { value: 'Monthly', label: 'Monthly' },
+  { value: 'Weekly', label: 'Weekly' },
+  { value: 'Bi-weekly', label: 'Bi-weekly' },
+];
+
 export default function CreateLoanPlanModal({
   isOpen,
   onClose,
@@ -16,6 +22,7 @@ export default function CreateLoanPlanModal({
     amount: '',
     interestRate: '',
     eligibility: '',
+    repaymentFrequency: 'Monthly',
   });
 
   const [errors, setErrors] = useState({});
@@ -29,6 +36,7 @@ export default function CreateLoanPlanModal({
         amount: '',
         interestRate: '',
         eligibility: '',
+        repaymentFrequency: 'Monthly',
       });
       setErrors({});
       setGeneralError('');
@@ -183,6 +191,15 @@ export default function CreateLoanPlanModal({
             placeholder="10%"
             disabled={isLoading}
             required
+          />
+
+          <Input
+            label="Repayment Frequency"
+            name="repaymentFrequency"
+            options={REPAYMENT_FREQUENCY_OPTIONS}
+            value={formData.repaymentFrequency}
+            onChange={handleChange}
+            disabled={isLoading}
           />
 
           <Input

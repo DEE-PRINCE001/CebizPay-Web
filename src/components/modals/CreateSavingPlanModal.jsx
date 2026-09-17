@@ -16,7 +16,6 @@ const FREQUENCY_OPTIONS = [
   { value: 'Daily', label: 'Daily' },
   { value: 'Weekly', label: 'Weekly' },
   { value: 'Monthly', label: 'Monthly' },
-  { value: 'Yearly', label: 'Yearly' },
 ];
 
 export default function CreateSavingPlanModal({
@@ -106,6 +105,9 @@ export default function CreateSavingPlanModal({
     if (!formData.amount.trim()) newErrors.amount = 'Amount is required.';
     if (!formData.startDate.trim()) newErrors.startDate = 'Start date is required.';
     if (!formData.endDate.trim()) newErrors.endDate = 'End date is required.';
+    if (formData.startDate && formData.endDate && new Date(formData.endDate) <= new Date(formData.startDate)) {
+      newErrors.endDate = 'End date must be after start date.';
+    }
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -190,27 +192,31 @@ export default function CreateSavingPlanModal({
             required
           />
 
-          <Input
-            label="Start Date"
-            name="startDate"
-            value={formData.startDate}
-            onChange={handleChange}
-            error={errors.startDate}
-            placeholder="22 Dec"
-            disabled={isLoading}
-            required
-          />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Input
+              label="Start Date"
+              name="startDate"
+              type="date"
+              min={new Date().toISOString().split('T')[0]}
+              value={formData.startDate}
+              onChange={handleChange}
+              error={errors.startDate}
+              disabled={isLoading}
+              required
+            />
 
-          <Input
-            label="End Date"
-            name="endDate"
-            value={formData.endDate}
-            onChange={handleChange}
-            error={errors.endDate}
-            placeholder="22 Mar"
-            disabled={isLoading}
-            required
-          />
+            <Input
+              label="End Date"
+              name="endDate"
+              type="date"
+              min={formData.startDate || new Date().toISOString().split('T')[0]}
+              value={formData.endDate}
+              onChange={handleChange}
+              error={errors.endDate}
+              disabled={isLoading}
+              required
+            />
+          </div>
 
           <Input
             label="Savings Frequency"

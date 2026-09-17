@@ -54,21 +54,38 @@ export default function OrgSettings() {
 
   // 1. Create Job Offer Mutation
   const jobOfferMutation = useMutation({
-    mutationFn: (payload) =>
-      recruitmentService.org.createJob({
+    mutationFn: (payload) => {
+      const EMPLOYMENT_TYPE_MAP = {
+        'Full-time': 0,
+        'FullTime': 0,
+        'Part-time': 1,
+        'PartTime': 1,
+        'Contract': 2,
+        'Internship': 3,
+        'Remote': 4,
+      };
+      const employmentType = EMPLOYMENT_TYPE_MAP[payload.jobType] ?? EMPLOYMENT_TYPE_MAP[payload.type] ?? 0;
+
+      const deadlineDate = payload.closingPeriod ? new Date(payload.closingPeriod) : new Date(Date.now() + 30 * 86400000);
+      const applicationDeadline = !isNaN(deadlineDate.getTime())
+        ? deadlineDate.toISOString()
+        : new Date(Date.now() + 30 * 86400000).toISOString();
+
+      return recruitmentService.org.createJob({
         title: payload.title,
         description: payload.description,
-        employmentType: (payload.jobType || payload.type || 'FullTime').replace(/[\s-]+/g, '') || 'FullTime',
+        employmentType,
         location: payload.workMode ? `${payload.location} (${payload.workMode})` : payload.location,
         requirements: payload.requirements,
-        responsibilities: `Requirements: ${payload.requirements}\nExperience: ${payload.experience}`,
-        applicationDeadline: payload.closingPeriod
-          ? new Date(payload.closingPeriod).toISOString()
-          : new Date(Date.now() + 30 * 86400000).toISOString(),
+        responsibilities: `Requirements: ${payload.requirements}\nExperience: ${payload.experience}${
+          payload.processType === 'email' && payload.applicationEmail ? `\nApplication Email: ${payload.applicationEmail}` : ''
+        }`,
+        applicationDeadline,
         bannerUrl: payload.bannerUrl || null,
         applicationProcess: payload.processType === 'email' ? 'Email' : 'PlatformForm',
         applicationEmail: payload.applicationEmail || null,
-      }),
+      });
+    },
     onSuccess: (data, variables) => {
       setIsJobOfferOpen(false);
       queryClient.invalidateQueries({ queryKey: ['org-recruitment-jobs'] });
@@ -94,7 +111,7 @@ export default function OrgSettings() {
         title: payload.title,
         description: payload.description,
         bannerUrl: payload.bannerUrl || null,
-        scope: 'Workplace',
+        scope: 2, // 2 = Workplace (1 = Platform)
         publishImmediately: true,
       }),
     onSuccess: (data, variables) => {
@@ -119,18 +136,24 @@ export default function OrgSettings() {
   // 3. Create Saving Plan Mutation
   const savingPlanMutation = useMutation({
     mutationFn: (payload) => {
+      const FREQUENCY_MAP = {
+        Daily: 1,
+        Weekly: 2,
+        Monthly: 3,
+      };
+
       const start = new Date(payload.startDate);
       const end = new Date(payload.endDate);
-      const diffTime = Math.abs(end - start);
+      const diffTime = Math.max(0, end.getTime() - start.getTime());
       const durationDays = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
 
       return organizationService.savings.createPlan({
         organizationId: activeOrg?.organizationId,
-        ownerType: 'Organization',
-        planType: 'Target',
+        ownerType: 2, // Organization
+        planType: 2,  // Target
         name: payload.name,
         description: payload.description,
-        currency: 'NGN',
+        currency: 0,  // NGN
         interestRate: 10.0,
         minimumAmount: payload.rawAmount,
         maximumAmount: payload.rawAmount,
@@ -138,7 +161,7 @@ export default function OrgSettings() {
         maximumDurationDays: durationDays,
         targetAmount: payload.rawAmount,
         contributionAmount: payload.rawAmount,
-        contributionFrequency: payload.frequency || 'Monthly',
+        contributionFrequency: FREQUENCY_MAP[payload.frequency] ?? 3,
       });
     },
     onSuccess: (data, variables) => {
@@ -161,8 +184,15 @@ export default function OrgSettings() {
 
   // 4. Create Loan Plan Mutation
   const loanPlanMutation = useMutation({
-    mutationFn: (payload) =>
-      organizationService.loans.createPlan({
+    mutationFn: (payload) => {
+      const REPAYMENT_FREQ_MAP = {
+        Monthly: 1,
+        Weekly: 2,
+        'Bi-weekly': 3,
+        BiWeekly: 3,
+      };
+
+      return organizationService.loans.createPlan({
         name: payload.name,
         description: payload.description,
         minimumAmount: payload.rawAmount,
@@ -171,8 +201,9 @@ export default function OrgSettings() {
         minimumDurationMonths: 1,
         maximumDurationMonths: 12,
         minimumMonthlySalary: 30000,
-        repaymentFrequency: 'Monthly',
-      }),
+        repaymentFrequency: REPAYMENT_FREQ_MAP[payload.repaymentFrequency] ?? 1,
+      });
+    },
     onSuccess: (data, variables) => {
       setIsLoanPlanOpen(false);
       queryClient.invalidateQueries({ queryKey: ['org-loan-plans'] });

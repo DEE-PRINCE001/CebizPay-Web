@@ -11,6 +11,7 @@ const JOB_TYPE_OPTIONS = [
   { value: 'Part-time', label: 'Part-time' },
   { value: 'Contract', label: 'Contract' },
   { value: 'Internship', label: 'Internship' },
+  { value: 'Remote', label: 'Remote' },
 ];
 
 const WORK_MODE_OPTIONS = [
@@ -275,10 +276,11 @@ export default function CreateJobOfferModal({
           <Input
             label="Closing Period"
             name="closingPeriod"
+            type="date"
+            min={new Date().toISOString().split('T')[0]}
             value={formData.closingPeriod}
             onChange={handleChange}
             error={errors.closingPeriod}
-            placeholder="e.g. 30 October, 2026"
             disabled={isSubmitting}
             required
           />
