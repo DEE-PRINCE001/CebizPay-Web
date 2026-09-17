@@ -53,6 +53,10 @@ export const userService = {
     return apiClient.get(ENDPOINTS.USER.ANNOUNCEMENTS.PLATFORM, { params });
   },
 
+  getWorkplaceAnnouncements: async (params = { pageNumber: 1, pageSize: 20 }) => {
+    return apiClient.get(ENDPOINTS.USER.ANNOUNCEMENTS.WORKPLACE, { params });
+  },
+
   getActiveAnnouncements: async (organizationId = null) => {
     return apiClient.get(ENDPOINTS.USER.ANNOUNCEMENTS.ACTIVE, {
       params: organizationId ? { organizationId } : {},

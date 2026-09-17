@@ -20,60 +20,6 @@ import { walletService } from '../../api/services/wallet.service.js';
 import { cardsService } from '../../api/services/cards.service.js';
 import { ChevronDown, Loader2 } from 'lucide-react';
 
-// Fallback sample data matching WalletPage.png reference when backend data is unseeded
-const SAMPLE_WALLET_TRANSACTIONS = [
-  {
-    id: 'tx-001',
-    amount: '34,000',
-    transactionId: '2619861816688',
-    method: 'Wallet ID',
-    accountOrWalletId: '156191667631',
-    month: 'January',
-    dateTime: '4:18 PM 27 May, 2021',
-    status: 'Successfull',
-  },
-  {
-    id: 'tx-002',
-    amount: '34,000',
-    transactionId: '2619861816688',
-    method: 'Wallet ID',
-    accountOrWalletId: '156191667631',
-    month: 'January',
-    dateTime: '4:18 PM 27 May, 2021',
-    status: 'Successfull',
-  },
-  {
-    id: 'tx-003',
-    amount: '34,000',
-    transactionId: '2619861816688',
-    method: 'Wallet ID',
-    accountOrWalletId: '156191667631',
-    month: 'January',
-    dateTime: '4:18 PM 27 May, 2021',
-    status: 'Successfull',
-  },
-  {
-    id: 'tx-004',
-    amount: '34,000',
-    transactionId: '2619861816688',
-    method: 'Wallet ID',
-    accountOrWalletId: '156191667631',
-    month: 'January',
-    dateTime: '4:18 PM 27 May, 2021',
-    status: 'Successfull',
-  },
-  {
-    id: 'tx-005',
-    amount: '34,000',
-    transactionId: '2619861816688',
-    method: 'Wallet ID',
-    accountOrWalletId: '156191667631',
-    month: 'January',
-    dateTime: '4:18 PM 27 May, 2021',
-    status: 'Successfull',
-  },
-];
-
 export default function OrgWallet() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -82,6 +28,7 @@ export default function OrgWallet() {
   const [selectedStatus, setSelectedStatus] = useState('');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [isExporting, setIsExporting] = useState(false);
 
   // Modals state for Fund / Transfer workflows
   const [isAddMoneyOptionsOpen, setIsAddMoneyOptionsOpen] = useState(false);
@@ -119,22 +66,22 @@ export default function OrgWallet() {
       walletService.getOrgTransactions({
         pageNumber: currentPage,
         pageSize: 10,
-        search: searchQuery.trim(),
-        status: selectedStatus,
+        search: searchQuery.trim() || undefined,
+        status: selectedStatus || undefined,
       }),
     retry: false,
     staleTime: 30 * 1000,
   });
 
   // Format monetary values
-  const formatMoney = (val, fallback = '238,000,909') => {
+  const formatMoney = (val) => {
     if (val != null) {
       return Number(val).toLocaleString('en-US', {
         minimumFractionDigits: 0,
         maximumFractionDigits: 2,
       });
     }
-    return fallback;
+    return '0';
   };
 
   const currentBalance = isWalletLoading ? '...' : formatMoney(walletData?.availableBalance);
@@ -142,60 +89,74 @@ export default function OrgWallet() {
   const totalLoanFund = isWalletLoading ? '...' : formatMoney(walletData?.totalLoanFund);
   const totalSavingMoney = isWalletLoading ? '...' : formatMoney(walletData?.totalSavingMoney);
 
-  // Normalize transaction items with fallback
+  // Normalize transaction items directly from API
   const rawItems = useMemo(
     () => transactionsData?.items || (Array.isArray(transactionsData) ? transactionsData : []),
     [transactionsData]
   );
-  const displayedItems = useMemo(() => {
-    if (rawItems.length > 0) {
-      return rawItems.map((item, idx) => ({
-        id: item.transactionId || item.id || `tx-${idx}`,
-        amount: item.amount != null ? Number(item.amount).toLocaleString('en-US') : '0',
-        transactionId: item.transactionId || item.reference || '-',
-        method: item.method || (item.counterpartyAccount ? 'Bank' : 'Wallet ID'),
-        accountOrWalletId: item.accountOrWalletId || item.counterpartyAccount || '-',
-        month: item.month || (item.createdAtUtc ? new Date(item.createdAtUtc).toLocaleString('en-US', { month: 'long' }) : '-'),
-        dateTime: item.dateTime || (item.createdAtUtc ? new Date(item.createdAtUtc).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }) : '-'),
-        status: item.status || 'Successfull',
-      }));
-    }
-    // Filter sample transactions locally if searching
-    return SAMPLE_WALLET_TRANSACTIONS.filter((tx) => {
-      const q = searchQuery.toLowerCase();
-      const matchesSearch =
-        !q ||
-        tx.transactionId.toLowerCase().includes(q) ||
-        tx.accountOrWalletId.toLowerCase().includes(q) ||
-        tx.month.toLowerCase().includes(q);
-      const matchesStatus = !selectedStatus || tx.status.toLowerCase() === selectedStatus.toLowerCase();
-      return matchesSearch && matchesStatus;
-    });
-  }, [rawItems, searchQuery, selectedStatus]);
 
-  const totalPages = transactionsData?.totalPages != null ? Math.max(1, transactionsData.totalPages) : 130;
+  const displayedItems = useMemo(() => {
+    return rawItems.map((item, idx) => ({
+      id: item.id || item.transactionId || `tx-${idx}`,
+      amount: item.amount != null ? Number(item.amount).toLocaleString('en-US') : '0',
+      transactionId: item.reference || item.transactionId || item.id || '-',
+      method: item.transactionType || item.method || (item.counterparty ? 'Bank' : 'Wallet ID'),
+      accountOrWalletId: item.counterparty || item.accountOrWalletId || '-',
+      month: item.timestampUtc
+        ? new Date(item.timestampUtc).toLocaleString('en-US', { month: 'long' })
+        : item.createdAtUtc
+        ? new Date(item.createdAtUtc).toLocaleString('en-US', { month: 'long' })
+        : (item.month || '-'),
+      dateTime: item.timestampUtc
+        ? new Date(item.timestampUtc).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })
+        : item.createdAtUtc
+        ? new Date(item.createdAtUtc).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })
+        : (item.dateTime || '-'),
+      status: item.status || 'Successful',
+    }));
+  }, [rawItems]);
+
+  const totalPages = transactionsData?.totalPages != null ? Math.max(1, transactionsData.totalPages) : 1;
 
   // CSV Export handler
-  const handleExport = () => {
-    if (!displayedItems || displayedItems.length === 0) return;
-    const headers = ['Amount', 'Transaction ID', 'Method', 'Acct/Wallet ID', 'Months', 'Date n Time', 'Status'];
-    const rows = displayedItems.map((tx) => [
-      `"${tx.amount}"`,
-      `"${tx.transactionId}"`,
-      `"${tx.method}"`,
-      `"${tx.accountOrWalletId}"`,
-      `"${tx.month}"`,
-      `"${tx.dateTime}"`,
-      `"${tx.status}"`,
-    ]);
-    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `wallet_transactions_${Date.now()}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const handleExport = async () => {
+    try {
+      setIsExporting(true);
+      const blob = await walletService.exportOrgTransactions({
+        search: searchQuery.trim() || undefined,
+        status: selectedStatus || undefined,
+      });
+      const url = window.URL.createObjectURL(new Blob([blob], { type: 'text/csv;charset=utf-8;' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `org_wallet_transactions_${Date.now()}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch {
+      if (!displayedItems || displayedItems.length === 0) return;
+      const headers = ['Amount', 'Transaction ID', 'Method', 'Acct/Wallet ID', 'Months', 'Date n Time', 'Status'];
+      const rows = displayedItems.map((tx) => [
+        `"${tx.amount}"`,
+        `"${tx.transactionId}"`,
+        `"${tx.method}"`,
+        `"${tx.accountOrWalletId}"`,
+        `"${tx.month}"`,
+        `"${tx.dateTime}"`,
+        `"${tx.status}"`,
+      ]);
+      const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement('a');
+      link.setAttribute('href', encodedUri);
+      link.setAttribute('download', `org_wallet_transactions_${Date.now()}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   // Transaction PIN submission handler
@@ -360,6 +321,8 @@ export default function OrgWallet() {
                 variant="outline"
                 size="md"
                 onClick={handleExport}
+                isLoading={isExporting}
+                disabled={isExporting}
                 className="w-auto px-6 py-2 text-xs sm:text-sm"
               >
                 Export

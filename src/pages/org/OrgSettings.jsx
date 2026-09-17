@@ -14,7 +14,7 @@ import logo from '../../assets/logo.jpg';
 import { useAuth } from '../../hooks/useAuth.js';
 import { recruitmentService } from '../../api/services/recruitment.service.js';
 import { userService } from '../../api/services/user.service.js';
-import { authService } from '../../api/services/auth.service.js';
+import { organizationService } from '../../api/services/organization.service.js';
 
 export default function OrgSettings() {
   const navigate = useNavigate();
@@ -36,24 +36,39 @@ export default function OrgSettings() {
     message: '',
   });
 
-  // Fetch full organization profile details
+  // Fetch authoritative organization profile details
   const { data: profileData } = useQuery({
-    queryKey: ['org-settings-profile'],
-    queryFn: () => authService.getMe(),
+    queryKey: ['org-settings-profile', activeOrg?.organizationId],
+    queryFn: () => organizationService.getProfile(),
     staleTime: 60 * 1000,
     retry: false,
   });
 
-  const orgProfile = profileData?.activeOrganization || activeOrg || user?.organizations?.[0] || null;
-  const companyName = orgProfile?.name || orgProfile?.organizationName || 'Cebiz Company';
-  const companyEmail = orgProfile?.email || user?.email || 'Cebiz@gmail.com';
-  const companyPhone = orgProfile?.phoneNumber || user?.phoneNumber || '08164045807';
+  const orgProfile = profileData || activeOrg || user?.organizations?.[0] || null;
+  const companyName = orgProfile?.name || orgProfile?.companyName || 'Organization';
+  const companyEmail = orgProfile?.email || user?.email || '-';
+  const companyPhone = orgProfile?.phoneNumber || user?.phoneNumber || '-';
   const companyLogo = orgProfile?.logoUrl || logo;
   const cacDocumentUrl = orgProfile?.cacCertificateUrl || null;
+  const companyStatus = orgProfile?.status || activeOrg?.status || 'Active';
 
   // 1. Create Job Offer Mutation
   const jobOfferMutation = useMutation({
-    mutationFn: (payload) => recruitmentService.org.createJob(payload),
+    mutationFn: (payload) =>
+      recruitmentService.org.createJob({
+        title: payload.title,
+        description: payload.description,
+        employmentType: (payload.jobType || payload.type || 'FullTime').replace(/[\s-]+/g, '') || 'FullTime',
+        location: payload.workMode ? `${payload.location} (${payload.workMode})` : payload.location,
+        requirements: payload.requirements,
+        responsibilities: `Requirements: ${payload.requirements}\nExperience: ${payload.experience}`,
+        applicationDeadline: payload.closingPeriod
+          ? new Date(payload.closingPeriod).toISOString()
+          : new Date(Date.now() + 30 * 86400000).toISOString(),
+        bannerUrl: payload.bannerUrl || null,
+        applicationProcess: payload.processType === 'email' ? 'Email' : 'PlatformForm',
+        applicationEmail: payload.applicationEmail || null,
+      }),
     onSuccess: (data, variables) => {
       setIsJobOfferOpen(false);
       queryClient.invalidateQueries({ queryKey: ['org-recruitment-jobs'] });
@@ -64,7 +79,11 @@ export default function OrgSettings() {
       });
     },
     onError: (err) => {
-      console.error('Job offer submission error:', err);
+      setFeedbackPopup({
+        isOpen: true,
+        title: 'Submission Failed',
+        message: err?.message || 'Failed to publish job offer. Please check your inputs.',
+      });
     },
   });
 
@@ -74,14 +93,14 @@ export default function OrgSettings() {
       userService.createAnnouncement({
         title: payload.title,
         description: payload.description,
-        bannerUrl: payload.bannerUrl,
-        scope: 2, // Workplace / Organization scope
+        bannerUrl: payload.bannerUrl || null,
+        scope: 'Workplace',
         publishImmediately: true,
       }),
     onSuccess: (data, variables) => {
       setIsAnnouncementOpen(false);
+      queryClient.invalidateQueries({ queryKey: ['workplace-announcements'] });
       queryClient.invalidateQueries({ queryKey: ['all-platform-announcements'] });
-      queryClient.invalidateQueries({ queryKey: ['platform-announcements'] });
       setFeedbackPopup({
         isOpen: true,
         title: 'Announcement Published',
@@ -89,38 +108,85 @@ export default function OrgSettings() {
       });
     },
     onError: (err) => {
-      console.error('Announcement creation error:', err);
+      setFeedbackPopup({
+        isOpen: true,
+        title: 'Submission Failed',
+        message: err?.message || 'Failed to publish announcement. Please try again.',
+      });
     },
   });
 
   // 3. Create Saving Plan Mutation
   const savingPlanMutation = useMutation({
-    mutationFn: async (payload) => {
-      // Mock / API call to create savings plan
-      return payload;
+    mutationFn: (payload) => {
+      const start = new Date(payload.startDate);
+      const end = new Date(payload.endDate);
+      const diffTime = Math.abs(end - start);
+      const durationDays = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
+
+      return organizationService.savings.createPlan({
+        organizationId: activeOrg?.organizationId,
+        ownerType: 'Organization',
+        planType: 'Target',
+        name: payload.name,
+        description: payload.description,
+        currency: 'NGN',
+        interestRate: 10.0,
+        minimumAmount: payload.rawAmount,
+        maximumAmount: payload.rawAmount,
+        minimumDurationDays: durationDays,
+        maximumDurationDays: durationDays,
+        targetAmount: payload.rawAmount,
+        contributionAmount: payload.rawAmount,
+        contributionFrequency: payload.frequency || 'Monthly',
+      });
     },
     onSuccess: (data, variables) => {
       setIsSavingPlanOpen(false);
+      queryClient.invalidateQueries({ queryKey: ['org-savings-plans'] });
       setFeedbackPopup({
         isOpen: true,
         title: 'Saving Plan Created',
         message: `Successfully created saving plan: "${variables.name}"`,
       });
     },
+    onError: (err) => {
+      setFeedbackPopup({
+        isOpen: true,
+        title: 'Submission Failed',
+        message: err?.message || 'Failed to create saving plan. Please check your inputs.',
+      });
+    },
   });
 
   // 4. Create Loan Plan Mutation
   const loanPlanMutation = useMutation({
-    mutationFn: async (payload) => {
-      // Mock / API call to create corporate loan plan
-      return payload;
-    },
+    mutationFn: (payload) =>
+      organizationService.loans.createPlan({
+        name: payload.name,
+        description: payload.description,
+        minimumAmount: payload.rawAmount,
+        maximumAmount: payload.rawAmount,
+        interestRate: payload.numericInterestRate,
+        minimumDurationMonths: 1,
+        maximumDurationMonths: 12,
+        minimumMonthlySalary: 30000,
+        repaymentFrequency: 'Monthly',
+      }),
     onSuccess: (data, variables) => {
       setIsLoanPlanOpen(false);
+      queryClient.invalidateQueries({ queryKey: ['org-loan-plans'] });
       setFeedbackPopup({
         isOpen: true,
         title: 'Loan Plan Created',
         message: `Successfully created loan plan: "${variables.name}"`,
+      });
+    },
+    onError: (err) => {
+      setFeedbackPopup({
+        isOpen: true,
+        title: 'Submission Failed',
+        message: err?.message || 'Failed to create loan plan. Please check your inputs.',
       });
     },
   });
@@ -132,7 +198,9 @@ export default function OrgSettings() {
       setFeedbackPopup({
         isOpen: true,
         title: 'CAC Document',
-        message: 'CAC certificate is verified and active on your organization compliance profile.',
+        message: orgProfile?.cacNumber
+          ? `CAC Registration Number: ${orgProfile.cacNumber}. Document file is not attached yet.`
+          : 'CAC certificate is verified and active on your organization compliance profile.',
       });
     }
   };
@@ -166,7 +234,7 @@ export default function OrgSettings() {
                 Status
               </span>
               <span className="text-xs sm:text-sm font-bold text-active">
-                Active
+                {companyStatus}
               </span>
             </div>
           </div>
@@ -282,6 +350,7 @@ export default function OrgSettings() {
       <AnnouncementsModal
         isOpen={isAnnouncementsListOpen}
         onClose={() => setIsAnnouncementsListOpen(false)}
+        scope="workplace"
       />
 
       <AddMoneyCardModal

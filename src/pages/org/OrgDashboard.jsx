@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import OrgDashboardLayout from '../../components/layout/OrgDashboardLayout.jsx';
 import WalletCard from '../../components/cards/WalletCard.jsx';
-import AnnouncementItem from '../../components/common/AnnouncementItem.jsx';
 import EarningChart from '../../components/common/EarningChart.jsx';
 import AnnouncementsModal from '../../components/modals/AnnouncementsModal.jsx';
 import AddMoneyOptionsModal from '../../components/modals/wallet/AddMoneyOptionsModal.jsx';

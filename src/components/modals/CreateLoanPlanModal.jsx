@@ -35,14 +35,22 @@ export default function CreateLoanPlanModal({
     }
   }, [isOpen]);
 
-  // Handle ESC key
+  // Handle ESC key and lock body scroll
   useEffect(() => {
     if (!isOpen) return;
+
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') onClose?.();
     };
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;
@@ -97,17 +105,17 @@ export default function CreateLoanPlanModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs transition-opacity overflow-y-auto animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/40 backdrop-blur-xs transition-opacity animate-in fade-in duration-200"
       role="dialog"
       aria-modal="true"
       onClick={onClose}
     >
       <div
-        className="bg-white w-full max-w-2xl rounded-2xl sm:rounded-3xl p-6 sm:p-9 shadow-2xl border border-slate-100 relative my-6 animate-in fade-in zoom-in-95 duration-200"
+        className="bg-white w-full max-w-2xl max-h-[90vh] rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-100 relative animate-in fade-in zoom-in-95 duration-200 flex flex-col overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        {/* Pinned Header */}
+        <div className="flex items-center justify-between px-6 sm:px-9 py-5 border-b border-slate-100 shrink-0">
           <h2 className="text-xl sm:text-2xl font-bold text-primary-text tracking-tight">
             Create Loan Plan
           </h2>
@@ -122,14 +130,15 @@ export default function CreateLoanPlanModal({
           </button>
         </div>
 
-        {generalError && (
-          <div className="mb-4">
-            <FormError message={generalError} />
-          </div>
-        )}
-
-        {/* Form Body */}
-        <form onSubmit={handleSubmit} className="flex flex-col space-y-4 sm:space-y-5">
+        {/* Form wrapping scrollable content and pinned footer */}
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
+          {/* Scrollable Form Body */}
+          <div className="flex-1 overflow-y-auto px-6 sm:px-9 py-5 sm:py-6 space-y-4 sm:space-y-5">
+            {generalError && (
+              <div className="mb-2">
+                <FormError message={generalError} />
+              </div>
+            )}
           <Input
             label="Loan Name"
             name="name"
@@ -189,8 +198,19 @@ export default function CreateLoanPlanModal({
             required
           />
 
-          {/* Action Button */}
-          <div className="pt-3">
+          </div>
+
+          {/* Pinned Action Footer */}
+          <div className="px-6 sm:px-9 py-4 border-t border-slate-100 bg-slate-50/50 flex items-center justify-end gap-3 shrink-0">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              disabled={isLoading}
+              className="w-auto px-6 py-2.5 rounded-xl text-xs sm:text-sm font-medium"
+            >
+              Cancel
+            </Button>
             <Button
               type="submit"
               variant="primary"

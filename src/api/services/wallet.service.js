@@ -80,6 +80,13 @@ export const walletService = {
     return apiClient.get(ENDPOINTS.WALLET.ORG_TRANSACTIONS, { params });
   },
 
+  exportOrgTransactions: async (params = {}) => {
+    return apiClient.get(ENDPOINTS.WALLET.ORG_TRANSACTIONS_EXPORT, {
+      params,
+      responseType: 'blob',
+    });
+  },
+
   getOrgVirtualAccounts: async () => {
     return apiClient.get(ENDPOINTS.WALLET.ORG_VIRTUAL_ACCOUNTS);
   },

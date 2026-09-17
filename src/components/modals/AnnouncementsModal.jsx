@@ -7,6 +7,7 @@ import { userService } from '../../api/services/user.service.js';
 export default function AnnouncementsModal({
   isOpen,
   onClose,
+  scope = 'workplace',
 }) {
   const {
     data: announcementsData,
@@ -14,8 +15,11 @@ export default function AnnouncementsModal({
     isError,
     error,
   } = useQuery({
-    queryKey: ['all-platform-announcements'],
-    queryFn: () => userService.getPlatformAnnouncements({ pageSize: 50 }),
+    queryKey: ['announcements', scope],
+    queryFn: () =>
+      scope === 'workplace'
+        ? userService.getWorkplaceAnnouncements({ pageSize: 50 })
+        : userService.getPlatformAnnouncements({ pageSize: 50 }),
     enabled: isOpen,
     staleTime: 30 * 1000,
     retry: false,

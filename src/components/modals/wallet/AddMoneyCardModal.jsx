@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ChevronDown, ArrowLeft, CreditCard, Loader2 } from 'lucide-react';
 import WalletBaseModal from './WalletBaseModal.jsx';
@@ -20,8 +20,6 @@ export default function AddMoneyCardModal({
   const {
     data: liveCards,
     isLoading: isCardsLoading,
-    isError: isCardsError,
-    error: cardsQueryError,
   } = useQuery({
     queryKey: ['saved-cards-list'],
     queryFn: () => cardsService.getSavedCards(),
@@ -29,22 +27,25 @@ export default function AddMoneyCardModal({
     staleTime: 30 * 1000,
   });
 
-  const cards = customCards || (Array.isArray(liveCards) ? liveCards : []);
+  const cards = useMemo(() => {
+    return customCards || (Array.isArray(liveCards) ? liveCards : []);
+  }, [customCards, liveCards]);
 
-  // Reset state when modal opens or cards change
+  const activeCardId = selectedCardId || cards[0]?.id || '';
+  const selectedCard = cards.find((c) => c.id === activeCardId) || cards[0];
+
+  // Reset state when modal opens
   useEffect(() => {
     if (isOpen) {
       setStep(1);
-      setSelectedCardId(cards[0]?.id || '');
+      setSelectedCardId('');
       setIsDropdownOpen(false);
       setAmount('');
       setError('');
     }
-  }, [isOpen, cards]);
+  }, [isOpen]);
 
   if (!isOpen) return null;
-
-  const selectedCard = cards.find((c) => c.id === selectedCardId) || cards[0];
 
   const handleSelectCard = (card) => {
     setSelectedCardId(card.id);

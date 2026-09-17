@@ -324,14 +324,14 @@ const ProfileModal = ({ isOpen = false, onClose, user: userProp, platform: platf
                 </button>
               </div>
               <h3 className="text-base sm:text-lg font-extrabold mt-6 sm:mt-10 leading-none text-primary-text">
-                {currentUser?.fullName || currentUser?.displayName || 'Tayo John'}
+                {currentUser?.fullName || currentUser?.displayName || currentUser?.firstName || currentUser?.email?.split('@')[0] || '-'}
               </h3>
               <div className="flex-1 flex flex-col justify-end">
                 <p className="text-xs sm:text-sm font-bold text-primary-text shadow-xs leading-none">
-                  {currentUser?.phoneNumber || '07035645321'}
+                  {currentUser?.phoneNumber || '-'}
                 </p>
                 <p className="text-xs sm:text-sm font-bold text-primary-text shadow-xs leading-none mt-5 sm:mt-7 truncate max-w-45 sm:max-w-55">
-                  {currentUser?.email || 'tayo.john@example.com'}
+                  {currentUser?.email || '-'}
                 </p>
               </div>
             </div>

@@ -103,5 +103,57 @@ export const organizationService = {
   getAdmins: async () => {
     return apiClient.get(ENDPOINTS.ORGANIZATION.ADMINS);
   },
+
+  // Organization Profile & KYB Documents
+  getProfile: async () => {
+    return apiClient.get(ENDPOINTS.ORGANIZATION.PROFILE);
+  },
+
+  // Savings Plans
+  savings: {
+    listPlans: async (params = {}) => {
+      return apiClient.get(ENDPOINTS.ORGANIZATION.SAVINGS.PLANS, { params });
+    },
+    createPlan: async (payload) => {
+      return apiClient.post(ENDPOINTS.ORGANIZATION.SAVINGS.PLANS, payload);
+    },
+    getPlanById: async (id) => {
+      return apiClient.get(ENDPOINTS.ORGANIZATION.SAVINGS.PLAN_BY_ID(id));
+    },
+    getParticipants: async (id, params = {}) => {
+      return apiClient.get(ENDPOINTS.ORGANIZATION.SAVINGS.PARTICIPANTS(id), { params });
+    },
+  },
+
+  // Corporate Loans
+  loans: {
+    listPlans: async (params = {}) => {
+      return apiClient.get(ENDPOINTS.ORGANIZATION.LOANS.PLANS, { params });
+    },
+    createPlan: async (payload) => {
+      return apiClient.post(ENDPOINTS.ORGANIZATION.LOANS.PLANS, payload);
+    },
+    getPlanById: async (id) => {
+      return apiClient.get(ENDPOINTS.ORGANIZATION.LOANS.PLAN_BY_ID(id));
+    },
+    listApplications: async (params = {}) => {
+      return apiClient.get(ENDPOINTS.ORGANIZATION.LOANS.APPLICATIONS, { params });
+    },
+    getApplicationById: async (id) => {
+      return apiClient.get(ENDPOINTS.ORGANIZATION.LOANS.APPLICATION_BY_ID(id));
+    },
+    approveApplication: async (id, payload = {}) => {
+      return apiClient.post(ENDPOINTS.ORGANIZATION.LOANS.APPROVE_APPLICATION(id), payload);
+    },
+    declineApplication: async (id, payload = {}) => {
+      return apiClient.post(ENDPOINTS.ORGANIZATION.LOANS.DECLINE_APPLICATION(id), payload);
+    },
+    listContracts: async (params = {}) => {
+      return apiClient.get(ENDPOINTS.ORGANIZATION.LOANS.CONTRACTS, { params });
+    },
+    getContractById: async (id) => {
+      return apiClient.get(ENDPOINTS.ORGANIZATION.LOANS.CONTRACT_BY_ID(id));
+    },
+  },
 };
 

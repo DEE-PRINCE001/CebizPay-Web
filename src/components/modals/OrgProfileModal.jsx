@@ -87,7 +87,7 @@ export default function OrgProfileModal({
   const totalAdminsCount = adminsData?.totalCount != null ? adminsData.totalCount : adminsList.length;
   const commissionCount = referralSettings?.rewardAmountPerSuccessfulReferral != null
     ? String(referralSettings.rewardAmountPerSuccessfulReferral)
-    : '5';
+    : '0';
 
   const extractErrorMessage = (err, fallback) => {
     let msg = err?.message || fallback;
@@ -303,7 +303,7 @@ export default function OrgProfileModal({
                   />
                 </div>
                 <h3 className="text-lg sm:text-xl font-bold text-primary-text">
-                  {currentUser?.fullName || currentUser?.displayName || currentUser?.firstName || 'Tayo John'}
+                  {currentUser?.fullName || currentUser?.displayName || currentUser?.firstName || currentUser?.email?.split('@')[0] || '-'}
                 </h3>
               </div>
               <button
@@ -320,14 +320,14 @@ export default function OrgProfileModal({
               <div className="flex items-center justify-between text-xs sm:text-sm">
                 <span className="text-slate-400 font-normal">Phone Number</span>
                 <span className="font-semibold text-primary-text">
-                  {currentUser?.phoneNumber || '082-484-894-84'}
+                  {currentUser?.phoneNumber || '-'}
                 </span>
               </div>
               <div className="border-b border-slate-100" />
               <div className="flex items-center justify-between text-xs sm:text-sm">
                 <span className="text-slate-400 font-normal">Email Address</span>
                 <span className="font-semibold text-primary-text truncate max-w-[200px] sm:max-w-[260px]">
-                  {currentUser?.email || 'Mercy@gmail.com'}
+                  {currentUser?.email || '-'}
                 </span>
               </div>
             </div>
