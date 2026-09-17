@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { UploadCloud, CheckCircle2, FileText, Loader2, X } from 'lucide-react';
+import { UploadCloud, Upload, CheckCircle2, FileText, Loader2, X } from 'lucide-react';
 import Label from './Label.jsx';
 import FormError from './FormError.jsx';
 
@@ -16,6 +16,7 @@ export default function FileUpload({
   value = '',
   onChange,
   className = '',
+  variant = 'default', // 'default' | 'banner'
 }) {
   const [dragActive, setDragActive] = useState(false);
   const [selectedFileName, setSelectedFileName] = useState(
@@ -72,6 +73,7 @@ export default function FileUpload({
   };
 
   const isPdf = selectedFileName.toLowerCase().endsWith('.pdf');
+  const isBanner = variant === 'banner';
 
   return (
     <div className={`flex flex-col w-full text-left font-satoshi ${className}`}>
@@ -87,14 +89,14 @@ export default function FileUpload({
         onDragLeave={handleDrag}
         onDrop={handleDrop}
         onClick={handleClick}
-        className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-xl cursor-pointer transition-all duration-200 relative select-none ${
+        className={`flex flex-col items-center justify-center w-full ${isBanner ? 'h-28 sm:h-32 border rounded-xl bg-white' : 'h-32 border-2 border-dashed rounded-xl bg-gray-50/40'} cursor-pointer transition-all duration-200 relative select-none ${
           disabled || loading
             ? 'opacity-60 cursor-not-allowed bg-slate-50 border-slate-200'
             : error
             ? 'border-red-300 bg-red-50/20'
             : dragActive
             ? 'border-primary bg-primary/10 ring-2 ring-primary/20'
-            : 'border-slate-200 bg-gray-50/40 hover:bg-slate-50 hover:border-slate-300'
+            : 'border-slate-200 hover:bg-slate-50 hover:border-slate-300'
         }`}
       >
         <input
@@ -133,6 +135,12 @@ export default function FileUpload({
                 </button>
               )}
             </div>
+          ) : isBanner ? (
+            <>
+              <Upload size={20} className="mb-1.5 text-primary-text/70" />
+              <p className="text-xs sm:text-sm font-semibold text-primary-text">Click to upload</p>
+              <p className="text-[11px] text-slate-400 mt-0.5">(JPEG and PNG)</p>
+            </>
           ) : (
             <>
               <UploadCloud size={24} className="mb-2 text-slate-400" />

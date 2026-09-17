@@ -33,8 +33,8 @@ export default function NotAuthorized() {
         </div>
 
         <div className="inline-block mb-3">
-          <span className="px-3 py-1 rounded-full text-xs font-semibold bg-red-50 text-red-600 border border-red-100 tracking-wide uppercase">
-            403 · Access Denied
+          <span className="px-3 py-1 rounded-full text-xs font-semibold bg-red-50 text-red-600 tracking-wide uppercase">
+            403: Access Denied
           </span>
         </div>
 

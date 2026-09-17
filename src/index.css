@@ -23,6 +23,9 @@
     --color-rejected: #DC2626;
     --color-active: #15803D;
 
+    --color-saving-pink: #FF4081;
+    --color-saving-brown: #8D4E16;
+
     --font-satoshi: 'Satoshi-Variable', var(--font-sans);
 }
 

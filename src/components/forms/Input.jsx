@@ -1,5 +1,5 @@
 import React, { forwardRef, useState } from 'react';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, ChevronDown } from 'lucide-react';
 import Label from './Label';
 import FormError from './FormError';
 
@@ -25,6 +25,7 @@ const Input = forwardRef(function Input({
   showPasswordToggle = true,
   multiline = false,
   rows = 3,
+  options = null,
   className = '',
   ...props
 }, ref) {
@@ -33,6 +34,7 @@ const Input = forwardRef(function Input({
 
   const isPassword = type === 'password';
   const computedType = isPassword && showPassword ? 'text' : type;
+  const isSelect = type === 'select' || (Array.isArray(options) && options.length > 0);
 
   const errorStyles = error
     ? 'border-red-300 focus:ring-red-500 focus:border-red-500 bg-red-50/20'
@@ -70,6 +72,39 @@ const Input = forwardRef(function Input({
             className={`w-full py-3 rounded-xl border text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-offset-0 transition-all resize-none disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed ${paddingLeft} ${paddingRight} ${errorStyles} ${className}`}
             {...props}
           />
+        ) : isSelect ? (
+          <div className="relative w-full">
+            <select
+              ref={ref}
+              id={inputId}
+              name={name}
+              value={value}
+              onChange={onChange}
+              onBlur={onBlur}
+              disabled={disabled}
+              required={required}
+              className={`w-full py-3 rounded-xl border text-sm text-slate-900 bg-background focus:outline-none focus:ring-2 focus:ring-offset-0 transition-all appearance-none cursor-pointer disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed ${paddingLeft} pr-10 ${errorStyles} ${className}`}
+              {...props}
+            >
+              {placeholder && (
+                <option value="" disabled className="text-slate-400">
+                  {placeholder}
+                </option>
+              )}
+              {options?.map((opt) => {
+                const optVal = typeof opt === 'object' ? opt.value : opt;
+                const optLabel = typeof opt === 'object' ? opt.label : opt;
+                return (
+                  <option key={optVal} value={optVal}>
+                    {optLabel}
+                  </option>
+                );
+              })}
+            </select>
+            <div className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+              <ChevronDown size={16} />
+            </div>
+          </div>
         ) : (
           <input
             ref={ref}
@@ -86,7 +121,7 @@ const Input = forwardRef(function Input({
             {...props}
           />
         )}
-        {!multiline && hasRightToggle ? (
+        {!multiline && !isSelect && hasRightToggle ? (
           <button
             type="button"
             onClick={() => setShowPassword((prev) => !prev)}

@@ -25,6 +25,8 @@ import IndividualWallets from './pages/admin/IndividualWallets.jsx';
 import OrgDashboard from './pages/org/OrgDashboard.jsx';
 import Members from './pages/org/Members.jsx';
 import MemberDetails from './pages/org/MemberDetails.jsx';
+import OrgWallet from './pages/org/OrgWallet.jsx';
+import OrgSettings from './pages/org/OrgSettings.jsx';
 
 function App() {
   return (
@@ -81,6 +83,8 @@ function App() {
                 <Route path="/org/dashboard" element={<OrgDashboard />} />
                 <Route path="/org/members" element={<Members />} />
                 <Route path="/org/members/:id" element={<MemberDetails />} />
+                <Route path="/org/wallet" element={<OrgWallet />} />
+                <Route path="/org/settings" element={<OrgSettings />} />
               </Route>
             </Route>
 
