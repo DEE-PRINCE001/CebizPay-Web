@@ -30,7 +30,7 @@ const AnnouncementItem = ({
 
   return (
     <div className={`flex space-x-3 ${className}`}>
-      <div className={`${barColorClass} w-[2px] rounded-full shrink-0 self-stretch min-h-8`}></div>
+      <div className={`${barColorClass} w-0.5 rounded-full shrink-0 self-stretch min-h-8`}></div>
       <div className="flex flex-col space-y-0.5 min-w-0">
         <h3 className="font-semibold text-xs sm:text-sm text-primary-text truncate" title={title}>
           {truncatedTitle}
