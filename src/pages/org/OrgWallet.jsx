@@ -7,8 +7,9 @@ import SearchInput from '../../components/forms/SearchInput.jsx';
 import Button from '../../components/common/Button.jsx';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/common/table/index.js';
 import Pagination from '../../components/common/Pagination.jsx';
-import FilterDropdown from '../../components/forms/FilterDropdown.jsx';
+import FilterDropdown, { TRANSACTION_STATUS_FILTER_OPTIONS } from '../../components/forms/FilterDropdown.jsx';
 import StatusBadge from '../../components/common/StatusBadge.jsx';
+import { Currency } from '../../data/enums.js';
 import AddMoneyOptionsModal from '../../components/modals/wallet/AddMoneyOptionsModal.jsx';
 import TransferOptionsModal from '../../components/modals/wallet/TransferOptionsModal.jsx';
 import AddMoneyTransferModal from '../../components/modals/wallet/AddMoneyTransferModal.jsx';
@@ -112,7 +113,7 @@ export default function OrgWallet() {
         : item.createdAtUtc
         ? new Date(item.createdAtUtc).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })
         : (item.dateTime || '-'),
-      status: item.status || 'Successful',
+      status: item.status || 'Completed',
     }));
   }, [rawItems]);
 
@@ -342,6 +343,7 @@ export default function OrgWallet() {
                 <FilterDropdown
                   isOpen={isFilterOpen}
                   onClose={() => setIsFilterOpen(false)}
+                  options={TRANSACTION_STATUS_FILTER_OPTIONS}
                   onSelect={(status) => {
                     setSelectedStatus(status);
                     setCurrentPage(1);

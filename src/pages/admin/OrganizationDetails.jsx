@@ -9,6 +9,7 @@ import ActionConfirmModal from '../../components/modals/ActionConfirmModal.jsx';
 import { adminService } from '../../api/services/admin.service.js';
 import { getStoredAccessToken } from '../../api/client.js';
 import { Loader2, AlertCircle } from 'lucide-react';
+import { OrganizationStatusValues } from '../../data/enums.js';
 
 export default function OrganizationDetails() {
   const { id } = useParams();
@@ -44,15 +45,15 @@ export default function OrganizationDetails() {
   // Live Mutation: Update Organization Status (Admin lifecycle transition)
   const updateStatusMutation = useMutation({
     mutationFn: async ({ statusName, reason }) => {
-      // Real backend C# enum (OrganizationStatus: Pending=1, Verified/Active=2, Rejected=3, Suspended=4)
+      // Real backend C# enum (OrganizationStatus: Pending=1, Verified=2, Rejected=3, Suspended=4)
       const statusMap = {
-        Pending: 1,
-        Verified: 2,
-        Active: 2,
-        Rejected: 3,
-        Suspended: 4,
+        Pending: OrganizationStatusValues.Pending,
+        Verified: OrganizationStatusValues.Verified,
+        Active: OrganizationStatusValues.Verified,
+        Rejected: OrganizationStatusValues.Rejected,
+        Suspended: OrganizationStatusValues.Suspended,
       };
-      const statusCode = statusMap[statusName] ?? 2;
+      const statusCode = statusMap[statusName] ?? OrganizationStatusValues.Verified;
 
       const res = await adminService.organizations.updateStatus(id, {
         status: statusCode,

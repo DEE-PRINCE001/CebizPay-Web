@@ -9,7 +9,12 @@ const FINANCE_MENU_ITEMS = [
   { to: '/org/vouchers', label: 'Voucher', icon: Receipt },
 ];
 
-export default function FinanceDropdown({ isOpen, onClose, className = '' }) {
+export default function FinanceDropdown({
+  isOpen,
+  onClose,
+  onSelectPayroll,
+  className = '',
+}) {
   const dropdownRef = useRef(null);
 
   useEffect(() => {
@@ -46,6 +51,23 @@ export default function FinanceDropdown({ isOpen, onClose, className = '' }) {
     >
       {FINANCE_MENU_ITEMS.map((item) => {
         const Icon = item.icon;
+        if (item.label === 'Payroll') {
+          return (
+            <button
+              key={item.label}
+              type="button"
+              onClick={() => {
+                onClose?.();
+                onSelectPayroll?.();
+              }}
+              className="flex items-center space-x-3 px-4 py-2.5 rounded-full border text-xs sm:text-sm font-medium transition-all cursor-pointer select-none border-blue-200/80 bg-white text-primary hover:border-primary hover:bg-blue-50/50 w-full text-left"
+            >
+              <Icon className="w-4 h-4 shrink-0" />
+              <span>{item.label}</span>
+            </button>
+          );
+        }
+
         return (
           <NavLink
             key={item.label}

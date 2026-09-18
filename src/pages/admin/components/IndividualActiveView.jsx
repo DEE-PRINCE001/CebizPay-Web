@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { AlertCircle } from 'lucide-react';
 import womanPhoto from '../../../assets/woman.svg';
 import IndividualBreadcrumb from './IndividualBreadcrumb.jsx';
 import IndividualTransactionsTab from './IndividualTransactionsTab.jsx';
@@ -18,7 +19,7 @@ export default function IndividualActiveView({
 
   const userName = individual?.name || 'Individual';
   const status = individual?.status || 'Active';
-  const isSuspended = status === 'Suspended';
+  const isSuspended = individual?.isSuspended != null ? individual.isSuspended : (status === 'Suspended');
   const photo = individual?.photoUrl || individual?.avatarUrl || womanPhoto;
 
   return (
@@ -73,6 +74,26 @@ export default function IndividualActiveView({
           )}
         </div>
       </div>
+
+      {/* Suspension Alert Banner */}
+      {isSuspended && (
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 sm:p-5 flex items-start space-x-3.5 text-amber-900 shadow-xs">
+          <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+          <div className="flex flex-col space-y-1 text-xs sm:text-sm">
+            <span className="font-semibold">
+              Account Suspended{individual?.suspendedAtUtc ? ` on ${new Date(individual.suspendedAtUtc).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}` : ''}
+            </span>
+            {individual?.suspensionReason && (
+              <span className="text-amber-800">
+                Reason: &ldquo;{individual.suspensionReason}&rdquo;
+              </span>
+            )}
+            <span className="text-amber-700 text-xs">
+              Outbound financial transfers for this user are currently blocked.
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Bottom Card: Tabs & Content */}
       <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 lg:p-8 shadow-xs border border-slate-100 flex flex-col space-y-6">

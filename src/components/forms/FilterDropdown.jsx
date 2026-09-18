@@ -1,6 +1,29 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-const DEFAULT_STATUS_FILTER_OPTIONS = [
+export const DEFAULT_STATUS_FILTER_OPTIONS = [
+  { id: 'verified', label: 'Verified', value: 'Verified' },
+  { id: 'pending', label: 'Pending', value: 'Pending' },
+  { id: 'suspended', label: 'Suspended', value: 'Suspended' },
+  { id: 'rejected', label: 'Rejected', value: 'Rejected' },
+];
+
+export const MEMBERSHIP_STATUS_FILTER_OPTIONS = [
+  { id: 'active', label: 'Active', value: 'Active' },
+  { id: 'suspended', label: 'Suspended', value: 'Suspended' },
+  { id: 'terminated', label: 'Terminated', value: 'Terminated' },
+];
+
+export const ORGANIZATION_STATUS_FILTER_OPTIONS = DEFAULT_STATUS_FILTER_OPTIONS;
+
+export const TRANSACTION_STATUS_FILTER_OPTIONS = [
+  { id: 'completed', label: 'Completed', value: 'Completed' },
+  { id: 'processing', label: 'Processing', value: 'Processing' },
+  { id: 'pending', label: 'Pending', value: 'Pending' },
+  { id: 'failed', label: 'Failed', value: 'Failed' },
+  { id: 'reversed', label: 'Reversed', value: 'Reversed' },
+];
+
+export const INDIVIDUAL_STATUS_FILTER_OPTIONS = [
   { id: 'verified', label: 'Verified', value: 'Verified' },
   { id: 'pending', label: 'Pending', value: 'Pending' },
   { id: 'suspended', label: 'Suspended', value: 'Suspended' },

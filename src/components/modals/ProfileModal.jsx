@@ -396,7 +396,7 @@ const ProfileModal = ({ isOpen = false, onClose, user: userProp, platform: platf
             className="rounded-xl text-xs sm:text-sm"
             onClick={() => setIsPublishAnnouncementOpen(true)}
           >
-            Published Announcements
+            Publish Announcements
           </Button>
           <div className="w-[45%] sm:w-[50%]">
             <Button

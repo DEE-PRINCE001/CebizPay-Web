@@ -30,7 +30,7 @@ const Navbar = () => {
     location.pathname.startsWith('/wallet');
 
   return (
-    <header className="w-full flex flex-col">
+    <header className="w-full flex flex-col md:mb-10">
       <div className="flex items-center justify-between xl:gap-x-7 w-full">
         {/* Brand Logo & Greeting Card */}
         <div className="flex items-center space-x-3 sm:space-x-5">

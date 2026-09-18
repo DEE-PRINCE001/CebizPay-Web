@@ -6,11 +6,12 @@ import SearchInput from '../../components/forms/SearchInput.jsx';
 import Button from '../../components/common/Button.jsx';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/common/table/index.js';
 import Pagination from '../../components/common/Pagination.jsx';
-import FilterDropdown from '../../components/forms/FilterDropdown.jsx';
+import FilterDropdown, { MEMBERSHIP_STATUS_FILTER_OPTIONS } from '../../components/forms/FilterDropdown.jsx';
 import StatusBadge from '../../components/common/StatusBadge.jsx';
 import { ChevronDown, Loader2, AlertCircle } from 'lucide-react';
 import defaultAvatar from '../../assets/Ellipse 3018.svg';
 import { organizationService } from '../../api/services/organization.service.js';
+import { MembershipStatus } from '../../data/enums.js';
 
 export default function Members() {
   const navigate = useNavigate();
@@ -48,7 +49,7 @@ export default function Members() {
     position: m.roleTitle || m.role || 'Staff',
     level: m.salaryLevelName || '-',
     email: m.email,
-    status: m.status || 'Active',
+    status: m.status || MembershipStatus.Active,
     avatarUrl: m.avatarUrl || null,
     raw: m,
   }));
@@ -140,6 +141,7 @@ export default function Members() {
                 <FilterDropdown
                   isOpen={isFilterOpen}
                   onClose={() => setIsFilterOpen(false)}
+                  options={MEMBERSHIP_STATUS_FILTER_OPTIONS}
                   onSelect={(status) => {
                     setSelectedStatus(status);
                     setCurrentPage(1);

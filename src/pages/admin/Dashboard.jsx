@@ -66,7 +66,7 @@ const Dashboard = () => {
       return announcementsData.items.slice(0, 2).map((a) => ({
         id: a.id || a.announcementId,
         title: a.title,
-        content: a.content || a.summary || a.message || '',
+        content: a.description || a.summary || a.message || '',
       }));
     }
     return [];
@@ -170,7 +170,7 @@ const Dashboard = () => {
             ) : announcements.length > 0 ? (
               <div className="flex flex-col space-y-4">
                 {announcements.map((item) => {
-                  console.log('Announcement Item:', item); // Debugging log
+                  console.log('Announcement Item:', announcementsData); // Debugging log
                   return (
                   <AnnouncementItem
                     key={item.id}

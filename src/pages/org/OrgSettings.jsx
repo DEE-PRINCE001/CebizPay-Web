@@ -15,6 +15,15 @@ import { useAuth } from '../../hooks/useAuth.js';
 import { recruitmentService } from '../../api/services/recruitment.service.js';
 import { userService } from '../../api/services/user.service.js';
 import { organizationService } from '../../api/services/organization.service.js';
+import {
+  CurrencyValues,
+  SavingsPlanTypeValues,
+  SavingsOwnerTypeValues,
+  SavingsContributionFrequencyValues,
+  RepaymentFrequencyValues,
+  AnnouncementScopeValues,
+  EmploymentTypeValues,
+} from '../../data/enums.js';
 
 export default function OrgSettings() {
   const navigate = useNavigate();
@@ -56,15 +65,15 @@ export default function OrgSettings() {
   const jobOfferMutation = useMutation({
     mutationFn: (payload) => {
       const EMPLOYMENT_TYPE_MAP = {
-        'Full-time': 0,
-        'FullTime': 0,
-        'Part-time': 1,
-        'PartTime': 1,
-        'Contract': 2,
-        'Internship': 3,
-        'Remote': 4,
+        'Full-time': EmploymentTypeValues.FullTime,
+        'FullTime': EmploymentTypeValues.FullTime,
+        'Part-time': EmploymentTypeValues.PartTime,
+        'PartTime': EmploymentTypeValues.PartTime,
+        'Contract': EmploymentTypeValues.Contract,
+        'Internship': EmploymentTypeValues.Internship,
+        'Remote': EmploymentTypeValues.Remote,
       };
-      const employmentType = EMPLOYMENT_TYPE_MAP[payload.jobType] ?? EMPLOYMENT_TYPE_MAP[payload.type] ?? 0;
+      const employmentType = EMPLOYMENT_TYPE_MAP[payload.jobType] ?? EMPLOYMENT_TYPE_MAP[payload.type] ?? EmploymentTypeValues.FullTime;
 
       const deadlineDate = payload.closingPeriod ? new Date(payload.closingPeriod) : new Date(Date.now() + 30 * 86400000);
       const applicationDeadline = !isNaN(deadlineDate.getTime())
@@ -111,7 +120,7 @@ export default function OrgSettings() {
         title: payload.title,
         description: payload.description,
         bannerUrl: payload.bannerUrl || null,
-        scope: 2, // 2 = Workplace (1 = Platform)
+        scope: AnnouncementScopeValues.Workplace, // 2 = Workplace
         publishImmediately: true,
       }),
     onSuccess: (data, variables) => {
@@ -137,9 +146,9 @@ export default function OrgSettings() {
   const savingPlanMutation = useMutation({
     mutationFn: (payload) => {
       const FREQUENCY_MAP = {
-        Daily: 1,
-        Weekly: 2,
-        Monthly: 3,
+        Daily: SavingsContributionFrequencyValues.Daily,
+        Weekly: SavingsContributionFrequencyValues.Weekly,
+        Monthly: SavingsContributionFrequencyValues.Monthly,
       };
 
       const start = new Date(payload.startDate);
@@ -149,11 +158,11 @@ export default function OrgSettings() {
 
       return organizationService.savings.createPlan({
         organizationId: activeOrg?.organizationId,
-        ownerType: 2, // Organization
-        planType: 2,  // Target
+        ownerType: SavingsOwnerTypeValues.Organization, // 2 = Organization
+        planType: SavingsPlanTypeValues.GoalBased,       // 2 = GoalBased (Target)
         name: payload.name,
         description: payload.description,
-        currency: 0,  // NGN
+        currency: CurrencyValues.NGN,                   // 1 = NGN (1-based enum)
         interestRate: 10.0,
         minimumAmount: payload.rawAmount,
         maximumAmount: payload.rawAmount,
@@ -161,7 +170,7 @@ export default function OrgSettings() {
         maximumDurationDays: durationDays,
         targetAmount: payload.rawAmount,
         contributionAmount: payload.rawAmount,
-        contributionFrequency: FREQUENCY_MAP[payload.frequency] ?? 3,
+        contributionFrequency: FREQUENCY_MAP[payload.frequency] ?? SavingsContributionFrequencyValues.Monthly,
       });
     },
     onSuccess: (data, variables) => {
@@ -186,10 +195,10 @@ export default function OrgSettings() {
   const loanPlanMutation = useMutation({
     mutationFn: (payload) => {
       const REPAYMENT_FREQ_MAP = {
-        Monthly: 1,
-        Weekly: 2,
-        'Bi-weekly': 3,
-        BiWeekly: 3,
+        Monthly: RepaymentFrequencyValues.Monthly,
+        Weekly: RepaymentFrequencyValues.Weekly,
+        'Bi-weekly': RepaymentFrequencyValues.BiWeekly,
+        BiWeekly: RepaymentFrequencyValues.BiWeekly,
       };
 
       return organizationService.loans.createPlan({
@@ -201,7 +210,7 @@ export default function OrgSettings() {
         minimumDurationMonths: 1,
         maximumDurationMonths: 12,
         minimumMonthlySalary: 30000,
-        repaymentFrequency: REPAYMENT_FREQ_MAP[payload.repaymentFrequency] ?? 1,
+        repaymentFrequency: REPAYMENT_FREQ_MAP[payload.repaymentFrequency] ?? RepaymentFrequencyValues.Monthly,
       });
     },
     onSuccess: (data, variables) => {
@@ -238,7 +247,7 @@ export default function OrgSettings() {
 
   return (
     <OrgDashboardLayout>
-      <div className="flex flex-col space-y-6 sm:space-y-8">
+      <div className="flex flex-col space-y-6 sm:space-y-8 lg:max-w-[70%]">
         {/* Page Title */}
         <div className="flex items-center justify-between px-1">
           <h1 className="text-xl sm:text-2xl font-bold text-primary-text">

@@ -27,6 +27,11 @@ import Members from './pages/org/Members.jsx';
 import MemberDetails from './pages/org/MemberDetails.jsx';
 import OrgWallet from './pages/org/OrgWallet.jsx';
 import OrgSettings from './pages/org/OrgSettings.jsx';
+import PayrollAnalytics from './pages/org/payroll/PayrollAnalytics.jsx';
+import PayrollSchedules from './pages/org/payroll/PayrollSchedules.jsx';
+import PayrollHistory from './pages/org/payroll/PayrollHistory.jsx';
+import PaymentBreakdown from './pages/org/payroll/PaymentBreakdown.jsx';
+import PaymentDetails from './pages/org/payroll/PaymentDetails.jsx';
 
 function App() {
   return (
@@ -85,6 +90,14 @@ function App() {
                 <Route path="/org/members/:id" element={<MemberDetails />} />
                 <Route path="/org/wallet" element={<OrgWallet />} />
                 <Route path="/org/settings" element={<OrgSettings />} />
+                <Route path="/org/payroll" element={<PayrollAnalytics />} />
+                <Route path="/org/payroll/analytics" element={<PayrollAnalytics />} />
+                <Route path="/org/payroll/schedules" element={<PayrollSchedules />} />
+                <Route path="/org/payroll/history" element={<PayrollHistory />} />
+                <Route path="/org/payroll/history/:batchId" element={<PaymentBreakdown />} />
+                <Route path="/org/payroll/breakdown" element={<PaymentBreakdown />} />
+                <Route path="/org/payroll/payments/:paymentId" element={<PaymentDetails />} />
+                <Route path="/org/payroll/details" element={<PaymentDetails />} />
               </Route>
             </Route>
 

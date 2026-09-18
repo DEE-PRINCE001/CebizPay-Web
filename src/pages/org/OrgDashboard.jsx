@@ -15,6 +15,7 @@ import TransactionSuccessModal from '../../components/modals/wallet/TransactionS
 import { walletService } from '../../api/services/wallet.service.js';
 import { cardsService } from '../../api/services/cards.service.js';
 import { userService } from '../../api/services/user.service.js';
+import { AnnouncementScopeValues } from '../../data/enums.js';
 import { Bell, Loader2 } from 'lucide-react';
 
 export default function OrgDashboard() {
@@ -70,7 +71,7 @@ export default function OrgDashboard() {
         title: payload.title,
         description: payload.description,
         bannerUrl: payload.bannerUrl || null,
-        scope: 2, // 2 = Workplace
+        scope: AnnouncementScopeValues.Workplace, // 2 = Workplace
         publishImmediately: true,
       }),
     onSuccess: () => {

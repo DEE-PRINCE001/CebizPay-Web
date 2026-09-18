@@ -44,6 +44,15 @@ export const adminService = {
     updateStatus: async (id, payload) => {
       return apiClient.patch(ENDPOINTS.ADMIN.INDIVIDUALS.UPDATE_STATUS(id), payload);
     },
+    updateKycStatus: async (id, payload) => {
+      return apiClient.patch(ENDPOINTS.ADMIN.INDIVIDUALS.UPDATE_KYC_STATUS(id), payload);
+    },
+    suspend: async (id, payload) => {
+      return apiClient.patch(ENDPOINTS.ADMIN.INDIVIDUALS.SUSPEND(id), payload);
+    },
+    reactivate: async (id, payload) => {
+      return apiClient.patch(ENDPOINTS.ADMIN.INDIVIDUALS.REACTIVATE(id), payload);
+    },
     getTransactions: async (id, params = { pageNumber: 1, pageSize: 10, search: '', status: '' }) => {
       return apiClient.get(ENDPOINTS.ADMIN.INDIVIDUALS.TRANSACTIONS(id), { params });
     },

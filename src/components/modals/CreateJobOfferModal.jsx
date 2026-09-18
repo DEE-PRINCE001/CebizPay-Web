@@ -5,13 +5,14 @@ import FileUpload from '../forms/FileUpload.jsx';
 import Button from '../common/Button.jsx';
 import FormError from '../forms/FormError.jsx';
 import { uploadToCloudinary } from '../../lib/cloudinary.js';
+import { EmploymentType } from '../../data/enums.js';
 
 const JOB_TYPE_OPTIONS = [
-  { value: 'Full-time', label: 'Full-time' },
-  { value: 'Part-time', label: 'Part-time' },
-  { value: 'Contract', label: 'Contract' },
-  { value: 'Internship', label: 'Internship' },
-  { value: 'Remote', label: 'Remote' },
+  { value: EmploymentType.FullTime, label: 'Full-time' },
+  { value: EmploymentType.PartTime, label: 'Part-time' },
+  { value: EmploymentType.Contract, label: 'Contract' },
+  { value: EmploymentType.Internship, label: 'Internship' },
+  { value: EmploymentType.Remote, label: 'Remote' },
 ];
 
 const WORK_MODE_OPTIONS = [
@@ -29,7 +30,7 @@ export default function CreateJobOfferModal({
   const [formData, setFormData] = useState({
     title: '',
     location: '',
-    jobType: 'Full-time',
+    jobType: EmploymentType.FullTime,
     workMode: 'Hybrid',
     experience: '',
     requirements: '',
@@ -49,7 +50,7 @@ export default function CreateJobOfferModal({
       setFormData({
         title: '',
         location: '',
-        jobType: 'Full-time',
+        jobType: EmploymentType.FullTime,
         workMode: 'Hybrid',
         experience: '',
         requirements: '',

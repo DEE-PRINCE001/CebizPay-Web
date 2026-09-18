@@ -7,12 +7,13 @@ import SearchInput from '../../components/forms/SearchInput.jsx';
 import Button from '../../components/common/Button.jsx';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/common/table/index.js';
 import Pagination from '../../components/common/Pagination.jsx';
-import FilterDropdown from '../../components/forms/FilterDropdown.jsx';
+import FilterDropdown, { TRANSACTION_STATUS_FILTER_OPTIONS } from '../../components/forms/FilterDropdown.jsx';
 import ActionConfirmModal from '../../components/modals/ActionConfirmModal.jsx';
 import StatusBadge from '../../components/common/StatusBadge.jsx';
 import { ChevronDown, PiggyBank, Loader2, AlertCircle } from 'lucide-react';
 import womanPhoto from '../../assets/woman.svg';
 import { organizationService } from '../../api/services/organization.service.js';
+import { MembershipStatus } from '../../data/enums.js';
 
 export default function MemberDetails() {
   const { id } = useParams();
@@ -30,7 +31,7 @@ export default function MemberDetails() {
   });
 
   const activeProfile = memberProfile || passedMember;
-  const [memberStatus, setMemberStatus] = useState(activeProfile?.status || 'Active');
+  const [memberStatus, setMemberStatus] = useState(activeProfile?.status || MembershipStatus.Active);
   const [activeTab, setActiveTab] = useState('Salaries');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('');
@@ -77,7 +78,7 @@ export default function MemberDetails() {
     const txnId = item.transactionId || item.reference || item.id || '';
     const acct = item.accountOrWalletId || item.accountNumber || '';
     const month = item.month || '';
-    const status = item.status || 'Successful';
+    const status = item.status || 'Completed';
 
     const matchesSearch =
       !searchQuery.trim() ||
@@ -196,7 +197,7 @@ export default function MemberDetails() {
       `"${s.accountOrWalletId || '-'}"`,
       `"${s.month || '-'}"`,
       `"${s.disbursedAtUtc || s.dateTime || '-'}"`,
-      `"${s.status || 'Successful'}"`,
+      `"${s.status || 'Completed'}"`,
     ]);
     const csvContent = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -349,6 +350,7 @@ export default function MemberDetails() {
                     <FilterDropdown
                       isOpen={isFilterOpen}
                       onClose={() => setIsFilterOpen(false)}
+                      options={TRANSACTION_STATUS_FILTER_OPTIONS}
                       onSelect={(status) => {
                         setSelectedStatus(status);
                         setCurrentPage(1);
@@ -435,7 +437,7 @@ export default function MemberDetails() {
                             </TableCell>
 
                             <TableCell>
-                              <StatusBadge status={sal.status || 'Successful'} />
+                              <StatusBadge status={sal.status || 'Completed'} />
                             </TableCell>
                           </TableRow>
                         );

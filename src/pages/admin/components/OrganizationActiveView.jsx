@@ -150,10 +150,10 @@ export default function OrganizationActiveView({
                 className={
                   isSuspended
                     ? 'font-semibold text-suspended'
-                    : 'font-semibold text-active'
+                    : 'font-semibold text-verified'
                 }
               >
-                {isSuspended ? 'Suspended' : 'Active'}
+                {isSuspended ? 'Suspended' : 'Verified'}
               </span>
             </p>
           </div>

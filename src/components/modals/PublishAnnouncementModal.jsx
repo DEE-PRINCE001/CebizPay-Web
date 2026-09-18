@@ -4,6 +4,7 @@ import Input from '../forms/Input.jsx';
 import Button from '../common/Button.jsx';
 import FormError from '../forms/FormError.jsx';
 import { userService } from '../../api/services/user.service.js';
+import { AnnouncementScopeValues } from '../../data/enums.js';
 
 export default function PublishAnnouncementModal({
   isOpen,
@@ -53,7 +54,7 @@ export default function PublishAnnouncementModal({
       await userService.createAnnouncement({
         title: formData.title.trim(),
         description: formData.description.trim(),
-        scope: 1, // Platform scope
+        scope: AnnouncementScopeValues.Platform, // 1 = Platform scope
         publishImmediately: true,
       });
 

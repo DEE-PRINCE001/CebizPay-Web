@@ -1,4 +1,5 @@
 import { useAuth } from './useAuth.js';
+import { MembershipRoleType, AdminRoleType } from '../data/enums.js';
 
 export const usePermissions = () => {
   const { user, activeOrg, hasRole, hasPermission, isAdmin, hasOrgContext } = useAuth();
@@ -21,8 +22,36 @@ export const usePermissions = () => {
     hasRole,
     hasPermission,
     canAccessAdmin: () => isAdmin,
-    canAccessWorkforce: () => hasOrgContext && (isAdmin || hasRole(['Manager', 'WorkforceAdmin', 'OrgAdmin', 'Owner'])),
-    canAccessPayroll: () => hasOrgContext && (isAdmin || hasRole(['PayrollManager', 'Accountant', 'OrgAdmin', 'Owner'])),
-    canAccessInventory: () => hasOrgContext && (isAdmin || hasRole(['InventoryManager', 'WarehouseAdmin', 'OrgAdmin', 'Owner'])),
+    canAccessWorkforce: () =>
+      hasOrgContext &&
+      (isAdmin ||
+        hasRole([
+          MembershipRoleType.Owner,
+          MembershipRoleType.Admin,
+          MembershipRoleType.HrManager,
+          'Manager',
+          'WorkforceAdmin',
+          'OrgAdmin',
+        ])),
+    canAccessPayroll: () =>
+      hasOrgContext &&
+      (isAdmin ||
+        hasRole([
+          MembershipRoleType.Owner,
+          MembershipRoleType.Admin,
+          MembershipRoleType.PayrollManager,
+          'Accountant',
+          'OrgAdmin',
+        ])),
+    canAccessInventory: () =>
+      hasOrgContext &&
+      (isAdmin ||
+        hasRole([
+          MembershipRoleType.Owner,
+          MembershipRoleType.Admin,
+          'InventoryManager',
+          'WarehouseAdmin',
+          'OrgAdmin',
+        ])),
   };
 };

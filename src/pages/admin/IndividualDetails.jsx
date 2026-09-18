@@ -9,13 +9,12 @@ import { adminService } from '../../api/services/admin.service.js';
 import { useAuth } from '../../hooks/useAuth.js';
 import { queryClient } from '../../lib/queryClient.js';
 import { Loader2, AlertCircle } from 'lucide-react';
+import { KycStatusValues } from '../../data/enums.js';
 
 const KYC_STATUS_CODES = {
-  Pending: 1,
-  Verified: 2,
-  Active: 2,
-  Rejected: 3,
-  Suspended: 4,
+  Pending: KycStatusValues.Pending,
+  Verified: KycStatusValues.Verified,
+  Rejected: KycStatusValues.Rejected,
 };
 
 export default function IndividualDetails() {
@@ -109,7 +108,7 @@ export default function IndividualDetails() {
         dateTime: tx.dateTime
           ? new Date(tx.dateTime).toLocaleString('en-US', { dateStyle: 'short', timeStyle: 'short' })
           : (tx.createdAt ? new Date(tx.createdAt).toLocaleString('en-US', { dateStyle: 'short', timeStyle: 'short' }) : 'N/A'),
-        status: tx.status || 'Successfull',
+        status: tx.status || 'Completed',
       }));
     }
     return [];
@@ -128,9 +127,17 @@ export default function IndividualDetails() {
 
   const individual = useMemo(() => {
     if (!baseIndividual) return null;
+    const computedStatus = statusOverride || baseIndividual.status || 'Pending';
+    const isSuspended = statusOverride
+      ? statusOverride === 'Suspended'
+      : (baseIndividual.isSuspended ?? computedStatus === 'Suspended');
+
     return {
       ...baseIndividual,
-      status: statusOverride || baseIndividual.status || 'Pending',
+      status: computedStatus,
+      isSuspended,
+      suspendedAtUtc: baseIndividual.suspendedAtUtc || null,
+      suspensionReason: baseIndividual.suspensionReason || null,
       credentials,
       wallet: walletData || baseIndividual.wallet || null,
       savingsPlans: savingsData?.items || baseIndividual.savingsPlans || [],
@@ -248,7 +255,7 @@ export default function IndividualDetails() {
     setModalConfig({
       isOpen: true,
       step: 'confirm',
-      title: 'Re-Activated?',
+      title: 'Re-Activate?',
       message: `You are about to re-activate ( ${userName} ) from using this service`,
       subMessage: 'Do you wish to proceed with this action?',
       showCloseButton: true,
@@ -258,9 +265,9 @@ export default function IndividualDetails() {
       isLoading: false,
       errorMessage: '',
       pendingNewStatus: 'Active',
-      requireReason: false,
-      reasonLabel: 'Reason',
-      reasonPlaceholder: '',
+      requireReason: true,
+      reasonLabel: 'Reason for Re-Activation',
+      reasonPlaceholder: 'Please state the reason for reactivation (min 5 chars)...',
       reason: '',
       reasonError: '',
     });
@@ -275,7 +282,16 @@ export default function IndividualDetails() {
         : modalConfig.reason
     )?.trim();
 
-    if (modalConfig.requireReason && !effectiveReason) {
+    // Enforce 5-char minimum for suspend and reactivate
+    if (nextStatus === 'Suspended' || nextStatus === 'Active') {
+      if (!effectiveReason || effectiveReason.length < 5) {
+        setModalConfig((prev) => ({
+          ...prev,
+          reasonError: 'Reason is mandatory and must be at least 5 characters.',
+        }));
+        return;
+      }
+    } else if (modalConfig.requireReason && !effectiveReason) {
       setModalConfig((prev) => ({
         ...prev,
         reasonError: 'Please provide a reason before proceeding.',
@@ -286,10 +302,23 @@ export default function IndividualDetails() {
     setModalConfig((prev) => ({ ...prev, errorMessage: '', isLoading: true }));
 
     try {
-      await updateStatusMutation.mutateAsync({
-        statusName: nextStatus,
-        reason: effectiveReason,
-      });
+      if (nextStatus === 'Suspended') {
+        await adminService.individuals.suspend(id, { reason: effectiveReason });
+      } else if (nextStatus === 'Active') {
+        await adminService.individuals.reactivate(id, { reason: effectiveReason });
+      } else {
+        const statusCode = KYC_STATUS_CODES[nextStatus] ?? KycStatusValues.Verified;
+        const adminUserId = user?.userId || user?.id || '';
+        await adminService.individuals.updateKycStatus(id, {
+          status: statusCode,
+          adminUserId,
+          reason: effectiveReason || `${nextStatus} by admin`,
+        });
+      }
+
+      setStatusOverride(nextStatus);
+      queryClient.invalidateQueries({ queryKey: ['admin-individual-details', id] });
+      queryClient.invalidateQueries({ queryKey: ['admin-individuals'] });
 
       let successTitle = 'Verified';
       let successMessage = `You have successfully verified ${userName}`;
@@ -300,7 +329,7 @@ export default function IndividualDetails() {
       } else if (nextStatus === 'Suspended') {
         successTitle = 'Successfully Suspended';
         successMessage = `( ${userName} ) has been suspended from using this service`;
-      } else if (nextStatus === 'Active' || nextStatus === 'Verified') {
+      } else if (nextStatus === 'Active') {
         successTitle = 'Successfully Re-Activated';
         successMessage = `( ${userName} ) has been re-activated and is now free to enjoy all the benefit that comes with this service`;
       }

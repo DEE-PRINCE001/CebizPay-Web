@@ -7,7 +7,7 @@ import Button from '../../components/common/Button.jsx';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/common/table/index.js';
 import StatusBadge from '../../components/common/StatusBadge.jsx';
 import Pagination from '../../components/common/Pagination.jsx';
-import FilterDropdown from '../../components/forms/FilterDropdown.jsx';
+import FilterDropdown, { INDIVIDUAL_STATUS_FILTER_OPTIONS } from '../../components/forms/FilterDropdown.jsx';
 import { ChevronDown, Loader2, AlertCircle } from 'lucide-react';
 import defaultAvatar from '../../assets/Ellipse 3018.svg';
 import { adminService } from '../../api/services/admin.service.js';
@@ -155,6 +155,7 @@ export default function Individuals() {
                 <FilterDropdown
                   isOpen={isFilterOpen}
                   onClose={() => setIsFilterOpen(false)}
+                  options={INDIVIDUAL_STATUS_FILTER_OPTIONS}
                   onSelect={(status) => {
                     setSelectedStatus(status);
                     setCurrentPage(1);

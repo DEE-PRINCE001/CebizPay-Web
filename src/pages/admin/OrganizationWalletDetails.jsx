@@ -8,7 +8,7 @@ import Button from '../../components/common/Button.jsx';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/common/table/index.js';
 import StatusBadge from '../../components/common/StatusBadge.jsx';
 import Pagination from '../../components/common/Pagination.jsx';
-import FilterDropdown from '../../components/forms/FilterDropdown.jsx';
+import FilterDropdown, { TRANSACTION_STATUS_FILTER_OPTIONS } from '../../components/forms/FilterDropdown.jsx';
 import { ChevronDown, PiggyBank, Loader2, AlertCircle } from 'lucide-react';
 import { adminService } from '../../api/services/admin.service.js';
 
@@ -103,7 +103,7 @@ export default function OrganizationWalletDetails() {
         dateTime: item.dateTime
           ? new Date(item.dateTime).toLocaleString('en-US', { dateStyle: 'short', timeStyle: 'short' })
           : 'N/A',
-        status: item.status || 'Successfull',
+        status: item.status || 'Completed',
       }));
     }
     return [];
@@ -303,6 +303,7 @@ export default function OrganizationWalletDetails() {
                     <FilterDropdown
                       isOpen={isFilterOpen}
                       onClose={() => setIsFilterOpen(false)}
+                      options={TRANSACTION_STATUS_FILTER_OPTIONS}
                       onSelect={(status) => {
                         setSelectedStatus(status);
                         setCurrentPage(1);
