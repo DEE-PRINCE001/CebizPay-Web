@@ -20,6 +20,10 @@ import AnnouncementsModal from '../modals/AnnouncementsModal.jsx';
 import FinanceDropdown from './FinanceDropdown.jsx';
 import PayrollDropdown from './PayrollDropdown.jsx';
 import DepartmentLevelFlyout from './DepartmentLevelFlyout.jsx';
+import CreateDepartmentModal from '../modals/organization/CreateDepartmentModal.jsx';
+import ManageDepartmentsModal from '../modals/organization/ManageDepartmentsModal.jsx';
+import ManageLevelsModal from '../modals/organization/ManageLevelsModal.jsx';
+import CreateLevelModal from '../modals/organization/CreateLevelModal.jsx';
 
 const ORG_NAV_ITEMS = [
   { to: '/org/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -37,6 +41,15 @@ export default function OrgNavbar() {
   const [isFinanceOpen, setIsFinanceOpen] = useState(false);
   const [isPayrollOpen, setIsPayrollOpen] = useState(false);
   const [flyoutType, setFlyoutType] = useState(null);
+
+  // Department & Level modals state
+  const [isCreateDeptOpen, setIsCreateDeptOpen] = useState(false);
+  const [isManageDeptsOpen, setIsManageDeptsOpen] = useState(false);
+  const [isManageLevelsOpen, setIsManageLevelsOpen] = useState(false);
+  const [isCreateLevelOpen, setIsCreateLevelOpen] = useState(false);
+  const [editingDepartment, setEditingDepartment] = useState(null);
+  const [editingLevel, setEditingLevel] = useState(null);
+
   const location = useLocation();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -58,6 +71,26 @@ export default function OrgNavbar() {
     return () => window.removeEventListener('toggle-payroll-menu', handleToggle);
   }, []);
 
+  // Listen for modal opening requests
+  useEffect(() => {
+    const handleOpenModal = (e) => {
+      const modal = e.detail?.modal;
+      if (modal === 'create-departments') {
+        setEditingDepartment(null);
+        setIsCreateDeptOpen(true);
+      } else if (modal === 'manage-departments') {
+        setIsManageDeptsOpen(true);
+      } else if (modal === 'manage-levels') {
+        setIsManageLevelsOpen(true);
+      } else if (modal === 'create-level') {
+        setEditingLevel(null);
+        setIsCreateLevelOpen(true);
+      }
+    };
+    window.addEventListener('open-org-modal', handleOpenModal);
+    return () => window.removeEventListener('open-org-modal', handleOpenModal);
+  }, []);
+
   const handlePayrollSelect = (option) => {
     if (option.isFlyout) {
       setFlyoutType(option.id);
@@ -71,7 +104,14 @@ export default function OrgNavbar() {
   const handleFlyoutAction = (action) => {
     setFlyoutType(null);
     setIsPayrollOpen(false);
-    window.dispatchEvent(new CustomEvent('open-org-modal', { detail: { modal: action } }));
+    if (action === 'create-departments') {
+      setEditingDepartment(null);
+      setIsCreateDeptOpen(true);
+    } else if (action === 'manage-departments') {
+      setIsManageDeptsOpen(true);
+    } else if (action === 'manage-levels') {
+      setIsManageLevelsOpen(true);
+    }
   };
 
   return (
@@ -348,6 +388,63 @@ export default function OrgNavbar() {
       <AnnouncementsModal
         isOpen={isAnnouncementsOpen}
         onClose={() => setIsAnnouncementsOpen(false)}
+      />
+
+      {/* Organization Departments & Levels Modals */}
+      <CreateDepartmentModal
+        key={isCreateDeptOpen ? `dept-${editingDepartment?.id || 'new'}` : 'dept-closed'}
+        isOpen={isCreateDeptOpen}
+        initialData={editingDepartment}
+        onClose={() => {
+          setIsCreateDeptOpen(false);
+          setEditingDepartment(null);
+        }}
+        onSubmit={(dept) => {
+          console.log('Saved department:', dept);
+        }}
+      />
+
+      <ManageDepartmentsModal
+        key={isManageDeptsOpen ? 'manage-depts-open' : 'manage-depts-closed'}
+        isOpen={isManageDeptsOpen}
+        onClose={() => setIsManageDeptsOpen(false)}
+        onEditDepartment={(dept) => {
+          setIsManageDeptsOpen(false);
+          setEditingDepartment(dept);
+          setIsCreateDeptOpen(true);
+        }}
+        onRemoveDepartment={(deptId) => {
+          console.log('Removed department:', deptId);
+        }}
+      />
+
+      <ManageLevelsModal
+        key={isManageLevelsOpen ? 'manage-levels-open' : 'manage-levels-closed'}
+        isOpen={isManageLevelsOpen}
+        onClose={() => setIsManageLevelsOpen(false)}
+        onCreateLevel={() => {
+          setIsManageLevelsOpen(false);
+          setEditingLevel(null);
+          setIsCreateLevelOpen(true);
+        }}
+        onEditLevel={(lvl) => {
+          setIsManageLevelsOpen(false);
+          setEditingLevel(lvl);
+          setIsCreateLevelOpen(true);
+        }}
+      />
+
+      <CreateLevelModal
+        key={isCreateLevelOpen ? `lvl-${editingLevel?.id || 'new'}` : 'lvl-closed'}
+        isOpen={isCreateLevelOpen}
+        initialData={editingLevel}
+        onClose={() => {
+          setIsCreateLevelOpen(false);
+          setEditingLevel(null);
+        }}
+        onSubmit={(lvl) => {
+          console.log('Saved level:', lvl);
+        }}
       />
     </header>
   );
