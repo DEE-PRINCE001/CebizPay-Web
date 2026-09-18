@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import logo from '../../assets/logo.jpg';
 import Button from '../common/Button';
 import {
@@ -18,6 +18,8 @@ import { useAuth } from '../../hooks/useAuth.js';
 import OrgProfileModal from '../modals/OrgProfileModal.jsx';
 import AnnouncementsModal from '../modals/AnnouncementsModal.jsx';
 import FinanceDropdown from './FinanceDropdown.jsx';
+import PayrollDropdown from './PayrollDropdown.jsx';
+import DepartmentLevelFlyout from './DepartmentLevelFlyout.jsx';
 
 const ORG_NAV_ITEMS = [
   { to: '/org/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -33,15 +35,44 @@ export default function OrgNavbar() {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isAnnouncementsOpen, setIsAnnouncementsOpen] = useState(false);
   const [isFinanceOpen, setIsFinanceOpen] = useState(false);
+  const [isPayrollOpen, setIsPayrollOpen] = useState(false);
+  const [flyoutType, setFlyoutType] = useState(null);
   const location = useLocation();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const displayName = user?.firstName || user?.name?.split(' ')[0] || 'Tayo';
 
+  const isPayrollActive = location.pathname.startsWith('/org/payroll');
   const isFinanceActive =
-    location.pathname.startsWith('/org/payroll') ||
+    isPayrollActive ||
     location.pathname.startsWith('/org/inventory') ||
     location.pathname.startsWith('/org/invoices') ||
     location.pathname.startsWith('/org/vouchers');
+
+  // Listen for global payroll dropdown toggle (e.g. from page "Payrolls" button)
+  useEffect(() => {
+    const handleToggle = () => {
+      setIsPayrollOpen((prev) => !prev);
+    };
+    window.addEventListener('toggle-payroll-menu', handleToggle);
+    return () => window.removeEventListener('toggle-payroll-menu', handleToggle);
+  }, []);
+
+  const handlePayrollSelect = (option) => {
+    if (option.isFlyout) {
+      setFlyoutType(option.id);
+    } else if (option.path) {
+      setIsPayrollOpen(false);
+      setFlyoutType(null);
+      navigate(option.path);
+    }
+  };
+
+  const handleFlyoutAction = (action) => {
+    setFlyoutType(null);
+    setIsPayrollOpen(false);
+    window.dispatchEvent(new CustomEvent('open-org-modal', { detail: { modal: action } }));
+  };
 
   return (
     <header className="w-full flex flex-col">
@@ -81,18 +112,53 @@ export default function OrgNavbar() {
                     icon={item.icon}
                     size="md"
                     variant={isFinanceActive ? 'primaryLink' : 'outline'}
-                    onClick={() => setIsFinanceOpen((prev) => !prev)}
+                    onClick={() => {
+                      if (isPayrollActive) {
+                        setIsPayrollOpen((prev) => !prev);
+                        setIsFinanceOpen(false);
+                      } else {
+                        setIsFinanceOpen((prev) => !prev);
+                        setIsPayrollOpen(false);
+                      }
+                    }}
                     className="w-auto px-4 py-2 text-xs sm:text-sm whitespace-nowrap"
                     aria-haspopup="menu"
-                    aria-expanded={isFinanceOpen}
+                    aria-expanded={isPayrollActive ? isPayrollOpen : isFinanceOpen}
                   >
-                    <span>{item.label}</span>
+                    <span>{isPayrollActive ? 'Payroll' : item.label}</span>
                     <ChevronDown className="w-3.5 h-3.5 shrink-0 opacity-80" />
                   </Button>
-                  <FinanceDropdown
-                    isOpen={isFinanceOpen}
-                    onClose={() => setIsFinanceOpen(false)}
-                  />
+
+                  {isPayrollActive ? (
+                    <>
+                      <PayrollDropdown
+                        isOpen={isPayrollOpen}
+                        onClose={() => {
+                          setIsPayrollOpen(false);
+                          setFlyoutType(null);
+                        }}
+                        selectedId={
+                          location.pathname === '/org/payroll/schedules'
+                            ? 'schedule'
+                            : location.pathname === '/org/payroll/history'
+                            ? 'history'
+                            : 'analytics'
+                        }
+                        onSelectOption={handlePayrollSelect}
+                      />
+                      <DepartmentLevelFlyout
+                        isOpen={!!flyoutType}
+                        type={flyoutType || 'departments'}
+                        onClose={() => setFlyoutType(null)}
+                        onAction={handleFlyoutAction}
+                      />
+                    </>
+                  ) : (
+                    <FinanceDropdown
+                      isOpen={isFinanceOpen}
+                      onClose={() => setIsFinanceOpen(false)}
+                    />
+                  )}
                 </div>
               ) : (
                 <NavLink key={item.to} to={item.to} className="inline-flex">
@@ -162,52 +228,89 @@ export default function OrgNavbar() {
                 >
                   <span className="flex items-center space-x-2">
                     <item.icon className="w-4 h-4" />
-                    <span>{item.label}</span>
+                    <span>{isPayrollActive ? 'Payroll' : item.label}</span>
                   </span>
                   <ChevronDown className="w-4 h-4" />
                 </Button>
                 {isFinanceOpen && (
                   <div className="pl-6 flex flex-col space-y-1.5 py-1.5 border-l-2 border-primary/20 ml-4">
-                    <NavLink
-                      to="/org/payroll"
-                      onClick={() => {
-                        setIsFinanceOpen(false);
-                        setMobileOpen(false);
-                      }}
-                      className="text-xs sm:text-sm font-medium text-slate-700 hover:text-primary py-1 px-2 rounded-lg hover:bg-slate-50"
-                    >
-                      • Payroll
-                    </NavLink>
-                    <NavLink
-                      to="/org/inventory"
-                      onClick={() => {
-                        setIsFinanceOpen(false);
-                        setMobileOpen(false);
-                      }}
-                      className="text-xs sm:text-sm font-medium text-slate-700 hover:text-primary py-1 px-2 rounded-lg hover:bg-slate-50"
-                    >
-                      • Inventory
-                    </NavLink>
-                    <NavLink
-                      to="/org/invoices"
-                      onClick={() => {
-                        setIsFinanceOpen(false);
-                        setMobileOpen(false);
-                      }}
-                      className="text-xs sm:text-sm font-medium text-slate-700 hover:text-primary py-1 px-2 rounded-lg hover:bg-slate-50"
-                    >
-                      • Invoice
-                    </NavLink>
-                    <NavLink
-                      to="/org/vouchers"
-                      onClick={() => {
-                        setIsFinanceOpen(false);
-                        setMobileOpen(false);
-                      }}
-                      className="text-xs sm:text-sm font-medium text-slate-700 hover:text-primary py-1 px-2 rounded-lg hover:bg-slate-50"
-                    >
-                      • Voucher
-                    </NavLink>
+                    {isPayrollActive ? (
+                      <>
+                        <NavLink
+                          to="/org/payroll"
+                          onClick={() => {
+                            setIsFinanceOpen(false);
+                            setMobileOpen(false);
+                          }}
+                          className="text-xs sm:text-sm font-medium text-slate-700 hover:text-primary py-1 px-2 rounded-lg hover:bg-slate-50"
+                        >
+                          • Analytics
+                        </NavLink>
+                        <NavLink
+                          to="/org/payroll/schedules"
+                          onClick={() => {
+                            setIsFinanceOpen(false);
+                            setMobileOpen(false);
+                          }}
+                          className="text-xs sm:text-sm font-medium text-slate-700 hover:text-primary py-1 px-2 rounded-lg hover:bg-slate-50"
+                        >
+                          • Schedule
+                        </NavLink>
+                        <NavLink
+                          to="/org/payroll/history"
+                          onClick={() => {
+                            setIsFinanceOpen(false);
+                            setMobileOpen(false);
+                          }}
+                          className="text-xs sm:text-sm font-medium text-slate-700 hover:text-primary py-1 px-2 rounded-lg hover:bg-slate-50"
+                        >
+                          • History
+                        </NavLink>
+                      </>
+                    ) : (
+                      <>
+                        <NavLink
+                          to="/org/payroll"
+                          onClick={() => {
+                            setIsFinanceOpen(false);
+                            setMobileOpen(false);
+                          }}
+                          className="text-xs sm:text-sm font-medium text-slate-700 hover:text-primary py-1 px-2 rounded-lg hover:bg-slate-50"
+                        >
+                          • Payroll
+                        </NavLink>
+                        <NavLink
+                          to="/org/inventory"
+                          onClick={() => {
+                            setIsFinanceOpen(false);
+                            setMobileOpen(false);
+                          }}
+                          className="text-xs sm:text-sm font-medium text-slate-700 hover:text-primary py-1 px-2 rounded-lg hover:bg-slate-50"
+                        >
+                          • Inventory
+                        </NavLink>
+                        <NavLink
+                          to="/org/invoices"
+                          onClick={() => {
+                            setIsFinanceOpen(false);
+                            setMobileOpen(false);
+                          }}
+                          className="text-xs sm:text-sm font-medium text-slate-700 hover:text-primary py-1 px-2 rounded-lg hover:bg-slate-50"
+                        >
+                          • Invoice
+                        </NavLink>
+                        <NavLink
+                          to="/org/vouchers"
+                          onClick={() => {
+                            setIsFinanceOpen(false);
+                            setMobileOpen(false);
+                          }}
+                          className="text-xs sm:text-sm font-medium text-slate-700 hover:text-primary py-1 px-2 rounded-lg hover:bg-slate-50"
+                        >
+                          • Voucher
+                        </NavLink>
+                      </>
+                    )}
                   </div>
                 )}
               </div>

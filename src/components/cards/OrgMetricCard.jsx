@@ -12,6 +12,7 @@ export default function OrgMetricCard({
   isLoading = false,
   isError = false,
   errorMessage = '',
+  subtext = '',
   className = '',
 }) {
   return (
@@ -32,10 +33,17 @@ export default function OrgMetricCard({
           {errorMessage || 'Error'}
         </span>
       ) : (
-        <h2 className="text-2xl sm:text-3xl font-extrabold text-primary-text tracking-tight leading-none truncate">
-          {currency ? <span className="font-sans mr-0.5">{currency}</span> : null}
-          {value}
-        </h2>
+        <>
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-primary-text tracking-tight leading-none truncate">
+            {currency ? <span className="font-sans mr-0.5">{currency}</span> : null}
+            {value}
+          </h2>
+          {subtext && (
+            <p className="text-xs text-slate-500 mt-2.5 font-medium truncate">
+              {subtext}
+            </p>
+          )}
+        </>
       )}
     </div>
   );
