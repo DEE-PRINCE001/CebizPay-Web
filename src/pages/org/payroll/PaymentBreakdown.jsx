@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useMemo } from 'react';
+import { useParams, useLocation, useNavigate } from 'react-router-dom';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import OrgDashboardLayout from '../../../components/layout/OrgDashboardLayout.jsx';
 import Breadcrumb from '../../../components/common/Breadcrumb.jsx';
 import Button from '../../../components/common/Button.jsx';
@@ -13,30 +14,133 @@ import {
   TableCell,
 } from '../../../components/common/table/index.js';
 import Pagination from '../../../components/common/Pagination.jsx';
+import { Loader2, RotateCw, Ban } from 'lucide-react';
+import { payrollService } from '../../../api/services/payroll.service.js';
 import { MOCK_PAYMENT_BREAKDOWN } from '../../../data/mockPayrollData.js';
 
+function formatBreakdownDate(dateStr) {
+  if (!dateStr) return '-';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return dateStr;
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function isUuid(str) {
+  return (
+    typeof str === 'string' &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str)
+  );
+}
+
 export default function PaymentBreakdown() {
+  const { batchId } = useParams();
+  const location = useLocation();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+
+  const passedBatch = location.state?.batch;
 
   const handleToggleMenu = () => {
     window.dispatchEvent(new CustomEvent('toggle-payroll-menu'));
   };
 
+  // Fetch batch details from live backend if valid UUID
+  const {
+    data: batchData,
+    isLoading,
+  } = useQuery({
+    queryKey: ['org-payroll-batch', batchId, currentPage],
+    queryFn: () => payrollService.getBatchById(batchId),
+    enabled: !!batchId && isUuid(batchId),
+    staleTime: 30 * 1000,
+  });
+
+  // Retry Failed items mutation
+  const retryMutation = useMutation({
+    mutationFn: () => payrollService.retryFailed(batchId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['org-payroll-batch', batchId] });
+    },
+  });
+
+  // Cancel Batch mutation
+  const cancelMutation = useMutation({
+    mutationFn: () => payrollService.cancelBatch(batchId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['org-payroll-batch', batchId] });
+      navigate('/org/payroll/history');
+    },
+  });
+
+  // Compute breakdown list with mock fallback
+  const displayPayments = useMemo(() => {
+    const rawItems = batchData?.items || (Array.isArray(batchData) ? batchData : []);
+    if (rawItems.length > 0) {
+      return rawItems.map((item) => ({
+        id: item.id || item.voucherId || `pay-${Math.random()}`,
+        voucherId: item.voucherId || item.id,
+        recipient:
+          item.recipientName ||
+          item.employeeName ||
+          item.staffName ||
+          item.recipient ||
+          item.payeeName ||
+          'Staff Member',
+        paymentDate: formatBreakdownDate(
+          item.paymentDate || item.paidAtUtc || item.createdAtUtc
+        ),
+        amount:
+          item.amountFormatted ||
+          (item.netAmount != null
+            ? `NGN ${Number(item.netAmount).toLocaleString()}`
+            : item.amount != null
+            ? `NGN ${Number(item.amount).toLocaleString()}`
+            : 'NGN 0.00'),
+        amountNumber: item.netAmount ?? item.amount ?? 0,
+        description:
+          item.description ||
+          item.narration ||
+          item.remarks ||
+          'Monthly Salary Disbursement',
+        status: item.status || 'Completed',
+        raw: item,
+      }));
+    }
+    return MOCK_PAYMENT_BREAKDOWN;
+  }, [batchData]);
+
+  const filteredPayments = useMemo(() => {
+    const q = searchQuery.toLowerCase().trim();
+    if (!q) return displayPayments;
+    return displayPayments.filter((item) => {
+      return (
+        item.recipient.toLowerCase().includes(q) ||
+        item.paymentDate.toLowerCase().includes(q) ||
+        String(item.amount).toLowerCase().includes(q) ||
+        item.description.toLowerCase().includes(q)
+      );
+    });
+  }, [displayPayments, searchQuery]);
+
+  const totalPages =
+    batchData?.totalPages != null && batchData.totalPages > 0
+      ? batchData.totalPages
+      : rawItems.length > 0
+      ? 1
+      : 5;
+
   const handleViewPayment = (payment) => {
-    navigate(`/org/payroll/payments/${payment.id}`, { state: { payment } });
+    navigate(`/org/payroll/payments/${payment.voucherId || payment.id}`, {
+      state: { payment, batchId },
+    });
   };
 
-  const filteredPayments = MOCK_PAYMENT_BREAKDOWN.filter((item) => {
-    const q = searchQuery.toLowerCase();
-    return (
-      item.recipient.toLowerCase().includes(q) ||
-      item.paymentDate.toLowerCase().includes(q) ||
-      item.amount.toLowerCase().includes(q) ||
-      item.description.toLowerCase().includes(q)
-    );
-  });
+  const batchStatus = batchData?.status || passedBatch?.status;
+  const canRetry = batchStatus === 'PartiallyCompleted' || batchStatus === 'Failed';
+  const canCancel = batchStatus === 'Pending';
 
   return (
     <OrgDashboardLayout>
@@ -51,6 +155,32 @@ export default function PaymentBreakdown() {
           />
 
           <div className="flex items-center space-x-3 self-end sm:self-auto">
+            {canRetry && (
+              <Button
+                variant="outline"
+                size="md"
+                disabled={retryMutation.isPending}
+                onClick={() => retryMutation.mutate()}
+                icon={RotateCw}
+                className="w-auto px-4 py-2 text-xs sm:text-sm font-medium border-amber-300 text-amber-700 hover:bg-amber-50"
+              >
+                {retryMutation.isPending ? 'Retrying...' : 'Retry Failed'}
+              </Button>
+            )}
+
+            {canCancel && (
+              <Button
+                variant="outline"
+                size="md"
+                disabled={cancelMutation.isPending}
+                onClick={() => cancelMutation.mutate()}
+                icon={Ban}
+                className="w-auto px-4 py-2 text-xs sm:text-sm font-medium border-red-300 text-red-600 hover:bg-red-50"
+              >
+                {cancelMutation.isPending ? 'Cancelling...' : 'Cancel Batch'}
+              </Button>
+            )}
+
             <Button
               variant="outline"
               size="md"
@@ -97,33 +227,44 @@ export default function PaymentBreakdown() {
               </TableHeader>
 
               <TableBody>
-                {filteredPayments.map((row) => (
-                  <TableRow key={row.id}>
-                    <TableCell className="font-normal text-slate-800">
-                      {row.recipient}
-                    </TableCell>
-                    <TableCell className="font-normal text-slate-800">
-                      {row.paymentDate}
-                    </TableCell>
-                    <TableCell className="font-normal text-slate-800">
-                      {row.amount}
-                    </TableCell>
-                    <TableCell className="font-normal text-slate-800">
-                      {row.description}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <button
-                        type="button"
-                        onClick={() => handleViewPayment(row)}
-                        className="text-xs sm:text-sm font-semibold text-primary hover:underline cursor-pointer select-none"
-                      >
-                        View payment
-                      </button>
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-12">
+                      <div className="flex items-center justify-center space-x-2 text-primary">
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        <span className="text-xs font-medium">Loading payment breakdown...</span>
+                      </div>
                     </TableCell>
                   </TableRow>
-                ))}
+                ) : (
+                  filteredPayments.map((row) => (
+                    <TableRow key={row.id}>
+                      <TableCell className="font-normal text-slate-800">
+                        {row.recipient}
+                      </TableCell>
+                      <TableCell className="font-normal text-slate-800">
+                        {row.paymentDate}
+                      </TableCell>
+                      <TableCell className="font-normal text-slate-800">
+                        {row.amount}
+                      </TableCell>
+                      <TableCell className="font-normal text-slate-800">
+                        {row.description}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <button
+                          type="button"
+                          onClick={() => handleViewPayment(row)}
+                          className="text-xs sm:text-sm font-semibold text-primary hover:underline cursor-pointer select-none"
+                        >
+                          View payment
+                        </button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
 
-                {filteredPayments.length === 0 && (
+                {!isLoading && filteredPayments.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={5} className="text-center py-12 text-slate-400">
                       No payment breakdown items found.
@@ -137,7 +278,7 @@ export default function PaymentBreakdown() {
           {/* Table Pagination */}
           <Pagination
             currentPage={currentPage}
-            totalPages={130}
+            totalPages={totalPages}
             onPageChange={setCurrentPage}
           />
         </div>

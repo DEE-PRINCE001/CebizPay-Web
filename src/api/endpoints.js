@@ -190,7 +190,7 @@ export const ENDPOINTS = {
         CALCULATE: `${BASE_PREFIX}/org/payroll/calculate`,
         EXECUTE: `${BASE_PREFIX}/org/payroll/execute`,
         BATCHES: `${BASE_PREFIX}/org/payroll/batches`,
-        BATCH_BY_ID: (id) => `${BASE_PREFIX}/org/payroll/batches/${id}`,
+        BATCH_BY_ID: (id) => `${BASE_PREFIX}/org/payroll/${id}`,
         RETRY_FAILED: (batchId) => `${BASE_PREFIX}/org/payroll/${batchId}/retry-failed`,
         CANCEL_BATCH: (batchId) => `${BASE_PREFIX}/org/payroll/${batchId}/cancel`,
         VOUCHERS: (id) => `${BASE_PREFIX}/org/payroll/vouchers/${id}`,

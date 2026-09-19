@@ -15,6 +15,8 @@ import {
   X,
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth.js';
+import { useQueryClient } from '@tanstack/react-query';
+import { organizationService } from '../../api/services/organization.service.js';
 import OrgProfileModal from '../modals/OrgProfileModal.jsx';
 import AnnouncementsModal from '../modals/AnnouncementsModal.jsx';
 import FinanceDropdown from './FinanceDropdown.jsx';
@@ -53,6 +55,7 @@ export default function OrgNavbar() {
 
   const location = useLocation();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { user } = useAuth();
   const displayName = user?.firstName || user?.name?.split(' ')[0] || 'Tayo';
 
@@ -487,8 +490,24 @@ export default function OrgNavbar() {
           setIsCreateDeptOpen(false);
           setEditingDepartment(null);
         }}
-        onSubmit={(dept) => {
-          console.log('Saved department:', dept);
+        onSubmit={async (dept) => {
+          try {
+            const isEdit = editingDepartment?.id && !String(editingDepartment.id).startsWith('dept-');
+            if (isEdit) {
+              await organizationService.departments.update(editingDepartment.id, {
+                name: dept.name,
+                description: dept.name,
+              });
+            } else {
+              await organizationService.departments.create({
+                name: dept.name,
+                description: dept.name,
+              });
+            }
+            queryClient.invalidateQueries({ queryKey: ['org-departments'] });
+          } catch (err) {
+            console.error('Failed to save department:', err);
+          }
         }}
       />
 
@@ -530,8 +549,27 @@ export default function OrgNavbar() {
           setIsCreateLevelOpen(false);
           setEditingLevel(null);
         }}
-        onSubmit={(lvl) => {
-          console.log('Saved level:', lvl);
+        onSubmit={async (lvl) => {
+          try {
+            const numericAmount = parseFloat(String(lvl.amount).replace(/[^0-9.]/g, '')) || 0;
+            const isEdit = editingLevel?.id && !String(editingLevel.id).startsWith('lvl-');
+            if (isEdit) {
+              await organizationService.levels.update(editingLevel.id, {
+                levelName: lvl.name,
+                baseAmount: numericAmount,
+                currency: 'NGN',
+              });
+            } else {
+              await organizationService.levels.create({
+                levelName: lvl.name,
+                baseAmount: numericAmount,
+                currency: 'NGN',
+              });
+            }
+            queryClient.invalidateQueries({ queryKey: ['org-salary-levels'] });
+          } catch (err) {
+            console.error('Failed to save level:', err);
+          }
         }}
       />
     </header>

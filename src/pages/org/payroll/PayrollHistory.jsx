@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import OrgDashboardLayout from '../../../components/layout/OrgDashboardLayout.jsx';
 import Breadcrumb from '../../../components/common/Breadcrumb.jsx';
 import Button from '../../../components/common/Button.jsx';
@@ -13,9 +14,29 @@ import {
   TableCell,
 } from '../../../components/common/table/index.js';
 import Pagination from '../../../components/common/Pagination.jsx';
-import FilterDropdown from '../../../components/forms/FilterDropdown.jsx';
-import { ChevronDown } from 'lucide-react';
+import FilterDropdown, {
+  TRANSACTION_STATUS_FILTER_OPTIONS,
+} from '../../../components/forms/FilterDropdown.jsx';
+import { ChevronDown, Loader2 } from 'lucide-react';
+import { payrollService } from '../../../api/services/payroll.service.js';
 import { MOCK_PAYROLL_HISTORY } from '../../../data/mockPayrollData.js';
+
+function formatBatchDate(dateStr) {
+  if (!dateStr) return '-';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return dateStr;
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function formatPeriod(batch) {
+  if (batch.paymentPeriod) return batch.paymentPeriod;
+  if (batch.periodStart && batch.periodEnd) {
+    return `${formatBatchDate(batch.periodStart)} - ${formatBatchDate(batch.periodEnd)}`;
+  }
+  if (batch.title) return batch.title;
+  if (batch.batchNumber) return `Batch #${batch.batchNumber}`;
+  return formatBatchDate(batch.createdAtUtc || batch.createdAt);
+}
 
 export default function PayrollHistory() {
   const navigate = useNavigate();
@@ -28,9 +49,64 @@ export default function PayrollHistory() {
     window.dispatchEvent(new CustomEvent('toggle-payroll-menu'));
   };
 
+  // Fetch batches from live backend
+  const {
+    data: batchesData,
+    isLoading,
+  } = useQuery({
+    queryKey: ['org-payroll-batches', currentPage, selectedStatus],
+    queryFn: () =>
+      payrollService.getBatches({
+        pageNumber: currentPage,
+        pageSize: 10,
+        status: selectedStatus || undefined,
+      }),
+    staleTime: 30 * 1000,
+  });
+
+  // Compute display history with mock fallback
+  const displayHistory = useMemo(() => {
+    const rawBatches = batchesData?.items || (Array.isArray(batchesData) ? batchesData : []);
+    if (rawBatches.length > 0) {
+      return rawBatches.map((b) => ({
+        id: b.id,
+        paymentPeriod: formatPeriod(b),
+        payDate: formatBatchDate(b.createdAtUtc || b.createdAt || b.payDate),
+        totalPayment:
+          b.totalNetAmount != null
+            ? `NGN ${Number(b.totalNetAmount).toLocaleString()}`
+            : b.totalGrossAmount != null
+            ? `NGN ${Number(b.totalGrossAmount).toLocaleString()}`
+            : b.totalPayment || 'NGN 0.00',
+        noOfEmployees: b.itemCount ?? b.recipientCount ?? b.noOfEmployees ?? 0,
+        raw: b,
+      }));
+    }
+    return MOCK_PAYROLL_HISTORY;
+  }, [batchesData]);
+
+  const filteredHistory = useMemo(() => {
+    const q = searchQuery.toLowerCase().trim();
+    if (!q) return displayHistory;
+    return displayHistory.filter((item) => {
+      return (
+        item.paymentPeriod.toLowerCase().includes(q) ||
+        item.payDate.toLowerCase().includes(q) ||
+        String(item.totalPayment).toLowerCase().includes(q)
+      );
+    });
+  }, [displayHistory, searchQuery]);
+
+  const totalPages =
+    batchesData?.totalPages != null && batchesData.totalPages > 0
+      ? batchesData.totalPages
+      : rawBatches.length > 0
+      ? 1
+      : 5;
+
   const handleExport = () => {
     const headers = ['Payment Period', 'Pay Date', 'Total Payment (NGN)', 'No. of Employees'];
-    const rows = MOCK_PAYROLL_HISTORY.map((item) => [
+    const rows = filteredHistory.map((item) => [
       `"${item.paymentPeriod}"`,
       `"${item.payDate}"`,
       `"${item.totalPayment}"`,
@@ -51,15 +127,6 @@ export default function PayrollHistory() {
   const handleView = (batch) => {
     navigate(`/org/payroll/history/${batch.id}`, { state: { batch } });
   };
-
-  const filteredHistory = MOCK_PAYROLL_HISTORY.filter((item) => {
-    const q = searchQuery.toLowerCase();
-    return (
-      item.paymentPeriod.toLowerCase().includes(q) ||
-      item.payDate.toLowerCase().includes(q) ||
-      item.totalPayment.toLowerCase().includes(q)
-    );
-  });
 
   return (
     <OrgDashboardLayout>
@@ -138,6 +205,7 @@ export default function PayrollHistory() {
                 <FilterDropdown
                   isOpen={isFilterOpen}
                   onClose={() => setIsFilterOpen(false)}
+                  options={TRANSACTION_STATUS_FILTER_OPTIONS}
                   onSelect={(status) => {
                     setSelectedStatus(status);
                     setCurrentPage(1);
@@ -162,33 +230,44 @@ export default function PayrollHistory() {
               </TableHeader>
 
               <TableBody>
-                {filteredHistory.map((row) => (
-                  <TableRow key={row.id}>
-                    <TableCell className="font-normal text-slate-800">
-                      {row.paymentPeriod}
-                    </TableCell>
-                    <TableCell className="font-normal text-slate-800">
-                      {row.payDate}
-                    </TableCell>
-                    <TableCell className="font-normal text-slate-800">
-                      {row.totalPayment}
-                    </TableCell>
-                    <TableCell className="font-normal text-slate-800">
-                      {row.noOfEmployees}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <button
-                        type="button"
-                        onClick={() => handleView(row)}
-                        className="text-xs sm:text-sm font-semibold text-active hover:underline cursor-pointer select-none"
-                      >
-                        View
-                      </button>
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-12">
+                      <div className="flex items-center justify-center space-x-2 text-primary">
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        <span className="text-xs font-medium">Loading payroll history...</span>
+                      </div>
                     </TableCell>
                   </TableRow>
-                ))}
+                ) : (
+                  filteredHistory.map((row) => (
+                    <TableRow key={row.id}>
+                      <TableCell className="font-normal text-slate-800">
+                        {row.paymentPeriod}
+                      </TableCell>
+                      <TableCell className="font-normal text-slate-800">
+                        {row.payDate}
+                      </TableCell>
+                      <TableCell className="font-normal text-slate-800">
+                        {row.totalPayment}
+                      </TableCell>
+                      <TableCell className="font-normal text-slate-800">
+                        {row.noOfEmployees}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <button
+                          type="button"
+                          onClick={() => handleView(row)}
+                          className="text-xs sm:text-sm font-semibold text-active hover:underline cursor-pointer select-none"
+                        >
+                          View
+                        </button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
 
-                {filteredHistory.length === 0 && (
+                {!isLoading && filteredHistory.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={5} className="text-center py-12 text-slate-400">
                       No payroll records found.
@@ -202,7 +281,7 @@ export default function PayrollHistory() {
           {/* Table Pagination */}
           <Pagination
             currentPage={currentPage}
-            totalPages={130}
+            totalPages={totalPages}
             onPageChange={setCurrentPage}
           />
         </div>

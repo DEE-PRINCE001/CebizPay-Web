@@ -1,6 +1,15 @@
 import React, { useState } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import BaseModal from '../BaseModal.jsx';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, Loader2 } from 'lucide-react';
+import { payrollService } from '../../../api/services/payroll.service.js';
+
+function isUuid(str) {
+  return (
+    typeof str === 'string' &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str)
+  );
+}
 
 const BANK_OPTIONS = [
   'GTBank',
@@ -24,15 +33,45 @@ export default function EditPaymentDetailsModal({
   initialData = null,
   onUpdate,
 }) {
+  const queryClient = useQueryClient();
   const [formData, setFormData] = useState({
-    dateCreated: initialData?.dateCreated || '30/08/2023',
+    dateCreated: initialData?.paymentDate || initialData?.dateCreated || '30/08/2023',
     paymentId: initialData?.paymentId || '001',
     receivingBank: initialData?.receivingBank || 'GTBank',
     payingBank: initialData?.payingBank || 'Kuda',
     amount: initialData?.amountNumber || '300, 000',
     currency: initialData?.currency || 'Naira (NGN)',
-    remarks: initialData?.remarksSummary || 'Write remarks',
+    remarks: initialData?.remarks || initialData?.remarksSummary || 'Write remarks',
     description: initialData?.description || 'Write a message',
+  });
+
+  // Update Voucher Mutation
+  const updateMutation = useMutation({
+    mutationFn: async (payload) => {
+      const voucherId = initialData?.voucherId || initialData?.paymentId;
+      if (voucherId && isUuid(voucherId)) {
+        await payrollService.updateVoucher(voucherId, {
+          bankName: payload.receivingBank,
+          remarks: payload.remarks,
+          description: payload.description,
+        });
+      }
+      return payload;
+    },
+    onSuccess: (data) => {
+      const voucherId = initialData?.voucherId || initialData?.paymentId;
+      if (voucherId && isUuid(voucherId)) {
+        queryClient.invalidateQueries({ queryKey: ['org-payroll-voucher', voucherId] });
+      }
+      onUpdate?.(data);
+      onClose?.();
+    },
+    onError: (err) => {
+      console.error('Failed to update voucher metadata on backend:', err);
+      // Fallback graceful update
+      onUpdate?.(formData);
+      onClose?.();
+    },
   });
 
   const handleChange = (field, value) => {
@@ -41,8 +80,7 @@ export default function EditPaymentDetailsModal({
 
   const handleSubmit = (e) => {
     e?.preventDefault();
-    onUpdate?.(formData);
-    onClose?.();
+    updateMutation.mutate(formData);
   };
 
   return (
@@ -198,9 +236,11 @@ export default function EditPaymentDetailsModal({
           </button>
           <button
             type="submit"
-            className="px-8 py-2.5 rounded-full bg-primary hover:bg-primary/90 text-white text-xs sm:text-sm font-semibold transition-colors cursor-pointer select-none shadow-xs"
+            disabled={updateMutation.isPending}
+            className="px-8 py-2.5 rounded-full bg-primary hover:bg-primary/90 text-white text-xs sm:text-sm font-semibold transition-colors cursor-pointer select-none shadow-xs disabled:opacity-50 flex items-center space-x-1.5"
           >
-            UPDATE
+            {updateMutation.isPending && <Loader2 className="w-4 h-4 animate-spin shrink-0" />}
+            <span>{updateMutation.isPending ? 'UPDATING...' : 'UPDATE'}</span>
           </button>
         </div>
       </form>
