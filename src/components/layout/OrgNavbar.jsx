@@ -496,12 +496,13 @@ export default function OrgNavbar() {
             if (isEdit) {
               await organizationService.departments.update(editingDepartment.id, {
                 name: dept.name,
-                description: dept.name,
+                description: dept.description || dept.name,
               });
             } else {
-              await organizationService.departments.create({
+              await organizationService.departments.createWithRoles({
                 name: dept.name,
-                description: dept.name,
+                description: dept.description || dept.name,
+                roles: dept.roles || [],
               });
             }
             queryClient.invalidateQueries({ queryKey: ['org-departments'] });
@@ -560,10 +561,11 @@ export default function OrgNavbar() {
                 currency: 'NGN',
               });
             } else {
-              await organizationService.levels.create({
+              await organizationService.levels.createWithMembers({
                 levelName: lvl.name,
                 baseAmount: numericAmount,
                 currency: 'NGN',
+                staffMembershipIds: lvl.staffMembershipIds || [],
               });
             }
             queryClient.invalidateQueries({ queryKey: ['org-salary-levels'] });

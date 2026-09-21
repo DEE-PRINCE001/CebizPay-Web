@@ -14,22 +14,14 @@ import {
   TableCell,
 } from '../../../components/common/table/index.js';
 import Pagination from '../../../components/common/Pagination.jsx';
-import { Loader2, RotateCw, Ban } from 'lucide-react';
+import { Loader2, RotateCw, Ban, AlertCircle } from 'lucide-react';
 import { payrollService } from '../../../api/services/payroll.service.js';
-import { MOCK_PAYMENT_BREAKDOWN } from '../../../data/mockPayrollData.js';
 
 function formatBreakdownDate(dateStr) {
   if (!dateStr) return '-';
   const d = new Date(dateStr);
   if (isNaN(d.getTime())) return dateStr;
   return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-}
-
-function isUuid(str) {
-  return (
-    typeof str === 'string' &&
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str)
-  );
 }
 
 export default function PaymentBreakdown() {
@@ -47,14 +39,16 @@ export default function PaymentBreakdown() {
     window.dispatchEvent(new CustomEvent('toggle-payroll-menu'));
   };
 
-  // Fetch batch details from live backend if valid UUID
+  // Fetch batch details from live backend
   const {
     data: batchData,
     isLoading,
+    isError,
+    refetch,
   } = useQuery({
     queryKey: ['org-payroll-batch', batchId, currentPage],
     queryFn: () => payrollService.getBatchById(batchId),
-    enabled: !!batchId && isUuid(batchId),
+    enabled: !!batchId,
     staleTime: 30 * 1000,
   });
 
@@ -75,41 +69,38 @@ export default function PaymentBreakdown() {
     },
   });
 
-  // Compute breakdown list with mock fallback
+  // Compute breakdown list from live API response
   const displayPayments = useMemo(() => {
     const rawItems = batchData?.items || (Array.isArray(batchData) ? batchData : []);
-    if (rawItems.length > 0) {
-      return rawItems.map((item) => ({
-        id: item.id || item.voucherId || `pay-${Math.random()}`,
-        voucherId: item.voucherId || item.id,
-        recipient:
-          item.recipientName ||
-          item.employeeName ||
-          item.staffName ||
-          item.recipient ||
-          item.payeeName ||
-          'Staff Member',
-        paymentDate: formatBreakdownDate(
-          item.paymentDate || item.paidAtUtc || item.createdAtUtc
-        ),
-        amount:
-          item.amountFormatted ||
-          (item.netAmount != null
-            ? `NGN ${Number(item.netAmount).toLocaleString()}`
-            : item.amount != null
-            ? `NGN ${Number(item.amount).toLocaleString()}`
-            : 'NGN 0.00'),
-        amountNumber: item.netAmount ?? item.amount ?? 0,
-        description:
-          item.description ||
-          item.narration ||
-          item.remarks ||
-          'Monthly Salary Disbursement',
-        status: item.status || 'Completed',
-        raw: item,
-      }));
-    }
-    return MOCK_PAYMENT_BREAKDOWN;
+    return rawItems.map((item) => ({
+      id: item.id || item.voucherId || `pay-${Math.random()}`,
+      voucherId: item.voucherId || item.id,
+      recipient:
+        item.recipientName ||
+        item.employeeName ||
+        item.staffName ||
+        item.recipient ||
+        item.payeeName ||
+        'Staff Member',
+      paymentDate: formatBreakdownDate(
+        item.paymentDate || item.paidAtUtc || item.createdAtUtc
+      ),
+      amount:
+        item.amountFormatted ||
+        (item.netAmount != null
+          ? `NGN ${Number(item.netAmount).toLocaleString()}`
+          : item.amount != null
+          ? `NGN ${Number(item.amount).toLocaleString()}`
+          : 'NGN 0.00'),
+      amountNumber: item.netAmount ?? item.amount ?? 0,
+      description:
+        item.description ||
+        item.narration ||
+        item.remarks ||
+        'Monthly Salary Disbursement',
+      status: item.status || 'Completed',
+      raw: item,
+    }));
   }, [batchData]);
 
   const filteredPayments = useMemo(() => {
@@ -128,9 +119,9 @@ export default function PaymentBreakdown() {
   const totalPages =
     batchData?.totalPages != null && batchData.totalPages > 0
       ? batchData.totalPages
-      : rawItems.length > 0
-      ? 1
-      : 5;
+      : displayPayments.length > 0
+      ? Math.ceil(displayPayments.length / 10)
+      : 1;
 
   const handleViewPayment = (payment) => {
     navigate(`/org/payroll/payments/${payment.voucherId || payment.id}`, {
@@ -227,7 +218,7 @@ export default function PaymentBreakdown() {
               </TableHeader>
 
               <TableBody>
-                {isLoading ? (
+                {isLoading && (
                   <TableRow>
                     <TableCell colSpan={5} className="text-center py-12">
                       <div className="flex items-center justify-center space-x-2 text-primary">
@@ -236,7 +227,39 @@ export default function PaymentBreakdown() {
                       </div>
                     </TableCell>
                   </TableRow>
-                ) : (
+                )}
+
+                {!isLoading && isError && (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-12">
+                      <div className="flex flex-col items-center justify-center space-y-2 text-rose-500">
+                        <AlertCircle className="w-6 h-6" />
+                        <span className="text-xs font-medium text-slate-700">
+                          Failed to load payment breakdown. Please try again.
+                        </span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => refetch()}
+                          className="w-auto px-4 py-1.5 text-xs font-medium border-rose-300 text-rose-600 hover:bg-rose-50"
+                        >
+                          Try Again
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                )}
+
+                {!isLoading && !isError && filteredPayments.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-12 text-slate-400">
+                      No payment breakdown items found for this batch.
+                    </TableCell>
+                  </TableRow>
+                )}
+
+                {!isLoading &&
+                  !isError &&
                   filteredPayments.map((row) => (
                     <TableRow key={row.id}>
                       <TableCell className="font-normal text-slate-800">
@@ -261,16 +284,7 @@ export default function PaymentBreakdown() {
                         </button>
                       </TableCell>
                     </TableRow>
-                  ))
-                )}
-
-                {!isLoading && filteredPayments.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center py-12 text-slate-400">
-                      No payment breakdown items found.
-                    </TableCell>
-                  </TableRow>
-                )}
+                  ))}
               </TableBody>
             </Table>
           </div>

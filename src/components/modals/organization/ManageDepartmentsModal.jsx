@@ -1,9 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import BaseModal from '../BaseModal.jsx';
-import { Loader2 } from 'lucide-react';
+import { Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 import { organizationService } from '../../../api/services/organization.service.js';
-import { MOCK_DEPARTMENTS } from '../../../data/mockPayrollData.js';
 
 /**
  * ManageDepartmentsModal matches ManageDepartments.png:
@@ -24,6 +23,9 @@ export default function ManageDepartmentsModal({
   const {
     data: deptData,
     isLoading,
+    isError,
+    error,
+    refetch,
   } = useQuery({
     queryKey: ['org-departments'],
     queryFn: () => organizationService.departments.list({ pageNumber: 1, pageSize: 50 }),
@@ -39,7 +41,7 @@ export default function ManageDepartmentsModal({
     },
   });
 
-  // Compute final departments list with mock fallback
+  // Compute final departments list from live data
   const departments = useMemo(() => {
     const rawItems = deptData?.items || (Array.isArray(deptData) ? deptData : []);
     let source = [];
@@ -52,8 +54,6 @@ export default function ManageDepartmentsModal({
         description: d.description,
         roles: d.roles || [],
       }));
-    } else {
-      source = MOCK_DEPARTMENTS;
     }
     return source.filter((d) => !localRemovedIds.has(d.id));
   }, [initialDepartments, deptData, localRemovedIds]);
@@ -62,9 +62,7 @@ export default function ManageDepartmentsModal({
     setLocalRemovedIds((prev) => new Set(prev).add(dept.id));
     onRemoveDepartment?.(dept.id);
 
-    // Call live backend delete if it's a persisted backend record
-    const isLiveRecord = typeof dept.id === 'string' && !dept.id.startsWith('dept-');
-    if (isLiveRecord) {
+    if (dept.id) {
       try {
         await deleteMutation.mutateAsync(dept.id);
       } catch (err) {
@@ -84,6 +82,23 @@ export default function ManageDepartmentsModal({
         <h4 className="text-xs font-semibold text-primary-text select-none">
           All Departments
         </h4>
+
+        {isError && (
+          <div className="p-3 bg-red-50 text-red-700 rounded-xl text-xs flex items-center justify-between border border-red-200">
+            <div className="flex items-center space-x-1.5">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>{error?.message || 'Failed to load departments'}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => refetch()}
+              className="font-semibold underline hover:text-red-900 inline-flex items-center space-x-0.5 cursor-pointer"
+            >
+              <RefreshCw className="w-3 h-3 mr-1" />
+              Retry
+            </button>
+          </div>
+        )}
 
         {isLoading ? (
           <div className="flex items-center justify-center py-10">
@@ -127,10 +142,15 @@ export default function ManageDepartmentsModal({
               );
             })}
 
-            {departments.length === 0 && (
-              <p className="py-6 text-center text-xs text-slate-400">
-                No departments found.
-              </p>
+            {!isError && departments.length === 0 && (
+              <div className="py-10 text-center flex flex-col items-center justify-center space-y-1.5">
+                <p className="text-xs sm:text-sm font-semibold text-slate-700">
+                  No departments found
+                </p>
+                <p className="text-xs text-slate-400 max-w-[280px]">
+                  Create your first department using the department creation menu.
+                </p>
+              </div>
             )}
           </div>
         )}

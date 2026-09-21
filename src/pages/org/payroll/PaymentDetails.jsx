@@ -3,11 +3,11 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import OrgDashboardLayout from '../../../components/layout/OrgDashboardLayout.jsx';
 import Breadcrumb from '../../../components/common/Breadcrumb.jsx';
+import Button from '../../../components/common/Button.jsx';
 import EditPaymentDetailsModal from '../../../components/modals/payroll/EditPaymentDetailsModal.jsx';
-import { Loader2 } from 'lucide-react';
+import { Loader2, AlertCircle } from 'lucide-react';
 import logo from '../../../assets/logo.jpg';
 import { payrollService } from '../../../api/services/payroll.service.js';
-import { MOCK_PAYMENT_DETAILS } from '../../../data/mockPayrollData.js';
 
 function isUuid(str) {
   return (
@@ -28,18 +28,17 @@ export default function PaymentDetails() {
   const location = useLocation();
   const navigate = useNavigate();
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [localOverrides, setLocalOverrides] = useState({});
 
   const passed = location.state?.payment;
   const targetVoucherId = paymentId || passed?.voucherId || passed?.id;
 
-  const [details, setDetails] = useState(() => {
-    return passed ? { ...MOCK_PAYMENT_DETAILS, ...passed } : MOCK_PAYMENT_DETAILS;
-  });
-
-  // Fetch live voucher details if valid UUID
+  // Fetch live voucher details if target ID available
   const {
     data: voucherData,
     isLoading,
+    isError,
+    refetch,
   } = useQuery({
     queryKey: ['org-payroll-voucher', targetVoucherId],
     queryFn: () => payrollService.getVoucherById(targetVoucherId),
@@ -48,42 +47,63 @@ export default function PaymentDetails() {
   });
 
   const activeDetails = useMemo(() => {
-    if (voucherData) {
-      return {
-        ...details,
-        paymentId: voucherData.voucherNumber || voucherData.id || targetVoucherId,
-        voucherId: targetVoucherId,
-        companyName: voucherData.organizationName || details.companyName,
-        receivingBank: voucherData.bankName || details.receivingBank,
-        accountName: voucherData.payeeName || details.accountName,
-        email: voucherData.payeeDetails || details.email,
-        amountFormatted:
-          voucherData.amount != null
-            ? `${voucherData.currency || 'NGN'} ${Number(voucherData.amount).toLocaleString()}`
-            : details.amountFormatted,
-        amountNumber: voucherData.amount != null ? voucherData.amount : details.amountNumber,
-        currency: voucherData.currency || details.currency,
-        transactionId:
-          voucherData.reference ||
-          voucherData.ledgerTransactionId ||
-          details.transactionId,
-        remarks: voucherData.remarks || voucherData.notes || details.remarks,
-        description:
-          voucherData.description || voucherData.purpose || details.description,
-        paymentDate:
-          formatDetailDate(voucherData.paidAtUtc || voucherData.createdAtUtc) ||
-          details.paymentDate,
-      };
-    }
-    return details;
-  }, [voucherData, details, targetVoucherId]);
+    const src = voucherData || passed?.raw || passed;
+    if (!src) return null;
+
+    const amountNum =
+      localOverrides.amountNumber ??
+      src.amount ??
+      src.netAmount ??
+      passed?.amountNumber ??
+      null;
+
+    const formattedAmt =
+      localOverrides.amountFormatted ||
+      src.amountFormatted ||
+      (amountNum != null
+        ? `${src.currency || 'NGN'} ${Number(amountNum).toLocaleString()}`
+        : '-');
+
+    return {
+      paymentId:
+        localOverrides.paymentId ||
+        src.voucherNumber ||
+        src.paymentId ||
+        src.voucherId ||
+        targetVoucherId ||
+        '-',
+      voucherId: targetVoucherId || src.id,
+      companyName: src.organizationName || src.companyName || 'Organization',
+      companyAddress: src.organizationAddress || src.companyAddress || '-',
+      companyEmail: src.organizationEmail || src.companyEmail || '-',
+      companyPhones: src.organizationPhones || src.organizationPhone || src.companyPhones || '-',
+      receivingBank: localOverrides.receivingBank || src.bankName || src.receivingBank || '-',
+      accountName: src.accountName || src.payeeName || src.recipient || src.employeeName || '-',
+      email: src.payeeEmail || src.email || src.payeeDetails || '-',
+      address: src.payeeAddress || src.address || '-',
+      amountFormatted: formattedAmt,
+      amountNumber: amountNum,
+      amountInWords: src.amountInWords || '-',
+      currency: localOverrides.currency || src.currency || 'NGN',
+      transactionId:
+        src.transactionId ||
+        src.reference ||
+        src.ledgerTransactionId ||
+        '-',
+      payingBank: localOverrides.payingBank || src.payingBank || src.disbursingBank || '-',
+      remarks: localOverrides.remarks || src.remarks || src.notes || '-',
+      description: localOverrides.description || src.description || src.narration || src.purpose || '-',
+      paymentDate:
+        formatDetailDate(src.paymentDate || src.paidAtUtc || src.createdAtUtc) || '-',
+    };
+  }, [voucherData, passed, targetVoucherId, localOverrides]);
 
   const handlePrint = () => {
     window.print();
   };
 
   const handleUpdate = (updatedFields) => {
-    setDetails((prev) => ({
+    setLocalOverrides((prev) => ({
       ...prev,
       paymentId: updatedFields.paymentId,
       receivingBank: updatedFields.receivingBank,
@@ -115,6 +135,36 @@ export default function PaymentDetails() {
           <div className="bg-white rounded-2xl sm:rounded-3xl p-12 shadow-xs border border-slate-100 flex flex-col items-center justify-center space-y-3 max-w-4xl mx-auto w-full">
             <Loader2 className="w-8 h-8 animate-spin text-primary" />
             <p className="text-xs font-medium text-slate-500">Loading payment details...</p>
+          </div>
+        ) : !activeDetails || isError ? (
+          <div className="bg-white rounded-2xl sm:rounded-3xl p-12 shadow-xs border border-slate-100 flex flex-col items-center justify-center space-y-4 max-w-4xl mx-auto w-full text-center">
+            <AlertCircle className="w-10 h-10 text-rose-500" />
+            <div className="flex flex-col space-y-1">
+              <h3 className="text-base font-bold text-slate-800">Payment Details Not Found</h3>
+              <p className="text-xs text-slate-500 max-w-md">
+                We couldn't retrieve the voucher details for this payment. It may have been removed or the record does not exist.
+              </p>
+            </div>
+            <div className="flex items-center space-x-3 pt-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate(-1)}
+                className="w-auto px-4 py-2 text-xs font-medium"
+              >
+                Go Back
+              </Button>
+              {isError && (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => refetch()}
+                  className="w-auto px-4 py-2 text-xs font-medium"
+                >
+                  Try Again
+                </Button>
+              )}
+            </div>
           </div>
         ) : (
           <div className="bg-white rounded-2xl sm:rounded-3xl p-6 sm:p-10 lg:p-14 shadow-xs border border-slate-100 flex flex-col space-y-6 max-w-4xl mx-auto w-full print:border-none print:shadow-none print:p-0">

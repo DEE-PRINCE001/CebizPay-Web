@@ -47,6 +47,7 @@ export const ENDPOINTS = {
     COMPLIANCE: {
       KYC: {
         WIDGET_CONFIG: `${BASE_PREFIX}/compliance/kyc/widget-config`,
+        SYNC: `${BASE_PREFIX}/compliance/kyc/sync`,
       },
       INDIVIDUAL_KYC: {
         SUBMIT_DOCUMENTS: (id) => `${BASE_PREFIX}/individuals/${id}/kyc-documents`,
@@ -157,6 +158,7 @@ export const ENDPOINTS = {
       DEPARTMENTS: {
         LIST: `${BASE_PREFIX}/org/departments`,
         CREATE: `${BASE_PREFIX}/org/departments`,
+        CREATE_WITH_ROLES: `${BASE_PREFIX}/org/departments/with-roles`,
         GET_BY_ID: (id) => `${BASE_PREFIX}/org/departments/${id}`,
         UPDATE: (id) => `${BASE_PREFIX}/org/departments/${id}`,
         DELETE: (id) => `${BASE_PREFIX}/org/departments/${id}`,
@@ -171,6 +173,7 @@ export const ENDPOINTS = {
       LEVELS: {
         LIST: `${BASE_PREFIX}/org/levels`,
         CREATE: `${BASE_PREFIX}/org/levels`,
+        CREATE_WITH_MEMBERS: `${BASE_PREFIX}/org/levels/with-members`,
         GET_BY_ID: (id) => `${BASE_PREFIX}/org/levels/${id}`,
         UPDATE: (id) => `${BASE_PREFIX}/org/levels/${id}`,
         DELETE: (id) => `${BASE_PREFIX}/org/levels/${id}`,
@@ -200,6 +203,7 @@ export const ENDPOINTS = {
         CANCEL_BATCH: (batchId) => `${BASE_PREFIX}/org/payroll/${batchId}/cancel`,
         VOUCHERS: (id) => `${BASE_PREFIX}/org/payroll/vouchers/${id}`,
         UPDATE_VOUCHER: (id) => `${BASE_PREFIX}/org/payroll/vouchers/${id}`,
+        ANALYTICS: `${BASE_PREFIX}/org/payroll/analytics`,
       },
       PROFILE: `${BASE_PREFIX}/org/profile`,
       SAVINGS: {

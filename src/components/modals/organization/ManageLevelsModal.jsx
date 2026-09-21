@@ -1,9 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import BaseModal from '../BaseModal.jsx';
-import { ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
+import { ChevronDown, ChevronUp, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 import { organizationService } from '../../../api/services/organization.service.js';
-import { MOCK_LEVELS } from '../../../data/mockPayrollData.js';
 
 /**
  * ManageLevelsModal matches ManageLevels.png:
@@ -26,6 +25,9 @@ export default function ManageLevelsModal({
   const {
     data: levelsData,
     isLoading,
+    isError,
+    error,
+    refetch,
   } = useQuery({
     queryKey: ['org-salary-levels'],
     queryFn: () => organizationService.levels.list({ currency: 'NGN', pageNumber: 1, pageSize: 50 }),
@@ -41,7 +43,7 @@ export default function ManageLevelsModal({
     },
   });
 
-  // Compute final levels list with mock fallback
+  // Compute final levels list from live data
   const levels = useMemo(() => {
     const rawItems = levelsData?.items || (Array.isArray(levelsData) ? levelsData : []);
     let source = [];
@@ -60,8 +62,6 @@ export default function ManageLevelsModal({
           lvl.members ||
           (lvl.activeStaffCount != null ? [`${lvl.activeStaffCount} active staff`] : []),
       }));
-    } else {
-      source = MOCK_LEVELS;
     }
     return source.filter((lvl) => !localRemovedIds.has(lvl.id));
   }, [initialLevels, levelsData, localRemovedIds]);
@@ -74,8 +74,7 @@ export default function ManageLevelsModal({
     setLocalRemovedIds((prev) => new Set(prev).add(lvl.id));
     onRemoveLevel?.(lvl.id);
 
-    const isLiveRecord = typeof lvl.id === 'string' && !lvl.id.startsWith('lvl-');
-    if (isLiveRecord) {
+    if (lvl.id) {
       try {
         await deleteMutation.mutateAsync(lvl.id);
       } catch (err) {
@@ -104,6 +103,24 @@ export default function ManageLevelsModal({
             Create Level
           </button>
         </div>
+
+        {/* Error Banner */}
+        {isError && (
+          <div className="p-3 bg-red-50 text-red-700 rounded-xl text-xs flex items-center justify-between border border-red-200">
+            <div className="flex items-center space-x-1.5">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>{error?.message || 'Failed to load salary levels'}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => refetch()}
+              className="font-semibold underline hover:text-red-900 inline-flex items-center space-x-0.5 cursor-pointer"
+            >
+              <RefreshCw className="w-3 h-3 mr-1" />
+              Retry
+            </button>
+          </div>
+        )}
 
         {/* Levels List */}
         {isLoading ? (
@@ -148,7 +165,7 @@ export default function ManageLevelsModal({
                       <div className="flex items-center justify-between">
                         <span className="text-xs text-slate-500">Base Salary:</span>
                         <span className="text-xs font-bold text-primary-text">
-                          {lvl.amount || 'NGN 150,000'}
+                          {lvl.amount || 'NGN 0.00'}
                         </span>
                       </div>
 
@@ -198,10 +215,15 @@ export default function ManageLevelsModal({
               );
             })}
 
-            {levels.length === 0 && (
-              <p className="py-6 text-center text-xs text-slate-400">
-                No salary levels configured.
-              </p>
+            {!isError && levels.length === 0 && (
+              <div className="py-10 text-center flex flex-col items-center justify-center space-y-1.5">
+                <p className="text-xs sm:text-sm font-semibold text-slate-700">
+                  No salary levels configured
+                </p>
+                <p className="text-xs text-slate-400 max-w-[280px]">
+                  Establish salary grades for your organization using the create level button above.
+                </p>
+              </div>
             )}
           </div>
         )}

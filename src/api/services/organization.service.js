@@ -10,6 +10,9 @@ export const organizationService = {
     create: async (payload) => {
       return apiClient.post(ENDPOINTS.ORGANIZATION.DEPARTMENTS.CREATE, payload);
     },
+    createWithRoles: async (payload) => {
+      return apiClient.post(ENDPOINTS.ORGANIZATION.DEPARTMENTS.CREATE_WITH_ROLES, payload);
+    },
     getById: async (id) => {
       return apiClient.get(ENDPOINTS.ORGANIZATION.DEPARTMENTS.GET_BY_ID(id));
     },
@@ -47,6 +50,9 @@ export const organizationService = {
     },
     create: async (payload) => {
       return apiClient.post(ENDPOINTS.ORGANIZATION.LEVELS.CREATE, payload);
+    },
+    createWithMembers: async (payload) => {
+      return apiClient.post(ENDPOINTS.ORGANIZATION.LEVELS.CREATE_WITH_MEMBERS, payload);
     },
     getById: async (id) => {
       return apiClient.get(ENDPOINTS.ORGANIZATION.LEVELS.GET_BY_ID(id));

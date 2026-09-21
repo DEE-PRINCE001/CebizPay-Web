@@ -16,24 +16,21 @@ export default function CreateDepartmentModal({
   onSubmit,
 }) {
   const [departmentName, setDepartmentName] = useState(
-    initialData?.name || 'UI/UX Design'
+    initialData?.name || ''
   );
-  const [roles, setRoles] = useState(
-    initialData?.roles || [
-      'UI/UX Intern',
-      'Entry Level',
-      'Mid Level',
-      'Senior Level',
-    ]
-  );
+  const [roles, setRoles] = useState(() => {
+    if (!initialData?.roles) return [];
+    return initialData.roles.map((r) => (typeof r === 'string' ? r : r.title || r.name || ''));
+  });
 
   const handleSubmit = (e) => {
     e?.preventDefault();
     if (!departmentName.trim()) return;
     onSubmit?.({
-      id: initialData?.id || `dept-${Date.now()}`,
+      id: initialData?.id,
       name: departmentName.trim(),
-      roles,
+      description: departmentName.trim(),
+      roles: roles.filter(Boolean),
     });
     onClose?.();
   };

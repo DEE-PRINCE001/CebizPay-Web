@@ -35,14 +35,14 @@ export default function EditPaymentDetailsModal({
 }) {
   const queryClient = useQueryClient();
   const [formData, setFormData] = useState({
-    dateCreated: initialData?.paymentDate || initialData?.dateCreated || '30/08/2023',
-    paymentId: initialData?.paymentId || '001',
-    receivingBank: initialData?.receivingBank || 'GTBank',
-    payingBank: initialData?.payingBank || 'Kuda',
-    amount: initialData?.amountNumber || '300, 000',
-    currency: initialData?.currency || 'Naira (NGN)',
-    remarks: initialData?.remarks || initialData?.remarksSummary || 'Write remarks',
-    description: initialData?.description || 'Write a message',
+    dateCreated: initialData?.paymentDate || initialData?.dateCreated || '',
+    paymentId: initialData?.paymentId || '',
+    receivingBank: initialData?.receivingBank !== '-' ? initialData?.receivingBank || '' : '',
+    payingBank: initialData?.payingBank !== '-' ? initialData?.payingBank || '' : '',
+    amount: initialData?.amountNumber || '',
+    currency: initialData?.currency || 'NGN',
+    remarks: initialData?.remarks !== '-' ? initialData?.remarks || '' : '',
+    description: initialData?.description !== '-' ? initialData?.description || '' : '',
   });
 
   // Update Voucher Mutation

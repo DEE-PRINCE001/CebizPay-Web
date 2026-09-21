@@ -17,9 +17,8 @@ import Pagination from '../../../components/common/Pagination.jsx';
 import FilterDropdown, {
   TRANSACTION_STATUS_FILTER_OPTIONS,
 } from '../../../components/forms/FilterDropdown.jsx';
-import { ChevronDown, Loader2 } from 'lucide-react';
+import { ChevronDown, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 import { payrollService } from '../../../api/services/payroll.service.js';
-import { MOCK_PAYROLL_HISTORY } from '../../../data/mockPayrollData.js';
 
 function formatBatchDate(dateStr) {
   if (!dateStr) return '-';
@@ -53,6 +52,9 @@ export default function PayrollHistory() {
   const {
     data: batchesData,
     isLoading,
+    isError,
+    error,
+    refetch,
   } = useQuery({
     queryKey: ['org-payroll-batches', currentPage, selectedStatus],
     queryFn: () =>
@@ -64,25 +66,22 @@ export default function PayrollHistory() {
     staleTime: 30 * 1000,
   });
 
-  // Compute display history with mock fallback
+  // Compute display history from live data
   const displayHistory = useMemo(() => {
     const rawBatches = batchesData?.items || (Array.isArray(batchesData) ? batchesData : []);
-    if (rawBatches.length > 0) {
-      return rawBatches.map((b) => ({
-        id: b.id,
-        paymentPeriod: formatPeriod(b),
-        payDate: formatBatchDate(b.createdAtUtc || b.createdAt || b.payDate),
-        totalPayment:
-          b.totalNetAmount != null
-            ? `NGN ${Number(b.totalNetAmount).toLocaleString()}`
-            : b.totalGrossAmount != null
-            ? `NGN ${Number(b.totalGrossAmount).toLocaleString()}`
-            : b.totalPayment || 'NGN 0.00',
-        noOfEmployees: b.itemCount ?? b.recipientCount ?? b.noOfEmployees ?? 0,
-        raw: b,
-      }));
-    }
-    return MOCK_PAYROLL_HISTORY;
+    return rawBatches.map((b) => ({
+      id: b.id,
+      paymentPeriod: formatPeriod(b),
+      payDate: formatBatchDate(b.createdAtUtc || b.createdAt || b.payDate),
+      totalPayment:
+        b.totalNetAmount != null
+          ? `NGN ${Number(b.totalNetAmount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+          : b.totalGrossAmount != null
+          ? `NGN ${Number(b.totalGrossAmount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+          : b.totalPayment || 'NGN 0.00',
+      noOfEmployees: b.itemCount ?? b.recipientCount ?? b.noOfEmployees ?? 0,
+      raw: b,
+    }));
   }, [batchesData]);
 
   const filteredHistory = useMemo(() => {
@@ -100,9 +99,7 @@ export default function PayrollHistory() {
   const totalPages =
     batchesData?.totalPages != null && batchesData.totalPages > 0
       ? batchesData.totalPages
-      : rawBatches.length > 0
-      ? 1
-      : 5;
+      : 1;
 
   const handleExport = () => {
     const headers = ['Payment Period', 'Pay Date', 'Total Payment (NGN)', 'No. of Employees'];
@@ -239,6 +236,25 @@ export default function PayrollHistory() {
                       </div>
                     </TableCell>
                   </TableRow>
+                ) : isError ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-12">
+                      <div className="flex flex-col items-center justify-center space-y-2 text-red-600">
+                        <AlertCircle className="w-5 h-5 text-red-500" />
+                        <span className="text-xs font-semibold">
+                          {error?.message || 'Failed to load payroll batches.'}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => refetch()}
+                          className="inline-flex items-center space-x-1 text-xs font-semibold text-primary underline hover:text-primary/80 cursor-pointer"
+                        >
+                          <RefreshCw className="w-3.5 h-3.5 mr-1" />
+                          <span>Try Again</span>
+                        </button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
                 ) : (
                   filteredHistory.map((row) => (
                     <TableRow key={row.id}>
@@ -267,10 +283,17 @@ export default function PayrollHistory() {
                   ))
                 )}
 
-                {!isLoading && filteredHistory.length === 0 && (
+                {!isLoading && !isError && filteredHistory.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-12 text-slate-400">
-                      No payroll records found.
+                    <TableCell colSpan={5} className="text-center py-16 text-slate-400">
+                      <div className="flex flex-col items-center justify-center space-y-1">
+                        <p className="text-xs sm:text-sm font-semibold text-slate-700">
+                          No payroll records found
+                        </p>
+                        <p className="text-xs text-slate-400">
+                          Disbursed payroll batches will appear in this history list.
+                        </p>
+                      </div>
                     </TableCell>
                   </TableRow>
                 )}

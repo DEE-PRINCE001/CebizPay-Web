@@ -7,6 +7,10 @@ export const complianceService = {
     return apiClient.post(ENDPOINTS.COMPLIANCE.KYC.WIDGET_CONFIG, {});
   },
 
+  syncKycStatus: async (referenceId) => {
+    return apiClient.post(ENDPOINTS.COMPLIANCE.KYC.SYNC, { referenceId });
+  },
+
   getPrimaryVirtualAccount: async (params = {}) => {
     return apiClient.get(ENDPOINTS.WALLET.VIRTUAL_ACCOUNTS.PRIMARY, { params });
   },

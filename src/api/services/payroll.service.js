@@ -44,4 +44,8 @@ export const payrollService = {
   getAdminBatchById: async (id) => {
     return apiClient.get(ENDPOINTS.ADMIN.PAYROLL.BATCH_BY_ID(id));
   },
+
+  getAnalytics: async (params = {}) => {
+    return apiClient.get(ENDPOINTS.ORGANIZATION.PAYROLL.ANALYTICS, { params });
+  },
 };

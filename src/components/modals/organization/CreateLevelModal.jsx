@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import BaseModal from '../BaseModal.jsx';
 import ChipInput from '../../forms/ChipInput.jsx';
 import Button from '../../common/Button.jsx';
+import { organizationService } from '../../../api/services/organization.service.js';
 
 /**
  * CreateLevelModal matches CreateLevel.png:
@@ -15,30 +17,48 @@ export default function CreateLevelModal({
   onSubmit,
 }) {
   const [levelName, setLevelName] = useState(
-    initialData?.name || 'Level 10'
+    initialData?.name || ''
   );
   const [amount, setAmount] = useState(
-    initialData?.amount || 'NGN500,000'
+    initialData?.amount || ''
   );
   const [members, setMembers] = useState(
-    initialData?.members || [
-      'Adebola John',
-      'Adebola John',
-      'Adebola John',
-      'Adebola John',
-      'Adebola John',
-      'Adebola John',
-    ]
+    initialData?.members || []
   );
+
+  // Fetch staff roster to map member names/emails to actual membership IDs
+  const { data: staffData } = useQuery({
+    queryKey: ['org-staff-roster-lookup'],
+    queryFn: () => organizationService.staff.list({ pageSize: 100 }),
+    enabled: isOpen,
+    staleTime: 60 * 1000,
+  });
+
+  const staffItems = staffData?.items || (Array.isArray(staffData) ? staffData : []);
 
   const handleSubmit = (e) => {
     e?.preventDefault();
     if (!levelName.trim()) return;
+
+    // Resolve membership IDs from matched staff
+    const staffMembershipIds = members
+      .map((m) => {
+        const query = String(m).trim().toLowerCase();
+        const matched = staffItems.find((s) => {
+          const fullName = `${s.firstName || ''} ${s.lastName || ''}`.trim().toLowerCase();
+          const email = (s.email || '').toLowerCase();
+          return fullName === query || email === query || s.membershipId === m || s.id === m;
+        });
+        return matched ? matched.membershipId || matched.id : null;
+      })
+      .filter(Boolean);
+
     onSubmit?.({
-      id: initialData?.id || `lvl-${Date.now()}`,
+      id: initialData?.id,
       name: levelName.trim(),
       amount: amount.trim(),
       members,
+      staffMembershipIds,
     });
     onClose?.();
   };

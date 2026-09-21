@@ -1,22 +1,50 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { CheckCircle2, ShieldCheck, Landmark, Copy, Check, ArrowRight } from 'lucide-react';
+import {
+  CheckCircle2,
+  ShieldCheck,
+  Landmark,
+  Copy,
+  Check,
+  ArrowRight,
+  Loader2,
+  Clock,
+  RefreshCw,
+} from 'lucide-react';
 import Dojah from 'react-dojah-sdk-react-18';
 import { useAuth } from '../../hooks/useAuth.js';
 import { complianceService } from '../../api/services/compliance.service.js';
+import { KycStatus, KycStatusValues } from '../../data/enums.js';
 import AuthLayout from '../../components/layout/AuthLayout.jsx';
 import Button from '../../components/common/Button.jsx';
 import FormError from '../../components/forms/FormError.jsx';
+
+const WEBHOOK_GRACE_PERIOD_MS = 4000;
+const SYNC_INTERVAL_MS = 3000;
+const MAX_SYNC_ATTEMPTS = 6;
 
 export default function IndividualKyc() {
   const { user, refetchUser, logout } = useAuth();
   const navigate = useNavigate();
 
   const [widgetConfig, setWidgetConfig] = useState(null);
+  const [activeReferenceId, setActiveReferenceId] = useState(null);
   const [isDojahOpen, setIsDojahOpen] = useState(false);
+  const [statusPhase, setStatusPhase] = useState('idle');
   const [copied, setCopied] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+
+  const webhookTimerRef = useRef(null);
+  const pollTimerRef = useRef(null);
+  const attemptsRef = useRef(0);
+
+  useEffect(() => {
+    return () => {
+      if (webhookTimerRef.current) clearTimeout(webhookTimerRef.current);
+      if (pollTimerRef.current) clearTimeout(pollTimerRef.current);
+    };
+  }, []);
 
   const {
     data: virtualAccount,
@@ -31,14 +59,17 @@ export default function IndividualKyc() {
 
   const isAlreadyVerified = Boolean(
     virtualAccount?.accountNumber ||
-    user?.kycStatus === 'Verified' ||
-    user?.kycStatus === 2
+    user?.kycStatus === KycStatus.Verified ||
+    user?.kycStatus === KycStatusValues.Verified
   );
 
   const fetchConfigMutation = useMutation({
     mutationFn: () => complianceService.getKycWidgetConfig(),
     onSuccess: (data) => {
       setWidgetConfig(data);
+      if (data?.referenceId) {
+        setActiveReferenceId(data.referenceId);
+      }
       setIsDojahOpen(true);
       setErrorMsg('');
     },
@@ -47,8 +78,64 @@ export default function IndividualKyc() {
     },
   });
 
+  const syncMutation = useMutation({
+    mutationFn: (refId) => complianceService.syncKycStatus(refId),
+  });
+
+  const performSync = useCallback(
+    async (refId) => {
+      if (!refId) {
+        await Promise.allSettled([refetchUser?.(), refetchVirtualAccount()]);
+        setStatusPhase('idle');
+        return;
+      }
+
+      try {
+        const res = await syncMutation.mutateAsync(refId);
+
+        if (res?.status === KycStatus.Verified || res?.status === KycStatusValues.Verified) {
+          setStatusPhase('idle');
+          attemptsRef.current = 0;
+          await Promise.allSettled([refetchUser?.(), refetchVirtualAccount()]);
+          return;
+        }
+
+        if (res?.status === KycStatus.Pending || res?.status === KycStatusValues.Pending) {
+          if (attemptsRef.current < MAX_SYNC_ATTEMPTS) {
+            attemptsRef.current += 1;
+            pollTimerRef.current = setTimeout(() => {
+              performSync(refId);
+            }, SYNC_INTERVAL_MS);
+          } else {
+            setStatusPhase('delayed');
+          }
+          return;
+        }
+
+        if (res?.status === KycStatus.Rejected || res?.status === KycStatusValues.Rejected) {
+          setStatusPhase('idle');
+          setErrorMsg(res?.message || 'Verification was declined. Please try again.');
+          return;
+        }
+
+        setStatusPhase('delayed');
+      } catch (err) {
+        if (attemptsRef.current < MAX_SYNC_ATTEMPTS) {
+          attemptsRef.current += 1;
+          pollTimerRef.current = setTimeout(() => {
+            performSync(refId);
+          }, SYNC_INTERVAL_MS);
+        } else {
+          setStatusPhase('delayed');
+        }
+      }
+    },
+    [syncMutation, refetchUser, refetchVirtualAccount]
+  );
+
   const handleStartVerification = () => {
     setErrorMsg('');
+    setStatusPhase('idle');
     fetchConfigMutation.mutate();
   };
 
@@ -56,18 +143,74 @@ export default function IndividualKyc() {
     async (type, data) => {
       if (type === 'success') {
         setIsDojahOpen(false);
-        await refetchUser?.();
-        await refetchVirtualAccount();
+        setErrorMsg('');
+        const refId =
+          data?.reference_id ||
+          data?.referenceId ||
+          widgetConfig?.referenceId ||
+          activeReferenceId;
+
+        if (refId) {
+          setActiveReferenceId(refId);
+        }
+
+        setStatusPhase('waiting_webhook');
+        attemptsRef.current = 0;
+
+        const [userRes, acctRes] = await Promise.allSettled([
+          refetchUser?.(),
+          refetchVirtualAccount(),
+        ]);
+        const initialAccount = acctRes.status === 'fulfilled' ? acctRes.value?.data : null;
+        const initialUser = userRes.status === 'fulfilled' ? userRes.value : null;
+
+        if (
+          initialAccount?.accountNumber ||
+          initialUser?.kycStatus === KycStatus.Verified ||
+          initialUser?.kycStatus === KycStatusValues.Verified
+        ) {
+          setStatusPhase('idle');
+          return;
+        }
+
+        webhookTimerRef.current = setTimeout(async () => {
+          const [checkUserRes, checkAcctRes] = await Promise.allSettled([
+            refetchUser?.(),
+            refetchVirtualAccount(),
+          ]);
+          const freshAccount =
+            checkAcctRes.status === 'fulfilled' ? checkAcctRes.value?.data : null;
+          const freshUser =
+            checkUserRes.status === 'fulfilled' ? checkUserRes.value : null;
+
+          if (
+            freshAccount?.accountNumber ||
+            freshUser?.kycStatus === KycStatus.Verified ||
+            freshUser?.kycStatus === KycStatusValues.Verified
+          ) {
+            setStatusPhase('idle');
+            return;
+          }
+
+          setStatusPhase('syncing');
+          performSync(refId);
+        }, WEBHOOK_GRACE_PERIOD_MS);
       } else if (type === 'error') {
         setIsDojahOpen(false);
         setErrorMsg('Verification was not completed. Please try again.');
-        
       } else if (type === 'close') {
         setIsDojahOpen(false);
       }
     },
-    [refetchUser, refetchVirtualAccount]
+    [widgetConfig, activeReferenceId, refetchUser, refetchVirtualAccount, performSync]
   );
+
+  const handleManualSync = () => {
+    setErrorMsg('');
+    setStatusPhase('syncing');
+    attemptsRef.current = 0;
+    performSync(activeReferenceId);
+  };
 
   const handleCopyAccount = (text) => {
     if (!text) return;
@@ -78,6 +221,9 @@ export default function IndividualKyc() {
 
   const displayName =
     user?.firstName || user?.name?.split(' ')[0] || 'User';
+
+  const isProcessing =
+    statusPhase === 'waiting_webhook' || statusPhase === 'syncing';
 
   return (
     <AuthLayout
@@ -97,7 +243,11 @@ export default function IndividualKyc() {
           </h1>
           <p className="text-xs sm:text-sm text-slate-500">
             {isAlreadyVerified
-              ? 'Your identity is verified and your dedicated account is now active.'
+              ? 'Your identity is verified and your account is now active.'
+              : isProcessing
+              ? 'Finalizing your verification and activating your account...'
+              : statusPhase === 'delayed'
+              ? 'Your verification is being finalized by our Team.'
               : 'Complete a quick identity verification with your BVN/NIN and selfie liveness to activate your account.'}
           </p>
         </div>
@@ -126,7 +276,7 @@ export default function IndividualKyc() {
                 <div>
                   <p className="text-xs text-slate-400">Account Name</p>
                   <p className="text-base font-bold text-primary-text truncate">
-                    {virtualAccount.accountName || `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'CebizPay Account'}
+                    {virtualAccount.accountName || `${user?.firstName || ''} ${user?.lastName || ''}`.trim()}
                   </p>
                 </div>
 
@@ -179,6 +329,65 @@ export default function IndividualKyc() {
               >
                 Sign out of account
               </button>
+            </div>
+          </div>
+        ) : isProcessing ? (
+          <div className="flex flex-col space-y-6">
+            <div className="bg-white rounded-2xl border border-slate-200 p-8 shadow-xs flex flex-col items-center text-center space-y-4">
+              <div className="w-14 h-14 rounded-2xl bg-primary/10 text-primary flex items-center justify-center animate-spin">
+                <Loader2 size={28} />
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-base font-bold text-primary-text">
+                  Finalizing Account Setup
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-500 max-w-sm">
+                  We are confirming your verification and provisioning your dedicated NUBAN account. This typically takes just a few moments.
+                </p>
+              </div>
+              <span className="text-xs text-slate-400 font-medium">
+                Please keep this page open...
+              </span>
+            </div>
+          </div>
+        ) : statusPhase === 'delayed' ? (
+          <div className="flex flex-col space-y-6">
+            <div className="bg-white rounded-2xl border border-amber-200 bg-amber-50/20 p-6 shadow-xs flex flex-col space-y-4">
+              <div className="flex items-start space-x-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center shrink-0">
+                  <Clock size={20} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900">
+                    Verification In Progress
+                  </h3>
+                  <p className="text-xs text-slate-600 mt-1">
+                    Your verification was received and is currently being processed by our banking partner. Your dedicated NUBAN account will be active shortly.
+                  </p>
+                </div>
+              </div>
+
+              <div className="pt-2 flex flex-col sm:flex-row gap-3">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  icon={RefreshCw}
+                  loading={syncMutation.isPending}
+                  disabled={syncMutation.isPending}
+                  onClick={handleManualSync}
+                >
+                  Refresh Status
+                </Button>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  icon={ArrowRight}
+                  iconPosition="right"
+                  onClick={() => navigate('/register/business')}
+                >
+                  Continue to Business Registration
+                </Button>
+              </div>
             </div>
           </div>
         ) : (
