@@ -11,6 +11,8 @@ import {
   RootRedirect,
 } from './components/guards/index.js';
 import Login from './pages/auth/Login.jsx';
+import RegisterIndividual from './pages/auth/RegisterIndividual.jsx';
+import IndividualKyc from './pages/auth/IndividualKyc.jsx';
 import RegisterBusiness1 from './pages/auth/RegisterBusiness1.jsx';
 import RegisterBusiness2 from './pages/auth/RegisterBusiness2.jsx';
 import NotAuthorized from './pages/auth/NotAuthorized.jsx';
@@ -42,11 +44,16 @@ function App() {
             {/* Guest-only routes */}
             <Route element={<GuestRoute />}>
               <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Navigate to="/register/business" replace />} />
+              <Route path="/register" element={<RegisterIndividual />} />
+              <Route path="/register/individual" element={<RegisterIndividual />} />
             </Route>
 
             {/* Authenticated routes */}
             <Route element={<ProtectedRoute />}>
+              {/* Individual KYC */}
+              <Route path="/individual/kyc" element={<IndividualKyc />} />
+              <Route path="/kyc" element={<Navigate to="/individual/kyc" replace />} />
+
               {/* Business registration */}
               <Route path="/register/business" element={<RegisterBusiness1 />} />
               <Route path="/register/business/step-1" element={<RegisterBusiness1 />} />

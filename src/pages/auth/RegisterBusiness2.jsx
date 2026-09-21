@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
+import { CheckCircle2, Building2, UserCheck } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth.js';
 import { complianceService } from '../../api/services/index.js';
 import { uploadToCloudinary } from '../../lib/cloudinary.js';
@@ -10,12 +11,13 @@ import FileUpload from '../../components/forms/FileUpload.jsx';
 import Button from '../../components/common/Button.jsx';
 import FormError from '../../components/forms/FormError.jsx';
 
-const RegisterBusiness2 = () => {
-  const { activeOrgId } = useAuth();
+export default function RegisterBusiness2() {
+  const { activeOrgId, refetchUser } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
   const organizationId = location.state?.organizationId || activeOrgId || '';
+  const initialCompanyName = location.state?.companyName || '';
 
   const [formData, setFormData] = useState({
     cacNumber: '',
@@ -23,13 +25,28 @@ const RegisterBusiness2 = () => {
     logoFile: null,
   });
 
+  const [cacVerifiedData, setCacVerifiedData] = useState(null);
   const [fieldErrors, setFieldErrors] = useState({});
   const [generalError, setGeneralError] = useState('');
   const [isUploadingFiles, setIsUploadingFiles] = useState(false);
 
+  const lookupCacMutation = useMutation({
+    mutationFn: (payload) => complianceService.lookupCac(payload),
+    onSuccess: (data) => {
+      setCacVerifiedData(data);
+      setGeneralError('');
+      setFieldErrors((prev) => ({ ...prev, cacNumber: null }));
+    },
+    onError: (err) => {
+      setCacVerifiedData(null);
+      setGeneralError(err.message || 'CAC verification failed. Please ensure the CAC number is correct.');
+    },
+  });
+
   const step2Mutation = useMutation({
     mutationFn: (payload) => complianceService.registerKybStep2(payload),
-    onSuccess: () => {
+    onSuccess: async () => {
+      await refetchUser?.();
       navigate('/org/dashboard', { replace: true });
     },
     onError: (err) => {
@@ -42,10 +59,8 @@ const RegisterBusiness2 = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
+
     if (fieldErrors[name] || fieldErrors[name.charAt(0).toUpperCase() + name.slice(1)]) {
       setFieldErrors((prev) => ({
         ...prev,
@@ -72,6 +87,20 @@ const RegisterBusiness2 = () => {
     if (generalError) setGeneralError('');
   };
 
+  const handleVerifyCac = () => {
+    const cac = formData.cacNumber.trim();
+    if (!cac) {
+      setFieldErrors((prev) => ({ ...prev, cacNumber: 'CAC registration number is required.' }));
+      return;
+    }
+
+    lookupCacMutation.mutate({
+      organizationId,
+      cacNumber: cac,
+      companyName: initialCompanyName,
+    });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setGeneralError('');
@@ -92,7 +121,6 @@ const RegisterBusiness2 = () => {
     try {
       setIsUploadingFiles(true);
 
-      // Upload CAC Certificate and Logo to Cloudinary
       const [cacUpload, logoUpload] = await Promise.all([
         uploadToCloudinary(formData.cacCertificateFile, { folder: 'kyb/certificates' }),
         uploadToCloudinary(formData.logoFile, { folder: 'kyb/logos' }),
@@ -108,7 +136,7 @@ const RegisterBusiness2 = () => {
       });
     } catch (uploadErr) {
       setIsUploadingFiles(false);
-      setGeneralError(uploadErr.message || 'Failed to upload documents. Please check your network connection.');
+      setGeneralError(uploadErr.message || 'Failed to upload documents. Please check your connection.');
     }
   };
 
@@ -121,19 +149,94 @@ const RegisterBusiness2 = () => {
       dividerTop="top-45"
       womanClass="h-85 absolute bottom-0 right-0"
     >
-      <form onSubmit={handleSubmit} className="flex flex-col space-y-10 sm:space-y-14 lg:space-y-20">
+      <form onSubmit={handleSubmit} className="flex flex-col space-y-8 sm:space-y-12">
         <div className="flex flex-col space-y-5">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-primary-text mb-1">
+              Business Verification (KYB)
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-500">
+              Verify your CAC registry records and upload compliance documents.
+            </p>
+          </div>
+
           {generalError && <FormError message={generalError} />}
 
-          <Input
-            label="CAC Registration Number"
-            name="cacNumber"
-            value={formData.cacNumber}
-            onChange={handleChange}
-            error={fieldErrors.cacNumber || fieldErrors.CacNumber}
-            placeholder="e.g. RC-1234567"
-            required
-          />
+          <div className="flex flex-col space-y-2">
+            <div className="flex gap-2 items-end">
+            
+                <Input
+                  label="CAC Registration Number"
+                  name="cacNumber"
+                  value={formData.cacNumber}
+                  onChange={handleChange}
+                  error={fieldErrors.cacNumber || fieldErrors.CacNumber}
+                  placeholder="e.g. RC123456"
+                  required
+                />
+              <div className="flex-1">
+              <Button
+                type="button"
+                variant="outline"
+                size="md"
+                loading={lookupCacMutation.isPending}
+                disabled={lookupCacMutation.isPending || !formData.cacNumber.trim()}
+                onClick={handleVerifyCac}
+                className="w-auto px-5 py-3 h-[46px] rounded-xl shrink-0"
+                >
+                Verify CAC
+              </Button>
+                </div>
+            </div>
+          </div>
+
+          {cacVerifiedData && (
+            <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-xs flex flex-col space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-active/10 text-active flex items-center justify-center shrink-0">
+                    <Building2 size={16} />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-primary-text">
+                      {cacVerifiedData.companyName}
+                    </p>
+                    <p className="text-xs text-slate-400">
+                      {cacVerifiedData.cacNumber} • {cacVerifiedData.companyType?.replace(/_/g, ' ')}
+                    </p>
+                  </div>
+                </div>
+                <span className="text-xs px-2.5 py-0.5 rounded-full bg-active/10 text-active font-semibold">
+                  {cacVerifiedData.status || 'ACTIVE'}
+                </span>
+              </div>
+
+              {cacVerifiedData.address && (
+                <p className="text-xs text-slate-500 border-t border-slate-100 pt-2">
+                  <span className="font-semibold text-slate-700">Registered Address:</span> {cacVerifiedData.address}
+                </p>
+              )}
+
+              {cacVerifiedData.directors && cacVerifiedData.directors.length > 0 && (
+                <div className="border-t border-slate-100 pt-2">
+                  <p className="text-xs font-semibold text-slate-700 mb-1.5 flex items-center gap-1">
+                    <UserCheck size={13} className="text-primary" />
+                    Registered Directors:
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {cacVerifiedData.directors.map((d, i) => (
+                      <span
+                        key={i}
+                        className="text-xs px-2 py-0.5 rounded-md bg-background text-slate-700 border border-slate-200"
+                      >
+                        {d.name} {d.designation ? `(${d.designation})` : ''}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           <FileUpload
             label="Upload CAC Certificate"
@@ -164,20 +267,17 @@ const RegisterBusiness2 = () => {
             className="shadow-lg shadow-primary-text/30"
             size="lg"
           >
-            {isUploadingFiles ? 'Uploading Documents...' : 'Get Started'}
+            {isUploadingFiles ? 'Uploading Documents...' : 'Submit Application'}
           </Button>
-          <div>
-            <p className="text-xs sm:text-sm text-slate-600 text-center">
-              Already have an account?{' '}
-              <Link to="/login" className="text-primary font-bold hover:underline">
-                Login Now
-              </Link>
-            </p>
-          </div>
+
+          <p className="text-xs sm:text-sm text-slate-600 text-center">
+            Already registered?{' '}
+            <Link to="/login" className="text-primary font-bold hover:underline">
+              Login Now
+            </Link>
+          </p>
         </div>
       </form>
     </AuthLayout>
   );
-};
-
-export default RegisterBusiness2;
+}

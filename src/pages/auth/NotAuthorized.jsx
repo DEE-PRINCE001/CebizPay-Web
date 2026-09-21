@@ -5,13 +5,22 @@ import { useAuth } from '../../hooks/useAuth.js';
 import Button from '../../components/common/Button.jsx';
 import logo from '../../assets/logo.jpg';
 
+import { MembershipRoleType } from '../../data/enums.js';
+
 export default function NotAuthorized() {
   const navigate = useNavigate();
   const { user, isAdmin, hasOrgContext, activeOrg, logout } = useAuth();
 
+  const isNonAdminMember =
+    hasOrgContext &&
+    !isAdmin &&
+    (activeOrg?.role === MembershipRoleType.Member ||
+      activeOrg?.role === 'Member' ||
+      activeOrg?.role === 3);
+
   const getHomeRoute = () => {
     if (isAdmin) return '/dashboard';
-    if (hasOrgContext) return '/org/dashboard';
+    if (hasOrgContext && !isNonAdminMember) return '/org/dashboard';
     return '/register/business';
   };
 
@@ -43,7 +52,9 @@ export default function NotAuthorized() {
         </h1>
 
         <p className="text-slate-600 text-sm leading-relaxed mb-6">
-          You do not have the required permissions to access this page. If you believe this is an error, please contact your organization administrator or platform support.
+          {isNonAdminMember
+            ? 'You are signed in as an organization member. Web dashboard management is reserved for administrators and managers. Please access your workplace features, savings, loans, and wallet via the CebizPay Mobile App.'
+            : 'You do not have the required permissions to access this page. If you believe this is an error, please contact your organization administrator or platform support.'}
         </p>
 
         {user && (

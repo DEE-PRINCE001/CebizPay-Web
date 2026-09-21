@@ -13,3 +13,9 @@ All domain types, status codes, roles, frequencies, and currencies **MUST** be i
   * KYC updates (`/kyc-status`) only accept `Verified (2)` or `Rejected (3)`.
   * Account suspension/reactivation uses `adminService.individuals.suspend(id, { reason })` and `reactivate(id, { reason })`. The `reason` is mandatory ($\ge 5$ characters).
 * **Roles & Permissions**: Use `MembershipRoleType` (`Owner: 1, Admin: 2, Member: 3, PayrollManager: 4, HrManager: 5`) and `usePermissions()` helpers instead of arbitrary role strings.
+
+## 2. Code Comments & Clean Implementation Guidelines
+
+* **No Unnecessary Comments**: Never write obvious, redundant, or verbose explanatory comments in the codebase.
+* **Concise & Specific Only**: Use only essential, specific comments when explaining non-obvious business logic, edge cases, or complex calculations.
+* **No Chat/Conversation References**: Never reference user prompts, assistant discussions, task instructions, or chat dialogue in code comments, file headers, or docstrings. Code must remain clean, professional, and production-ready.

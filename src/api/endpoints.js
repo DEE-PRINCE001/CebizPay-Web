@@ -45,6 +45,9 @@ export const ENDPOINTS = {
       },
     },
     COMPLIANCE: {
+      KYC: {
+        WIDGET_CONFIG: `${BASE_PREFIX}/compliance/kyc/widget-config`,
+      },
       INDIVIDUAL_KYC: {
         SUBMIT_DOCUMENTS: (id) => `${BASE_PREFIX}/individuals/${id}/kyc-documents`,
         GET_DOCUMENTS: (id) => `${BASE_PREFIX}/individuals/${id}/kyc-documents`,
@@ -52,6 +55,8 @@ export const ENDPOINTS = {
       },
       ORGANIZATION_KYB: {
         REGISTER_STEP1: `${BASE_PREFIX}/org/kyb/register-step1`,
+        LOOKUP_CAC: `${BASE_PREFIX}/org/kyb/lookup-cac`,
+        DOCUMENTS: `${BASE_PREFIX}/org/kyb/documents`,
         REGISTER_STEP2: `${BASE_PREFIX}/org/kyb/register-step2`,
         UPDATE_STATUS: (id) => `${BASE_PREFIX}/organizations/${id}/status`,
       },

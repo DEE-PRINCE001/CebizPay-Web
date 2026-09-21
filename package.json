@@ -16,6 +16,7 @@
     "jwt-decode": "^4.0.0",
     "lucide-react": "^1.41.0",
     "react": "^19.2.8",
+    "react-dojah-sdk-react-18": "^1.0.1",
     "react-dom": "^19.2.8",
     "react-router-dom": "^7.18.3",
     "recharts": "^3.10.1",

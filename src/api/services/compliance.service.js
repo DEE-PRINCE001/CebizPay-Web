@@ -3,6 +3,14 @@ import { ENDPOINTS } from '../endpoints.js';
 
 export const complianceService = {
   // Individual KYC
+  getKycWidgetConfig: async () => {
+    return apiClient.post(ENDPOINTS.COMPLIANCE.KYC.WIDGET_CONFIG, {});
+  },
+
+  getPrimaryVirtualAccount: async (params = {}) => {
+    return apiClient.get(ENDPOINTS.WALLET.VIRTUAL_ACCOUNTS.PRIMARY, { params });
+  },
+
   submitKycDocuments: async (individualId, formData) => {
     return apiClient.post(ENDPOINTS.INDIVIDUAL_KYC.SUBMIT_DOCUMENTS(individualId), formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
@@ -20,6 +28,16 @@ export const complianceService = {
   // Organization KYB
   registerKybStep1: async (payload) => {
     return apiClient.post(ENDPOINTS.COMPLIANCE.ORGANIZATION_KYB.REGISTER_STEP1, payload);
+  },
+
+  lookupCac: async (payload) => {
+    return apiClient.post(ENDPOINTS.COMPLIANCE.ORGANIZATION_KYB.LOOKUP_CAC, payload);
+  },
+
+  uploadKybDocuments: async (formData) => {
+    return apiClient.post(ENDPOINTS.COMPLIANCE.ORGANIZATION_KYB.DOCUMENTS, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
   },
 
   registerKybStep2: async (payload) => {
