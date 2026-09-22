@@ -132,6 +132,8 @@ export default function RegisterBusiness2() {
       companyType,
       companyName: initialCompanyName,
     });
+
+    console.log("Result of CAC verification:", cacVerifiedData);
   };
 
   const handleSubmit = async (e) => {
@@ -274,6 +276,7 @@ export default function RegisterBusiness2() {
                   </p>
                   <div className="flex flex-wrap gap-1.5">
                     {cacVerifiedData.directors.map((d, i) => (
+                     
                       <span
                         key={i}
                         className="text-xs px-2 py-0.5 rounded-md bg-background text-slate-700 border border-slate-200"
