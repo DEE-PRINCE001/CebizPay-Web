@@ -210,7 +210,6 @@ export default function RegisterBusiness2() {
 
           <div className="flex flex-col space-y-2">
             <div className="flex gap-2 items-end">
-              <div className="flex-1">
                 <Input
                   label="CAC Registration Number"
                   name="cacNumber"
@@ -220,7 +219,7 @@ export default function RegisterBusiness2() {
                   placeholder={getCacPlaceholder()}
                   required
                 />
-              </div>
+              <div className="flex-1">
               <Button
                 type="button"
                 variant="outline"
@@ -233,9 +232,10 @@ export default function RegisterBusiness2() {
                 }
                 onClick={handleVerifyCac}
                 className="w-auto px-5 py-3 h-[46px] rounded-xl shrink-0"
-              >
+                >
                 Verify CAC
               </Button>
+                </div>
             </div>
           </div>
 
