@@ -10,6 +10,7 @@ import Input from '../../components/forms/Input.jsx';
 import FileUpload from '../../components/forms/FileUpload.jsx';
 import Button from '../../components/common/Button.jsx';
 import FormError from '../../components/forms/FormError.jsx';
+import { CompanyType, COMPANY_TYPE_OPTIONS } from '../../data/enums.js';
 
 export default function RegisterBusiness2() {
   const { activeOrgId, refetchUser } = useAuth();
@@ -20,6 +21,7 @@ export default function RegisterBusiness2() {
   const initialCompanyName = location.state?.companyName || '';
 
   const [formData, setFormData] = useState({
+    companyType: '',
     cacNumber: '',
     cacCertificateFile: null,
     logoFile: null,
@@ -30,16 +32,32 @@ export default function RegisterBusiness2() {
   const [generalError, setGeneralError] = useState('');
   const [isUploadingFiles, setIsUploadingFiles] = useState(false);
 
+  const getCacPlaceholder = () => {
+    switch (formData.companyType) {
+      case CompanyType.BusinessName:
+        return 'e.g. BN987654';
+      case CompanyType.IncorporatedTrustees:
+        return 'e.g. IT123456';
+      case CompanyType.LimitedPartnership:
+        return 'e.g. LP123456';
+      case CompanyType.LimitedLiabilityPartnership:
+        return 'e.g. LLP123456';
+      case CompanyType.Company:
+      default:
+        return 'e.g. RC123456';
+    }
+  };
+
   const lookupCacMutation = useMutation({
     mutationFn: (payload) => complianceService.lookupCac(payload),
     onSuccess: (data) => {
       setCacVerifiedData(data);
       setGeneralError('');
-      setFieldErrors((prev) => ({ ...prev, cacNumber: null }));
+      setFieldErrors((prev) => ({ ...prev, cacNumber: null, companyType: null }));
     },
     onError: (err) => {
       setCacVerifiedData(null);
-      setGeneralError(err.message || 'CAC verification failed. Please ensure the CAC number is correct.');
+      setGeneralError(err.message || 'CAC verification failed. Please ensure the CAC number and entity type are correct.');
     },
   });
 
@@ -60,6 +78,10 @@ export default function RegisterBusiness2() {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+
+    if (name === 'companyType' || name === 'cacNumber') {
+      setCacVerifiedData(null);
+    }
 
     if (fieldErrors[name] || fieldErrors[name.charAt(0).toUpperCase() + name.slice(1)]) {
       setFieldErrors((prev) => ({
@@ -89,14 +111,25 @@ export default function RegisterBusiness2() {
 
   const handleVerifyCac = () => {
     const cac = formData.cacNumber.trim();
+    const companyType = formData.companyType;
+    const errors = {};
+
+    if (!companyType) {
+      errors.companyType = 'Please select your business entity type.';
+    }
     if (!cac) {
-      setFieldErrors((prev) => ({ ...prev, cacNumber: 'CAC registration number is required.' }));
+      errors.cacNumber = 'CAC registration number is required.';
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors((prev) => ({ ...prev, ...errors }));
       return;
     }
 
     lookupCacMutation.mutate({
       organizationId,
       cacNumber: cac,
+      companyType,
       companyName: initialCompanyName,
     });
   };
@@ -109,6 +142,7 @@ export default function RegisterBusiness2() {
     const cacNumber = formData.cacNumber.trim();
     const errors = {};
 
+    if (!formData.companyType) errors.companyType = 'Business entity type is required.';
     if (!cacNumber) errors.cacNumber = 'CAC registration number is required.';
     if (!formData.cacCertificateFile) errors.cacCertificateUrl = 'CAC Certificate document is required.';
     if (!formData.logoFile) errors.logoUrl = 'Company logo is required.';
@@ -162,31 +196,46 @@ export default function RegisterBusiness2() {
 
           {generalError && <FormError message={generalError} />}
 
+          <Input
+            type="select"
+            label="Business Entity Type"
+            name="companyType"
+            value={formData.companyType}
+            onChange={handleChange}
+            options={COMPANY_TYPE_OPTIONS}
+            placeholder="Select business entity type"
+            error={fieldErrors.companyType || fieldErrors.CompanyType}
+            required
+          />
+
           <div className="flex flex-col space-y-2">
             <div className="flex gap-2 items-end">
-            
+              <div className="flex-1">
                 <Input
                   label="CAC Registration Number"
                   name="cacNumber"
                   value={formData.cacNumber}
                   onChange={handleChange}
                   error={fieldErrors.cacNumber || fieldErrors.CacNumber}
-                  placeholder="e.g. RC123456"
+                  placeholder={getCacPlaceholder()}
                   required
                 />
-              <div className="flex-1">
+              </div>
               <Button
                 type="button"
                 variant="outline"
                 size="md"
                 loading={lookupCacMutation.isPending}
-                disabled={lookupCacMutation.isPending || !formData.cacNumber.trim()}
+                disabled={
+                  lookupCacMutation.isPending ||
+                  !formData.cacNumber.trim() ||
+                  !formData.companyType
+                }
                 onClick={handleVerifyCac}
                 className="w-auto px-5 py-3 h-[46px] rounded-xl shrink-0"
-                >
+              >
                 Verify CAC
               </Button>
-                </div>
             </div>
           </div>
 

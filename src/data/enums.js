@@ -3177,3 +3177,22 @@ export const WebhookProcessingStatusValues = Object.freeze({
   Error: 6,
 });
 
+/**
+ * Corporate Affairs Commission (CAC) business entity registration classifications.
+ */
+export const CompanyType = Object.freeze({
+  Company: 'COMPANY',
+  BusinessName: 'BUSINESS_NAME',
+  IncorporatedTrustees: 'INCORPORATED_TRUSTEES',
+  LimitedPartnership: 'LIMITED_PARTNERSHIP',
+  LimitedLiabilityPartnership: 'LIMITED_LIABILITY_PARTNERSHIP',
+});
+
+export const COMPANY_TYPE_OPTIONS = Object.freeze([
+  { value: CompanyType.Company, label: 'Limited Liability Company (RC)' },
+  { value: CompanyType.BusinessName, label: 'Sole Proprietorship / Enterprise (BN)' },
+  { value: CompanyType.IncorporatedTrustees, label: 'NGO / Incorporated Trustees (IT)' },
+  { value: CompanyType.LimitedPartnership, label: 'Limited Partnership (LP)' },
+  { value: CompanyType.LimitedLiabilityPartnership, label: 'Limited Liability Partnership (LLP)' },
+]);
+
