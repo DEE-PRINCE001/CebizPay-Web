@@ -54,6 +54,7 @@ export default function RegisterBusiness2() {
       setCacVerifiedData(data);
       setGeneralError('');
       setFieldErrors((prev) => ({ ...prev, cacNumber: null, companyType: null }));
+      console.log('CAC verification successful:', data);
     },
     onError: (err) => {
       setCacVerifiedData(null);
