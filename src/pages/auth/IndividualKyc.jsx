@@ -11,6 +11,8 @@ import {
   Loader2,
   Clock,
   RefreshCw,
+  Smartphone,
+  X,
 } from 'lucide-react';
 import Dojah from 'react-dojah-sdk-react-18';
 import { useAuth } from '../../hooks/useAuth.js';
@@ -23,6 +25,7 @@ import FormError from '../../components/forms/FormError.jsx';
 const WEBHOOK_GRACE_PERIOD_MS = 4000;
 const SYNC_INTERVAL_MS = 3000;
 const MAX_SYNC_ATTEMPTS = 6;
+const MODAL_POLL_INTERVAL_MS = 4000;
 
 export default function IndividualKyc() {
   const { user, refetchUser, logout } = useAuth();
@@ -37,12 +40,15 @@ export default function IndividualKyc() {
 
   const webhookTimerRef = useRef(null);
   const pollTimerRef = useRef(null);
+  const dojahBackgroundPollRef = useRef(null);
   const attemptsRef = useRef(0);
+  const dojahPollCountRef = useRef(0);
 
   useEffect(() => {
     return () => {
       if (webhookTimerRef.current) clearTimeout(webhookTimerRef.current);
       if (pollTimerRef.current) clearTimeout(pollTimerRef.current);
+      if (dojahBackgroundPollRef.current) clearInterval(dojahBackgroundPollRef.current);
     };
   }, []);
 
@@ -133,27 +139,136 @@ export default function IndividualKyc() {
     [syncMutation, refetchUser, refetchVirtualAccount]
   );
 
+  // Background listener to detect cross-device phone completion while Dojah modal is open
+  useEffect(() => {
+    if (!isDojahOpen || !activeReferenceId) {
+      if (dojahBackgroundPollRef.current) {
+        clearInterval(dojahBackgroundPollRef.current);
+        dojahBackgroundPollRef.current = null;
+      }
+      dojahPollCountRef.current = 0;
+      return;
+    }
+
+    dojahPollCountRef.current = 0;
+    dojahBackgroundPollRef.current = setInterval(async () => {
+      dojahPollCountRef.current += 1;
+
+      const [userRes, acctRes] = await Promise.allSettled([
+        refetchUser?.(),
+        refetchVirtualAccount(),
+      ]);
+      const acct = acctRes.status === 'fulfilled' ? acctRes.value?.data : null;
+      const usr = userRes.status === 'fulfilled' ? userRes.value : null;
+
+      if (
+        acct?.accountNumber ||
+        usr?.kycStatus === KycStatus.Verified ||
+        usr?.kycStatus === KycStatusValues.Verified
+      ) {
+        setIsDojahOpen(false);
+        if (dojahBackgroundPollRef.current) {
+          clearInterval(dojahBackgroundPollRef.current);
+          dojahBackgroundPollRef.current = null;
+        }
+        return;
+      }
+
+      // Query sync endpoint after ~12s of widget open to verify phone progress
+      if (dojahPollCountRef.current >= 3 && activeReferenceId) {
+        try {
+          const syncRes = await complianceService.syncKycStatus(activeReferenceId);
+          if (
+            syncRes?.status === KycStatus.Verified ||
+            syncRes?.status === KycStatusValues.Verified
+          ) {
+            setIsDojahOpen(false);
+            if (dojahBackgroundPollRef.current) {
+              clearInterval(dojahBackgroundPollRef.current);
+              dojahBackgroundPollRef.current = null;
+            }
+            await Promise.allSettled([refetchUser?.(), refetchVirtualAccount()]);
+          }
+        } catch {
+          // Continue polling silently
+        }
+      }
+    }, MODAL_POLL_INTERVAL_MS);
+
+    return () => {
+      if (dojahBackgroundPollRef.current) {
+        clearInterval(dojahBackgroundPollRef.current);
+        dojahBackgroundPollRef.current = null;
+      }
+    };
+  }, [isDojahOpen, activeReferenceId, refetchUser, refetchVirtualAccount]);
+
   const handleStartVerification = () => {
     setErrorMsg('');
     setStatusPhase('idle');
     fetchConfigMutation.mutate();
   };
 
+  const handleMobileCompleted = async () => {
+    setIsDojahOpen(false);
+    setErrorMsg('');
+    setStatusPhase('syncing');
+    attemptsRef.current = 0;
+    performSync(activeReferenceId);
+  };
+
+  const handleCloseDojah = async () => {
+    setIsDojahOpen(false);
+    setStatusPhase('syncing');
+    const [userRes, acctRes] = await Promise.allSettled([
+      refetchUser?.(),
+      refetchVirtualAccount(),
+    ]);
+    const acct = acctRes.status === 'fulfilled' ? acctRes.value?.data : null;
+    const usr = userRes.status === 'fulfilled' ? userRes.value : null;
+
+    if (
+      acct?.accountNumber ||
+      usr?.kycStatus === KycStatus.Verified ||
+      usr?.kycStatus === KycStatusValues.Verified
+    ) {
+      setStatusPhase('idle');
+      return;
+    }
+
+    if (activeReferenceId) {
+      try {
+        const res = await syncMutation.mutateAsync(activeReferenceId);
+        if (
+          res?.status === KycStatus.Verified ||
+          res?.status === KycStatusValues.Verified
+        ) {
+          setStatusPhase('idle');
+          await Promise.allSettled([refetchUser?.(), refetchVirtualAccount()]);
+          return;
+        }
+      } catch {
+        // Fall back to idle
+      }
+    }
+    setStatusPhase('idle');
+  };
+
   const handleDojahResponse = useCallback(
     async (type, data) => {
+      const refId =
+        data?.reference_id ||
+        data?.referenceId ||
+        widgetConfig?.referenceId ||
+        activeReferenceId;
+
+      if (refId) {
+        setActiveReferenceId(refId);
+      }
+
       if (type === 'success') {
         setIsDojahOpen(false);
         setErrorMsg('');
-        const refId =
-          data?.reference_id ||
-          data?.referenceId ||
-          widgetConfig?.referenceId ||
-          activeReferenceId;
-
-        if (refId) {
-          setActiveReferenceId(refId);
-        }
-
         setStatusPhase('waiting_webhook');
         attemptsRef.current = 0;
 
@@ -195,14 +310,49 @@ export default function IndividualKyc() {
           setStatusPhase('syncing');
           performSync(refId);
         }, WEBHOOK_GRACE_PERIOD_MS);
-      } else if (type === 'error') {
+      } else if (type === 'error' || type === 'close') {
         setIsDojahOpen(false);
-        setErrorMsg('Verification was not completed. Please try again.');
-      } else if (type === 'close') {
-        setIsDojahOpen(false);
+        // Intercept to verify if completed on phone before treating as failure
+        setStatusPhase('syncing');
+        try {
+          const [userRes, acctRes] = await Promise.allSettled([
+            refetchUser?.(),
+            refetchVirtualAccount(),
+          ]);
+          const acct = acctRes.status === 'fulfilled' ? acctRes.value?.data : null;
+          const usr = userRes.status === 'fulfilled' ? userRes.value : null;
+
+          if (
+            acct?.accountNumber ||
+            usr?.kycStatus === KycStatus.Verified ||
+            usr?.kycStatus === KycStatusValues.Verified
+          ) {
+            setStatusPhase('idle');
+            return;
+          }
+
+          if (refId) {
+            const syncRes = await syncMutation.mutateAsync(refId);
+            if (
+              syncRes?.status === KycStatus.Verified ||
+              syncRes?.status === KycStatusValues.Verified
+            ) {
+              setStatusPhase('idle');
+              await Promise.allSettled([refetchUser?.(), refetchVirtualAccount()]);
+              return;
+            }
+          }
+        } catch {
+          // Handled below
+        }
+
+        setStatusPhase('idle');
+        if (type === 'error') {
+          setErrorMsg('Verification was not completed. Please try again.');
+        }
       }
     },
-    [widgetConfig, activeReferenceId, refetchUser, refetchVirtualAccount, performSync]
+    [widgetConfig, activeReferenceId, refetchUser, refetchVirtualAccount, performSync, syncMutation]
   );
 
   const handleManualSync = () => {
@@ -447,31 +597,66 @@ export default function IndividualKyc() {
         )}
 
         {isDojahOpen && widgetConfig && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
-            <div className="w-full max-w-lg bg-white rounded-3xl p-4 sm:p-6 shadow-2xl relative">
-              <Dojah
-                response={handleDojahResponse}
-                appID={widgetConfig.appId}
-                publicKey={widgetConfig.publicKey}
-                type={widgetConfig.widgetType || 'custom'}
-                config={{
-                  debug: false,
-                  widget_id: widgetConfig.widgetId || widgetConfig.widget_id || "6aaedfab3a077fd494f0bae5",
-                  pages: widgetConfig.enabledPages || ['government-data', 'selfie'],
-                  reference_id: widgetConfig.referenceId,
-                }}
-                userData={{
-                  first_name: widgetConfig.userData?.firstName || user?.firstName || '',
-                  last_name: widgetConfig.userData?.lastName || user?.lastName || '',
-                  email: widgetConfig.userData?.email || user?.email || '',
-                }}
-                metadata={{
-                  reference_id: widgetConfig.referenceId,
-                  user_id: user?.userId || user?.id || '',
-                }}
-              />
+          <>
+            <div className="fixed top-3 sm:top-5 inset-x-3 sm:inset-x-auto sm:left-1/2 sm:-translate-x-1/2 w-auto sm:w-full sm:max-w-md z-[999999] bg-white/95 backdrop-blur-md border border-slate-200/90 rounded-2xl shadow-xl p-3 sm:p-3.5 flex items-center justify-between gap-3 animate-in fade-in slide-in-from-top-4 duration-300">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                  <Smartphone size={16} />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs sm:text-sm font-semibold text-primary-text truncate">
+                    Verifying on your phone?
+                  </p>
+                  <p className="text-[11px] sm:text-xs text-slate-500 truncate">
+                    Click when finished to continue
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <Button
+                  size="sm"
+                  variant="primary"
+                  loading={syncMutation.isPending}
+                  disabled={syncMutation.isPending}
+                  onClick={handleMobileCompleted}
+                  className="text-xs px-3 py-1.5 h-auto whitespace-nowrap shadow-sm"
+                >
+                  I'm Done
+                </Button>
+                <button
+                  type="button"
+                  onClick={handleCloseDojah}
+                  className="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
+                  aria-label="Close verification modal"
+                >
+                  <X size={16} />
+                </button>
+              </div>
             </div>
-          </div>
+
+            <Dojah
+              response={handleDojahResponse}
+              appID={widgetConfig.appId}
+              publicKey={widgetConfig.publicKey}
+              type={widgetConfig.widgetType || 'custom'}
+              config={{
+                debug: false,
+                widget_id: widgetConfig.widgetId || widgetConfig.widget_id || "6aaedfab3a077fd494f0bae5",
+                pages: widgetConfig.enabledPages || ['government-data', 'selfie'],
+                reference_id: widgetConfig.referenceId,
+              }}
+              userData={{
+                first_name: widgetConfig.userData?.firstName || user?.firstName || '',
+                last_name: widgetConfig.userData?.lastName || user?.lastName || '',
+                email: widgetConfig.userData?.email || user?.email || '',
+              }}
+              metadata={{
+                reference_id: widgetConfig.referenceId,
+                user_id: user?.userId || user?.id || '',
+              }}
+            />
+          </>
         )}
       </div>
     </AuthLayout>
