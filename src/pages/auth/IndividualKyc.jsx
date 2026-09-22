@@ -342,7 +342,7 @@ export default function IndividualKyc() {
                   Finalizing Account Setup
                 </h3>
                 <p className="text-xs sm:text-sm text-slate-500 max-w-sm">
-                  We are confirming your verification and provisioning your dedicated NUBAN account. This typically takes just a few moments.
+                  We are confirming your verification and provisioning your dedicated account. This typically takes just a few moments.
                 </p>
               </div>
               <span className="text-xs text-slate-400 font-medium">
@@ -362,7 +362,7 @@ export default function IndividualKyc() {
                     Verification In Progress
                   </h3>
                   <p className="text-xs text-slate-600 mt-1">
-                    Your verification was received and is currently being processed by our banking partner. Your dedicated NUBAN account will be active shortly.
+                    Your verification was received and is currently being processed by our banking partner. Your account will be active shortly.
                   </p>
                 </div>
               </div>
@@ -392,8 +392,8 @@ export default function IndividualKyc() {
           </div>
         ) : (
           <div className="flex flex-col space-y-6">
-            <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs flex flex-col space-y-4">
-              <div className="flex items-center space-x-3">
+            <div className="bg-primary rounded-2xl border border-slate-200 p-6 shadow-xs flex flex-col space-y-4">
+              {/* <div className="flex items-center space-x-3">
                 <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
                   <Landmark size={20} />
                 </div>
@@ -403,7 +403,7 @@ export default function IndividualKyc() {
                     Verify once to instantly receive a dedicated Monnify NUBAN account.
                   </p>
                 </div>
-              </div>
+              </div> */}
 
               <div className="bg-background rounded-xl p-3 border border-slate-100 flex flex-col space-y-2 text-xs text-slate-600">
                 <p className="font-semibold text-primary-text">Requirements:</p>

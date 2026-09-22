@@ -18,7 +18,7 @@ export default function OrganizationRejectedView({
     ? [
         {
           id: 'cac-01',
-          title: `CAC Certificate (${organization?.cacNumber || 'Verified'})`,
+          title: `CAC Certificate (${organization?.cacNumber})`,
           fileUrl: organization.cacCertificateUrl,
         },
       ]
@@ -36,7 +36,7 @@ export default function OrganizationRejectedView({
         {/* Left Column: Organization Image */}
         <div className="w-full lg:w-5/12 xl:w-4/12 rounded-3xl overflow-hidden shadow-xs border border-slate-100 bg-white shrink-0 h-64 sm:h-80 lg:h-auto min-h-64 sm:min-h-80 lg:min-h-96">
           <img
-            src={organization?.photoUrl || organization?.logoUrl || womanPhoto}
+            src={organization?.photoUrl || organization?.logoUrl}
             alt={orgName}
             className="w-full h-full object-cover"
           />
