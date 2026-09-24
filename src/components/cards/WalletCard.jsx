@@ -13,7 +13,7 @@ const WalletCard = ({
   className = '',
   virtualAccount = null,
 }) => {
-  const [isAmountVisible, setIsAmountVisible] = useState(true);
+  const [isAmountVisible, setIsAmountVisible] = useState(false);
   const [copied, setCopied] = useState(false);
 
   const handleCopy = (e) => {
@@ -36,11 +36,11 @@ const WalletCard = ({
 
         {showVirtualAccount && (
           <div className="flex flex-col items-end gap-0.5">
-            <span className="text-[10px] text-slate-400 leading-none">
+            <span className="text-[11px] text-slate-400 leading-none">
               {virtualAccount.bankName}
             </span>
             <div className="flex items-center gap-1">
-              <span className="font-mono text-[11px] font-medium text-slate-500 tracking-wide leading-none">
+              <span className="font-mono text-[14px] font-medium text-slate-500 tracking-wide leading-none">
                 {virtualAccount.accountNumber}
               </span>
               <button
@@ -57,7 +57,7 @@ const WalletCard = ({
               </button>
             </div>
             {virtualAccount.accountName && (
-              <span className="text-[10px] text-slate-400 leading-none">
+              <span className="text-[11px] text-slate-400 leading-none">
                 {virtualAccount.accountName}
               </span>
             )}
