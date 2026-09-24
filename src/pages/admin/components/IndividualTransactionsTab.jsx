@@ -87,7 +87,7 @@ export default function IndividualTransactionsTab({
               filteredTransactions.map((tx) => (
                 <TableRow key={tx.id}>
                   <TableCell>
-                    <div className="flex items-center space-x-2.5">
+                    {/* <div className="flex items-center space-x-2.5">
                       <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full overflow-hidden shrink-0 border border-slate-100">
                         <img
                           src={tx.avatarUrl || defaultAvatar}
@@ -98,7 +98,8 @@ export default function IndividualTransactionsTab({
                       <span className="font-medium text-xs sm:text-sm text-primary-text truncate">
                         {tx.userName}
                       </span>
-                    </div>
+                    </div> */}
+                    {tx.amount}
                   </TableCell>
                   <TableCell className="text-xs sm:text-sm text-slate-600">
                     {tx.transactionType}

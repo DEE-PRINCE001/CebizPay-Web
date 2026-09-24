@@ -62,12 +62,13 @@ export const walletService = {
 
   // Virtual Accounts
   provisionVirtualAccount: async (payload) => {
-    return apiClient.post(ENDPOINTS.VIRTUAL_ACCOUNTS.PROVISION, payload);
+    return apiClient.post(ENDPOINTS.WALLET.VIRTUAL_ACCOUNTS.PROVISION, payload);
   },
 
-  getPrimaryVirtualAccount: async (organizationId = null) => {
-    return apiClient.get(ENDPOINTS.VIRTUAL_ACCOUNTS.PRIMARY, {
-      params: organizationId ? { organizationId } : {},
+  getPrimaryVirtualAccount: async (params = {}) => {
+    const queryParams = typeof params === 'string' ? { organizationId: params } : params;
+    return apiClient.get(ENDPOINTS.WALLET.VIRTUAL_ACCOUNTS.PRIMARY, {
+      params: queryParams,
     });
   },
 

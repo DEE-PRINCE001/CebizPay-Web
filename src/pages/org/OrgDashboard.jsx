@@ -12,6 +12,8 @@ import AddMoneyCardModal from '../../components/modals/wallet/AddMoneyCardModal.
 import TransferProcessModal from '../../components/modals/wallet/TransferProcessModal.jsx';
 import TransactionPinModal from '../../components/modals/wallet/TransactionPinModal.jsx';
 import TransactionSuccessModal from '../../components/modals/wallet/TransactionSuccessModal.jsx';
+import SetupPinModal from '../../components/modals/wallet/SetupPinModal.jsx';
+import { useTransactionPinGuard } from '../../hooks/useTransactionPinGuard.js';
 import { walletService } from '../../api/services/wallet.service.js';
 import { cardsService } from '../../api/services/cards.service.js';
 import { userService } from '../../api/services/user.service.js';
@@ -34,6 +36,13 @@ export default function OrgDashboard() {
   const [transactionSuccessData, setTransactionSuccessData] = useState(null);
   const [isPinSubmitting, setIsPinSubmitting] = useState(false);
   const [pinErrorMessage, setPinErrorMessage] = useState('');
+
+  const {
+    executeWithPinGuard,
+    isSetupPinOpen,
+    closeSetupPin,
+    onPinSetupSuccess,
+  } = useTransactionPinGuard();
 
   // Fetch corporate wallet metrics
   const {
@@ -171,7 +180,7 @@ export default function OrgDashboard() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setIsTransferOptionsOpen(true)}
+                  onClick={() => executeWithPinGuard(() => setIsTransferOptionsOpen(true))}
                   className="inline-flex items-center justify-center px-6 py-2.5 rounded-xl border border-primary/25 bg-blue-50/70 hover:bg-blue-100/70 text-primary font-medium text-xs sm:text-sm transition-colors cursor-pointer select-none"
                 >
                   Transfer Fund
@@ -309,13 +318,15 @@ export default function OrgDashboard() {
         isOpen={isAddMoneyCardOpen}
         onClose={() => setIsAddMoneyCardOpen(false)}
         onProceed={(data) => {
-          setIsAddMoneyCardOpen(false);
-          setPendingTransaction({
-            type: 'fund',
-            ...data,
+          executeWithPinGuard(() => {
+            setIsAddMoneyCardOpen(false);
+            setPendingTransaction({
+              type: 'fund',
+              ...data,
+            });
+            setPinErrorMessage('');
+            setIsPinModalOpen(true);
           });
-          setPinErrorMessage('');
-          setIsPinModalOpen(true);
         }}
       />
 
@@ -334,13 +345,15 @@ export default function OrgDashboard() {
         onClose={() => setIsTransferProcessOpen(false)}
         mode={transferMode}
         onProceed={(data) => {
-          setIsTransferProcessOpen(false);
-          setPendingTransaction({
-            type: 'transfer',
-            ...data,
+          executeWithPinGuard(() => {
+            setIsTransferProcessOpen(false);
+            setPendingTransaction({
+              type: 'transfer',
+              ...data,
+            });
+            setPinErrorMessage('');
+            setIsPinModalOpen(true);
           });
-          setPinErrorMessage('');
-          setIsPinModalOpen(true);
         }}
       />
 
@@ -363,6 +376,12 @@ export default function OrgDashboard() {
           setTransactionSuccessData(null);
         }}
         data={transactionSuccessData}
+      />
+
+      <SetupPinModal
+        isOpen={isSetupPinOpen}
+        onClose={closeSetupPin}
+        onSuccess={onPinSetupSuccess}
       />
     </OrgDashboardLayout>
   );

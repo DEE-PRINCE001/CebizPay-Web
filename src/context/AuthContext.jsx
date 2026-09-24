@@ -226,6 +226,14 @@ export const AuthProvider = ({ children }) => {
   const isAuthenticated = useMemo(() => !!user && !!accessToken, [user, accessToken]);
   const hasOrgContext = useMemo(() => !!activeOrg || (user?.organizations && user.organizations.length > 0), [activeOrg, user]);
   const isAdmin = useMemo(() => !!user?.adminProfile, [user]);
+  const hasTransactionPin = useMemo(() => {
+    return Boolean(
+      user?.hasPin ??
+      user?.hasTransactionPin ??
+      user?.isPinSet ??
+      user?.hasSetPin
+    );
+  }, [user]);
 
   // Role verification helper
   const hasRole = useCallback(
@@ -278,6 +286,7 @@ export const AuthProvider = ({ children }) => {
       mfaChallenge,
       hasOrgContext,
       isAdmin,
+      hasTransactionPin,
       login,
       verifyMfa,
       registerPhone,
@@ -300,6 +309,7 @@ export const AuthProvider = ({ children }) => {
       mfaChallenge,
       hasOrgContext,
       isAdmin,
+      hasTransactionPin,
       login,
       verifyMfa,
       registerPhone,

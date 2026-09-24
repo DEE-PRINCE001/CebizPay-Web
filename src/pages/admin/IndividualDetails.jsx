@@ -50,7 +50,10 @@ export default function IndividualDetails() {
   // Live Query: Fetch transactions
   const { data: transactionsData } = useQuery({
     queryKey: ['admin-individual-transactions', id],
-    queryFn: () => adminService.individuals.getTransactions(id, { pageNumber: 1, pageSize: 50 }),
+    queryFn: () => { const data = adminService.individuals.getTransactions(id, { pageNumber: 1, pageSize: 50 });
+    console.log('Fetched transactions data:', data);
+    return data;
+    },
     enabled: !!id,
     staleTime: 30 * 1000,
     retry: false,
@@ -79,7 +82,7 @@ export default function IndividualDetails() {
     if (individualApiData?.credentials && individualApiData.credentials.length > 0) {
       return individualApiData.credentials.map((c, idx) => ({
         id: c.id || `cred-${idx}`,
-        title: c.title || c.documentType || 'National Identity Card',
+        title: c.title || c.documentType || '',
         fileUrl: c.fileUrl || c.documentUrl || '',
       }));
     }
@@ -101,8 +104,8 @@ export default function IndividualDetails() {
         userName: tx.counterpartyName || tx.userName || tx.recipientName || 'Transaction',
         avatarUrl: tx.counterpartyAvatarUrl || tx.avatarUrl || null,
         amount: tx.amount != null ? Number(tx.amount).toLocaleString('en-US', { minimumFractionDigits: 2 }) : '0.00',
-        transactionType: tx.transactionType || tx.type || 'Send',
-        receiverOrSender: tx.receiverOrSender || tx.receiverSenderId || tx.counterpartyName || 'N/A',
+        transactionType: tx.transactionType || tx.type || 'N/A',
+        receiverOrSender: tx.counterpartyName || 'N/A',
         method: tx.method || tx.paymentMethod || 'Wallet ID',
         accountOrWalletId: tx.accountOrWalletId || tx.accountNumber || 'N/A',
         dateTime: tx.dateTime

@@ -20,8 +20,11 @@ export default function AnnouncementsModal({
   isOpen,
   onClose,
   onAddAnnouncement,
+  scope = 'workplace',
 }) {
   const queryClient = useQueryClient();
+  const isPlatform = scope === 'platform';
+  const queryKey = isPlatform ? ['platform-announcements'] : ['workplace-announcements'];
 
   // Handle ESC key and lock body scroll
   useEffect(() => {
@@ -40,15 +43,17 @@ export default function AnnouncementsModal({
     };
   }, [isOpen, onClose]);
 
-  // Fetch Workplace Announcements only (matching reference design)
   const {
-    data: workplaceData,
+    data: announcementsData,
     isLoading,
     isError,
     error,
   } = useQuery({
-    queryKey: ['workplace-announcements'],
-    queryFn: () => userService.getWorkplaceAnnouncements({ pageSize: 50 }),
+    queryKey,
+    queryFn: () =>
+      isPlatform
+        ? userService.getPlatformAnnouncements({ pageSize: 50 })
+        : userService.getWorkplaceAnnouncements({ pageSize: 50 }),
     enabled: isOpen,
     staleTime: 30 * 1000,
     retry: false,
@@ -58,7 +63,7 @@ export default function AnnouncementsModal({
   const deleteMutation = useMutation({
     mutationFn: (id) => userService.deleteAnnouncement(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['workplace-announcements'] });
+      queryClient.invalidateQueries({ queryKey });
     },
     onError: (err) => {
       console.error('Failed to delete announcement:', err);
@@ -67,7 +72,7 @@ export default function AnnouncementsModal({
 
   if (!isOpen) return null;
 
-  const items = workplaceData?.items || [];
+  const items = announcementsData?.items || [];
 
   return (
     <div

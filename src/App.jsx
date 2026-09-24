@@ -24,6 +24,7 @@ import IndividualDetails from './pages/admin/IndividualDetails.jsx';
 import OrganizationWallets from './pages/admin/OrganizationWallets.jsx';
 import OrganizationWalletDetails from './pages/admin/OrganizationWalletDetails.jsx';
 import IndividualWallets from './pages/admin/IndividualWallets.jsx';
+import AuditLogs from './pages/admin/AuditLogs.jsx';
 import OrgDashboard from './pages/org/OrgDashboard.jsx';
 import Members from './pages/org/Members.jsx';
 import MemberDetails from './pages/org/MemberDetails.jsx';
@@ -78,6 +79,10 @@ function App() {
                 <Route path="/wallets/organization/:id" element={<OrganizationWalletDetails />} />
                 <Route path="/wallets/individual" element={<IndividualWallets />} />
                 <Route path="/wallets/individuals" element={<IndividualWallets />} />
+
+                {/* Audit Logs routes */}
+                <Route path="/audit-logs" element={<AuditLogs />} />
+                <Route path="/admin/audit-logs" element={<AuditLogs />} />
 
                 {/* Admin alias routes */}
                 <Route path="/admin/dashboard" element={<Dashboard />} />

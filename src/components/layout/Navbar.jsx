@@ -2,10 +2,12 @@ import React, { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import logo from '../../assets/logo.jpg';
 import Button from '../common/Button';
-import { Bell, Coins, LayoutDashboard, User, UsersRound, Wallet, Menu, X } from 'lucide-react';
+import { Bell, Coins, LayoutDashboard, User, UsersRound, Wallet, Menu, X, ScrollText } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth.js';
+import { useQueryClient } from '@tanstack/react-query';
 import ProfileModal from '../modals/ProfileModal.jsx';
 import AnnouncementsModal from '../modals/AnnouncementsModal.jsx';
+import PublishAnnouncementModal from '../modals/PublishAnnouncementModal.jsx';
 import WalletDropdown from './WalletDropdown.jsx';
 
 const NAV_ITEMS = [
@@ -20,8 +22,10 @@ const Navbar = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isAnnouncementsOpen, setIsAnnouncementsOpen] = useState(false);
+  const [isPublishOpen, setIsPublishOpen] = useState(false);
   const [isWalletOpen, setIsWalletOpen] = useState(false);
   const location = useLocation();
+  const queryClient = useQueryClient();
   const { user } = useAuth();
   const displayName = user?.firstName || user?.name?.split(' ')[0] || 'Tayo';
 
@@ -96,18 +100,50 @@ const Navbar = () => {
               )
             )}
           </nav>
-          <button
-            type="button"
-            onClick={() => setIsAnnouncementsOpen(true)}
-            className="rounded-full p-2.5 border hover:bg-primary/10 border-slate-200 text-slate-500 hover:text-primary cursor-pointer transition-colors"
-            aria-label="View announcements"
-          >
-            <Bell className="w-4 h-4" />
-          </button>
+          <div className="flex items-center space-x-2">
+            <NavLink
+              to="/audit-logs"
+              className={({ isActive }) =>
+                `rounded-full p-2.5 border transition-colors flex items-center justify-center cursor-pointer ${
+                  isActive
+                    ? 'bg-primary/10 border-primary text-primary'
+                    : 'border-slate-200 text-slate-500 hover:text-primary hover:bg-primary/10'
+                }`
+              }
+              aria-label="View audit logs"
+              title="Audit Logs"
+            >
+              <ScrollText className="w-4 h-4" />
+            </NavLink>
+            <button
+              type="button"
+              onClick={() => setIsAnnouncementsOpen(true)}
+              className="rounded-full p-2.5 border hover:bg-primary/10 border-slate-200 text-slate-500 hover:text-primary cursor-pointer transition-colors"
+              aria-label="View announcements"
+              title="Announcements"
+            >
+              <Bell className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
-        {/* Mobile / Tablet Actions: Bell + Menu Toggle */}
+        {/* Mobile / Tablet Actions: Logs + Bell + Menu Toggle */}
         <div className="flex xl:hidden items-center space-x-2 sm:space-x-3">
+          <NavLink
+            to="/audit-logs"
+            onClick={() => setMobileOpen(false)}
+            className={({ isActive }) =>
+              `rounded-full p-2 border transition-colors flex items-center justify-center cursor-pointer ${
+                isActive
+                  ? 'bg-primary/20 border-primary text-primary'
+                  : 'border-primary/30 text-primary hover:bg-primary/20'
+              }`
+            }
+            aria-label="View audit logs"
+            title="Audit Logs"
+          >
+            <ScrollText className="w-5 h-5" />
+          </NavLink>
           <button
             type="button"
             onClick={() => setIsAnnouncementsOpen(true)}
@@ -192,6 +228,23 @@ const Navbar = () => {
               </NavLink>
             )
           )}
+          <NavLink
+            to="/audit-logs"
+            onClick={() => setMobileOpen(false)}
+            className="w-full inline-flex"
+          >
+            {({ isActive }) => (
+              <Button
+                as="span"
+                icon={ScrollText}
+                size="md"
+                variant={isActive ? 'primaryLink' : 'outline'}
+                className="w-full justify-start px-4"
+              >
+                Audit Logs
+              </Button>
+            )}
+          </NavLink>
         </nav>
       )}
 
@@ -205,6 +258,20 @@ const Navbar = () => {
       <AnnouncementsModal
         isOpen={isAnnouncementsOpen}
         onClose={() => setIsAnnouncementsOpen(false)}
+        scope="platform"
+        onAddAnnouncement={() => {
+          setIsAnnouncementsOpen(false);
+          setIsPublishOpen(true);
+        }}
+      />
+
+      {/* Publish Announcement Modal */}
+      <PublishAnnouncementModal
+        isOpen={isPublishOpen}
+        onClose={() => setIsPublishOpen(false)}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ['platform-announcements'] });
+        }}
       />
     </header>
   );

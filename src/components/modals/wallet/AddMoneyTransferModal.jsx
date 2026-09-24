@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Copy, Check, AlertCircle, Loader2 } from 'lucide-react';
 import WalletBaseModal from './WalletBaseModal.jsx';
 import { walletService } from '../../../api/services/wallet.service.js';
+import { Currency } from '../../../data/enums.js';
 
 export default function AddMoneyTransferModal({
   isOpen,
@@ -18,15 +19,27 @@ export default function AddMoneyTransferModal({
     error,
     refetch,
   } = useQuery({
-    queryKey: ['org-virtual-accounts'],
-    queryFn: () => walletService.getOrgVirtualAccounts(),
+    queryKey: ['primary-virtual-account', Currency.NGN],
+    queryFn: async () => {
+      return walletService.getPrimaryVirtualAccount({ currency: Currency.NGN });
+    },
     enabled: isOpen && !customAccounts,
     staleTime: 30 * 1000,
   });
 
   if (!isOpen) return null;
 
-  const accounts = customAccounts || (Array.isArray(liveAccounts) ? liveAccounts : []);
+  const resolveAccountList = (data) => {
+    if (!data) return [];
+    if (Array.isArray(data)) return data;
+    if (Array.isArray(data.items)) return data.items;
+    if (Array.isArray(data.accounts)) return data.accounts;
+    const target = data.data || data.virtualAccount || data;
+    if (target?.accountNumber || target?.account_number) return [target];
+    return [];
+  };
+
+  const accounts = customAccounts || resolveAccountList(liveAccounts);
 
   const handleCopy = async (account) => {
     const accNum = account.accountNumber || account.account_number;
@@ -91,9 +104,16 @@ export default function AddMoneyTransferModal({
                 key={accId}
                 className="flex items-center justify-between px-4 py-3.5 hover:bg-slate-50/50 transition-colors"
               >
-                <span className="text-xs sm:text-sm text-slate-700 font-normal">
-                  {acc.bankName || acc.bank_name || 'Commercial Bank'}
-                </span>
+                <div className="flex flex-col pr-2">
+                  <span className="text-xs sm:text-sm text-slate-700 font-medium">
+                    {acc.bankName || acc.bank_name || 'Commercial Bank'}
+                  </span>
+                  {(acc.accountName || acc.account_name) && (
+                    <span className="text-[11px] text-slate-400 truncate max-w-[170px]">
+                      {acc.accountName || acc.account_name}
+                    </span>
+                  )}
+                </div>
 
                 <div className="flex items-center space-x-2">
                   <span className="text-xs sm:text-sm font-bold text-primary-text tracking-wider font-mono">
