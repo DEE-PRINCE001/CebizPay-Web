@@ -169,6 +169,15 @@ export default function OrgDashboard() {
             balance={formattedBalance}
             currency={currencySymbol}
             className="h-full"
+            virtualAccount={
+              walletData?.accountNumber
+                ? {
+                    accountNumber: walletData.accountNumber,
+                    bankName: walletData.bankName,
+                    accountName: walletData.accountName,
+                  }
+                : null
+            }
             actions={
               <div className="flex flex-wrap items-center gap-3">
                 <button

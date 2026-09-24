@@ -43,13 +43,13 @@ function formatEventTime(isoString) {
 
 function getActionBadgeStyle(action) {
   const normalized = String(action || '').toLowerCase();
-  if (normalized.includes('create') || normalized.includes('add') || normalized.includes('register')) {
+  if (normalized.includes('create') || normalized.includes('add') || normalized.includes('register') || normalized.includes('published')) {
     return 'bg-emerald-50 text-emerald-700 border-emerald-200';
   }
-  if (normalized.includes('update') || normalized.includes('edit') || normalized.includes('modify')) {
+  if (normalized.includes('update') || normalized.includes('edit') || normalized.includes('modify') || normalized.includes('verified') || normalized.includes('activated')) {
     return 'bg-blue-50 text-blue-700 border-blue-200';
   }
-  if (normalized.includes('delete') || normalized.includes('remove') || normalized.includes('suspend') || normalized.includes('reject')) {
+  if (normalized.includes('delete') || normalized.includes('remove') || normalized.includes('suspend') || normalized.includes('reject') || normalized.includes('archived')) {
     return 'bg-rose-50 text-rose-700 border-rose-200';
   }
   if (normalized.includes('login') || normalized.includes('auth')) {
