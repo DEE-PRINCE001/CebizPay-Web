@@ -9,13 +9,15 @@ import ActionConfirmModal from '../../components/modals/ActionConfirmModal.jsx';
 import { adminService } from '../../api/services/admin.service.js';
 import { getStoredAccessToken } from '../../api/client.js';
 import { Loader2, AlertCircle } from 'lucide-react';
-import { OrganizationStatusValues } from '../../data/enums.js';
+import { OrganizationStatusValues, KybStatusValues } from '../../data/enums.js';
+import { useAuth } from '../../hooks/useAuth.js';
 
 export default function OrganizationDetails() {
   const { id } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   const [statusOverride, setStatusOverride] = useState(null);
 
@@ -42,10 +44,26 @@ export default function OrganizationDetails() {
     };
   }, [apiOrg, location.state, statusOverride]);
 
-  // Live Mutation: Update Organization Status (Admin lifecycle transition)
+  // Live Mutation: Update Organization Status (Admin lifecycle transition / KYB review)
   const updateStatusMutation = useMutation({
     mutationFn: async ({ statusName, reason }) => {
-      // Real backend C# enum (OrganizationStatus: Pending=1, Verified=2, Rejected=3, Suspended=4)
+      if (organization?.status === 'Pending') {
+        const kybStatusMap = {
+          Verified: KybStatusValues.Verified,
+          Active: KybStatusValues.Verified,
+          Rejected: KybStatusValues.Rejected,
+        };
+        const kybStatusCode = kybStatusMap[statusName] ?? KybStatusValues.Verified;
+        const adminUserId = user?.userId || user?.id || '';
+
+        return adminService.organizations.reviewKyb({
+          organizationId: id,
+          newStatus: kybStatusCode,
+          adminUserId,
+          reason: reason || `KYB ${statusName} by admin`,
+        });
+      }
+
       const statusMap = {
         Pending: OrganizationStatusValues.Pending,
         Verified: OrganizationStatusValues.Verified,
@@ -55,11 +73,10 @@ export default function OrganizationDetails() {
       };
       const statusCode = statusMap[statusName] ?? OrganizationStatusValues.Verified;
 
-      const res = await adminService.organizations.updateStatus(id, {
+      return adminService.organizations.updateStatus(id, {
         status: statusCode,
         reason: reason || `Status updated to ${statusName} by admin`,
       });
-      return res;
     },
     onSuccess: (data, variables) => {
       const newStatus = data?.status || variables.statusName;
